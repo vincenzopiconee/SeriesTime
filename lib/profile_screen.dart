@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'settings_screen.dart';
 
-// Modello per gestire i dati delle serie
 class Series {
   final String name;
   final String imageUrl;
@@ -21,7 +20,6 @@ class Series {
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
-  // Funzione per recuperare i dati reali da TVMaze
   Future<List<Series>> fetchSeriesData() async {
     final List<String> showNames = [
       "Peaky Blinders",
@@ -34,7 +32,6 @@ class ProfileScreen extends StatelessWidget {
       "Stranger Things",
     ];
 
-    // Dati simulati per percentuali e ore come da screenshot
     final List<double> percentages = [
       1.0,
       0.15,
@@ -106,7 +103,6 @@ class ProfileScreen extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         child: Column(
           children: [
-            // Avatar e Nome
             const CircleAvatar(
               radius: 45,
               backgroundColor: Color(0xFF4A5568),
@@ -124,8 +120,6 @@ class ProfileScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 25),
-
-            // Sezione STATISTICS
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(15),
@@ -159,7 +153,6 @@ class ProfileScreen extends StatelessWidget {
             ),
             const SizedBox(height: 15),
 
-            // Griglia dinamica con API
             FutureBuilder<List<Series>>(
               future: fetchSeriesData(),
               builder: (context, snapshot) {
@@ -180,8 +173,7 @@ class ProfileScreen extends StatelessWidget {
                     crossAxisCount: 2,
                     crossAxisSpacing: 15,
                     mainAxisSpacing: 15,
-                    childAspectRatio:
-                        1.3, // Proporzione rettangolare per il Row
+                    childAspectRatio: 1.3,
                   ),
                   itemBuilder: (context, index) {
                     return _buildSeriesCard(snapshot.data![index]);
@@ -192,7 +184,6 @@ class ProfileScreen extends StatelessWidget {
 
             const SizedBox(height: 25),
 
-            // Bottone View More
             ElevatedButton(
               onPressed: () {},
               style: ElevatedButton.styleFrom(
@@ -267,7 +258,6 @@ class ProfileScreen extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // Parte Sinistra: Immagine Poster
           Expanded(
             flex: 4,
             child: ClipRRect(
@@ -284,7 +274,6 @@ class ProfileScreen extends StatelessWidget {
               ),
             ),
           ),
-          // Parte Destra: Info
           Expanded(
             flex: 5,
             child: Column(

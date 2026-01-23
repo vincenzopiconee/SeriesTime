@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'main.dart'; // Per navigare verso MainWrapper
+import 'main.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -14,6 +14,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   late ScrollController _scrollController;
   List<String> _posters = [];
+  Timer? _scrollTimer;
 
   @override
   void initState() {
@@ -21,38 +22,54 @@ class _LoginScreenState extends State<LoginScreen> {
     _scrollController = ScrollController();
     _fetchPosters();
 
-    // Timer per far muovere lo sfondo automaticamente
-    WidgetsBinding.instance.addPostFrameCallback((_) => _startScrolling());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _startAutoScroll();
+    });
   }
 
-  void _startScrolling() {
-    if (_scrollController.hasClients) {
-      double maxScroll = _scrollController.position.maxScrollExtent;
-      double currentScroll = _scrollController.position.pixels;
+  void _startAutoScroll() {
+    _scrollTimer = Timer.periodic(const Duration(milliseconds: 50), (timer) {
+      if (_scrollController.hasClients && _posters.isNotEmpty) {
+        double currentScroll = _scrollController.offset;
+        double maxScroll = _scrollController.position.maxScrollExtent;
 
-      // Scorrimento fluido infinito
-      _scrollController
-          .animateTo(
-            maxScroll == currentScroll ? 0 : maxScroll,
-            duration: Duration(seconds: 40),
-            curve: Curves.linear,
-          )
-          .then((_) => _startScrolling());
-    }
+        double nextScroll = currentScroll + 1.0;
+
+        if (nextScroll >= maxScroll) {
+          _scrollController.jumpTo(0);
+        } else {
+          _scrollController.jumpTo(nextScroll);
+        }
+      }
+    });
   }
 
   Future<void> _fetchPosters() async {
-    // Pesca serie popolari per lo sfondo
-    final response = await http.get(Uri.parse('https://api.tvmaze.com/shows'));
-    if (response.statusCode == 200) {
-      final List data = json.decode(response.body);
-      setState(() {
-        _posters = data
-            .take(30)
-            .map((s) => s['image']['medium'].toString())
-            .toList();
-      });
+    try {
+      final response = await http.get(
+        Uri.parse('https://api.tvmaze.com/shows'),
+      );
+      if (response.statusCode == 200) {
+        final List data = json.decode(response.body);
+        setState(() {
+          _posters = data
+              .take(30)
+              .map((s) => s['image']?['medium']?.toString() ?? '')
+              .where((url) => url.isNotEmpty)
+              .toList();
+          _posters = [..._posters, ..._posters];
+        });
+      }
+    } catch (e) {
+      print('Errore nel caricamento dei poster: $e');
     }
+  }
+
+  @override
+  void dispose() {
+    _scrollTimer?.cancel();
+    _scrollController.dispose();
+    super.dispose();
   }
 
   @override
@@ -61,22 +78,28 @@ class _LoginScreenState extends State<LoginScreen> {
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // 1. Sfondo Animato di Poster
-          Opacity(
-            opacity: 0.4,
-            child: GridView.builder(
-              controller: _scrollController,
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                childAspectRatio: 0.7,
-              ),
-              itemCount: _posters.length,
-              itemBuilder: (context, index) =>
-                  Image.network(_posters[index], fit: BoxFit.cover),
-            ),
-          ),
+          _posters.isEmpty
+              ? Container(color: Colors.black)
+              : Opacity(
+                  opacity: 0.4,
+                  child: GridView.builder(
+                    controller: _scrollController,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 3,
+                          childAspectRatio: 0.7,
+                        ),
+                    itemCount: _posters.length,
+                    itemBuilder: (context, index) => Image.network(
+                      _posters[index],
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) =>
+                          Container(color: Colors.grey[900]),
+                    ),
+                  ),
+                ),
 
-          // 2. Gradiente per scurire il fondo
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -91,18 +114,13 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
 
-          // 3. Contenuto Centrale (Logo e Titolo)
           Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Image.asset(
-                  'assets/images/logo.png', // Il percorso deve essere identico
-                  width: 150, // Regola la grandezza come vuoi
-                  height: 150,
-                ),
-                SizedBox(height: 20),
-                Text(
+                Image.asset('assets/images/logo.png', width: 200, height: 200),
+                const SizedBox(height: 20),
+                const Text(
                   "SERIES\nTIME",
                   textAlign: TextAlign.center,
                   style: TextStyle(
@@ -116,9 +134,8 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
 
-          // 4. Bottone in basso
           Positioned(
-            bottom: 60,
+            bottom: 120,
             left: 40,
             right: 40,
             child: ElevatedButton(
@@ -129,13 +146,13 @@ class _LoginScreenState extends State<LoginScreen> {
                 );
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: Color(0xFF8B261A),
-                padding: EdgeInsets.symmetric(vertical: 18),
+                backgroundColor: const Color(0xFF8B261A),
+                padding: const EdgeInsets.symmetric(vertical: 18),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(30),
                 ),
               ),
-              child: Text(
+              child: const Text(
                 "LOG IN/ SIGN IN",
                 style: TextStyle(
                   color: Colors.white,

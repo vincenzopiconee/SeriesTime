@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'login_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -35,7 +36,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // Header: Avatar e Nome
             const CircleAvatar(
               radius: 45,
               backgroundColor: Color(0xFF4A5568),
@@ -53,7 +53,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             const SizedBox(height: 25),
 
-            // Contenitore scuro SETTINGS
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 20),
               width: double.infinity,
@@ -78,7 +77,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   const SizedBox(height: 20),
 
-                  // Riquadro 1: APP SETTINGS
                   _buildSectionCard(
                     title: "App Settings",
                     children: [
@@ -91,7 +89,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                           Switch(
                             value: isNotificationsEnabled,
-                            activeColor: Colors.white,
+                            activeThumbColor: Colors.white,
                             activeTrackColor: const Color(0xFF8B261A),
                             onChanged: (val) =>
                                 setState(() => isNotificationsEnabled = val),
@@ -103,7 +101,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                   const SizedBox(height: 20),
 
-                  // Riquadro 2: ACCOUNT
                   _buildSectionCard(
                     title: "Account",
                     children: [
@@ -115,9 +112,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                   const SizedBox(height: 25),
 
-                  // Il tasto logout colorato che ti era piaciuto (opzionale, o puoi lasciarlo nel riquadro)
                   ElevatedButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(
+                          builder: (context) => const LoginScreen(),
+                        ),
+                        (Route<dynamic> route) => false,
+                      );
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF8B261A),
                       foregroundColor: Colors.white,
@@ -141,7 +144,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  // Costruisce i grandi riquadri bianchi con titolo rosso
   Widget _buildSectionCard({
     required String title,
     required List<Widget> children,
@@ -178,7 +180,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  // Riga standard con freccetta
   Widget _buildSettingsRow(String label) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
