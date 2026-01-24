@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'settings_screen.dart';
+import 'series_progress_screen.dart';
 
 class Series {
   final String name;
@@ -182,10 +183,17 @@ class ProfileScreen extends StatelessWidget {
               },
             ),
 
-            const SizedBox(height: 25),
+            const SizedBox(height: 5),
 
             ElevatedButton(
-              onPressed: () {},
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const SeriesProgressScreen(),
+                  ),
+                );
+              },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF2D3748),
                 foregroundColor: Colors.white,
@@ -202,7 +210,7 @@ class ProfileScreen extends StatelessWidget {
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
             ),
-            const SizedBox(height: 30),
+            const SizedBox(height: 120),
           ],
         ),
       ),
