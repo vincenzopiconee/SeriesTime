@@ -2,20 +2,16 @@ import 'series.dart';
 import 'dart:convert'; 
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
+import 'userbadge.dart'; 
 
 class AppData {
   static List<Series> userSeries = [];
-  static List<Map<String, String>> userBadges = [];
+  static List<UserBadge> userBadges = [];
+  
   
   static Future<void> initializeData() async {
     userSeries.clear();
-    userBadges = [
-      {"name": "Marathoner", "image": "assets/images/marathoner.png"},
-      {"name": "Obsession", "image": "assets/images/obsession.png"},
-      {"name": "Warrior", "image": "assets/images/warrior.png"},
-      {"name": "Binge King", "image": "assets/images/marathoner.png"},
-    ];
-
+    
     final List<Map<String, dynamic>> localData = [
       {"name": "Peaky Blinders", "perc": 1.0, "time": 36, "ep": "Finished"},
       {"name": "Lost", "perc": 0.15, "time": 14, "ep": "S1 E5"},
@@ -35,7 +31,7 @@ class AppData {
       {"name": "Black Mirror", "perc": 0.30, "time": 22, "ep": "S4 E1"},
       {"name": "Narcos", "perc": 0.85, "time": 25, "ep": "S3 E2"},
       {"name": "Wednesday", "perc": 0.90, "time": 8, "ep": "S1 E7"},
-    {"name": "Money Heist", "perc": 0.99, "time": 46, "ep": "S5 E10"},
+      {"name": "Money Heist", "perc": 0.99, "time": 46, "ep": "S5 E10"},
       {"name": "True Detective", "perc": 0.45, "time": 24, "ep": "S2 E1"},
       {"name": "Sherlock", "perc": 0.70, "time": 18, "ep": "S3 E2"},
       {"name": "Mindhunter", "perc": 0.50, "time": 19, "ep": "S2 E5"},
@@ -50,7 +46,7 @@ class AppData {
       {"name": "Fargo", "perc": 0.15, "time": 40, "ep": "S1 E6"},
     ];
 
-  await Future.wait(localData.map((item) async {
+    await Future.wait(localData.map((item) async {
       final url = await fetchImageUrl(item['name']);
       userSeries.add(Series(
         name: item['name'],
@@ -60,6 +56,107 @@ class AppData {
         episode: item['ep'],
       ));
     }));
+
+    int totalHoursSeen = 0;
+    for (var series in userSeries) {
+      totalHoursSeen += (series.totalHours * series.percentage).toInt();
+    }
+
+    userBadges = [];
+
+    if (totalHoursSeen >= 24) {
+      String mPath = "assets/images/marathoner_base.png";
+      String mLabel = "1G";
+
+      if (totalHoursSeen >= 2400) { 
+        mPath = "assets/images/marathoner_diamond.png";
+        mLabel = "100G";
+      } else if (totalHoursSeen >= 480) { 
+        mPath = "assets/images/marathoner_gold.png";
+        mLabel = "20G";
+      } else if (totalHoursSeen >= 240) {
+        mPath = "assets/images/marathoner_silver.png";
+        mLabel = "10G";
+      } else if (totalHoursSeen >= 72) { 
+        mPath = "assets/images/marathoner_bronze.png";
+        mLabel = "3G";
+      }
+
+      userBadges.add(
+        UserBadge(
+          id: "marathoner",
+          title: "Marathoner",
+          imagePath: mPath,
+          iconLabel: mLabel,
+        ),
+      );
+    }
+    /* LOGICA PURE OBSESSION (Temporaneamente statica)
+       Quando avrai la logica temporale, userai una variabile tipo 'maxConsecutiveHours'
+    */
+    
+    int maxConsecutiveHours = 3; // Questo valore verrà calcolato in futuro
+
+    if (maxConsecutiveHours >= 1) {
+      String pPath = "assets/images/pure_obsession_base.png";
+      String pLabel = "1H";
+
+      if (maxConsecutiveHours >= 20) {
+        pPath = "assets/images/pure_obsession_diamond.png";
+        pLabel = "20H";
+      } else if (maxConsecutiveHours >= 14) {
+        pPath = "assets/images/pure_obsession_gold.png";
+        pLabel = "14H";
+      } else if (maxConsecutiveHours >= 8) {
+        pPath = "assets/images/pure_obsession_silver.png";
+        pLabel = "8H";
+      } else if (maxConsecutiveHours >= 3) {
+        pPath = "assets/images/pure_obsession_bronze.png";
+        pLabel = "3H";
+      }
+
+      userBadges.add(
+        UserBadge(
+          id: "pure_obsession",
+          title: "Pure Obsession",
+          imagePath: pPath,
+          iconLabel: pLabel,
+        ),
+      );
+    }
+
+    /* LOGICA WEEKEND WARRIOR
+       In futuro, questa variabile conterrà le ore viste tra Venerdì Sabato e Domenica
+    */
+    int weekendHours = 50; 
+
+    if (weekendHours >= 3) {
+      String wPath = "assets/images/weekend_warrior_base.png";
+      String wLabel = "3H / 3G"; 
+
+      if (weekendHours >= 48) {
+        wPath = "assets/images/weekend_warrior_diamond.png";
+        wLabel = "48H / 3G";
+      } else if (weekendHours >= 24) {
+        wPath = "assets/images/weekend_warrior_gold.png";
+        wLabel = "24H / 3G";
+      } else if (weekendHours >= 15) {
+        wPath = "assets/images/weekend_warrior_silver.png";
+        wLabel = "15H / 3G";
+      } else if (weekendHours >= 10) {
+        wPath = "assets/images/weekend_warrior_bronze.png";
+        wLabel = "10H / 3G";
+      }
+
+      userBadges.add(
+        UserBadge(
+          id: "weekend_warrior",
+          title: "Weekend Warrior",
+          imagePath: wPath,
+          iconLabel: wLabel,
+        ),
+      );
+    }
   }
 
   static Future<String> fetchImageUrl(String name) async {
@@ -74,4 +171,7 @@ class AppData {
     }
     return '';
   }
+
+  
+  
 }

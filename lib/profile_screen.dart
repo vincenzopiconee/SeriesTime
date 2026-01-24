@@ -5,6 +5,7 @@ import 'settings_screen.dart';
 import 'series_progress_screen.dart';
 import 'models/appdata.dart';
 import 'models/series.dart';
+import 'models/userbadge.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -98,13 +99,25 @@ class ProfileScreen extends StatelessWidget {
 
             SizedBox(
               height: 105,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: AppData.userBadges.length,
-                itemBuilder: (context, index) {
-                  return _buildBadgeItem(AppData.userBadges[index]);
-                },
-              ),
+              child: AppData.userBadges.isEmpty
+                  ? Center(
+                      child: Text(
+                        "You don't have any badges yet.\nKeep watching to unlock them!",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 14,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    )
+                  : ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: AppData.userBadges.length,
+                      itemBuilder: (context, index) {
+                        return _buildBadgeItem(AppData.userBadges[index]);
+                      },
+                    ),
             ),
 
             const SizedBox(height: 30),
@@ -420,7 +433,7 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildBadgeItem(Map<String, String> badge) {
+  Widget _buildBadgeItem(UserBadge badge) {
     return Container(
       width: 85,
       margin: const EdgeInsets.only(right: 15),
@@ -428,33 +441,25 @@ class ProfileScreen extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: const Color(0xFF2D3748), width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 5,
-            offset: const Offset(2, 2),
-          ),
-        ],
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
+          Text(
+            badge.iconLabel,
+            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 4),
           Image.asset(
-            badge['image']!,
+            badge.imagePath,
             height: 45,
             width: 45,
             fit: BoxFit.contain,
-            errorBuilder: (context, error, stackTrace) =>
-                const Icon(Icons.workspace_premium, color: Colors.amber),
           ),
           const SizedBox(height: 6),
           Text(
-            badge['name']!.toUpperCase(),
-            style: const TextStyle(
-              fontSize: 9,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF2D3748),
-            ),
+            badge.title.toUpperCase(),
+            style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold),
             textAlign: TextAlign.center,
           ),
         ],

@@ -10,7 +10,7 @@ class Series {
     required this.imageUrl,
     required this.percentage,
     required this.totalHours,
-    this.episode = "S1 E1",
+    required this.episode,
   });
 
   String get timeLabel => "${totalHours}h";
