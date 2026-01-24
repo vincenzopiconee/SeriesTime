@@ -22,7 +22,6 @@ class BingeModeScreen extends StatelessWidget {
         ),
       ),
       body: SingleChildScrollView(
-        // Aggiungiamo un padding bottom generoso per la Navbar
         padding: const EdgeInsets.only(
           left: 20,
           right: 20,
@@ -37,7 +36,6 @@ class BingeModeScreen extends StatelessWidget {
                   "Reach 20 days of total watch time. Your dedication is admirable.",
               progressText: "10d 3h 2m / 20d 00h 00m",
               progressValue: 0.5,
-              // Usiamo un URL diretto di un'immagine da TVMaze
               imageUrl:
                   "https://static.tvmaze.com/uploads/images/medium_portrait/497/1243533.jpg",
               iconLabel: "20G",
@@ -74,7 +72,7 @@ class BingeModeScreen extends StatelessWidget {
     required String description,
     required String progressText,
     required double progressValue,
-    required String imageUrl, // Cambiato da imagePath a imageUrl
+    required String imageUrl,
     required String iconLabel,
   }) {
     return Container(
@@ -113,7 +111,6 @@ class BingeModeScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 4),
-                // MODIFICA: Usiamo Image.network invece di Image.asset
                 SizedBox(
                   height: 45,
                   width: 45,
@@ -122,13 +119,11 @@ class BingeModeScreen extends StatelessWidget {
                     child: Image.network(
                       imageUrl,
                       fit: BoxFit.cover,
-                      // Gestione errore se l'URL non è valido o manca connessione
                       errorBuilder: (context, error, stackTrace) => const Icon(
                         Icons.broken_image,
                         color: Colors.grey,
                         size: 30,
                       ),
-                      // Caricamento con indicatore
                       loadingBuilder: (context, child, loadingProgress) {
                         if (loadingProgress == null) return child;
                         return const Center(

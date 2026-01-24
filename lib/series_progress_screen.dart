@@ -1,55 +1,14 @@
 import 'package:flutter/material.dart';
-import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'models/appdata.dart';
+import 'models/series.dart';
 
-class SeriesProgressScreen extends StatefulWidget {
+class SeriesProgressScreen extends StatelessWidget {
   const SeriesProgressScreen({super.key});
 
   @override
-  State<SeriesProgressScreen> createState() => _SeriesProgressScreenState();
-}
-
-class _SeriesProgressScreenState extends State<SeriesProgressScreen> {
-  final Map<String, String> _seriesImages = {};
-  bool _isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadSeriesImages();
-  }
-
-  Future<void> _loadSeriesImages() async {
-    final List<String> showNames = ["Breaking Bad", "Squid Game"];
-
-    try {
-      for (String name in showNames) {
-        final response = await http.get(
-          Uri.parse('https://api.tvmaze.com/singlesearch/shows?q=$name'),
-        );
-
-        if (response.statusCode == 200) {
-          final data = json.decode(response.body);
-          if (mounted) {
-            setState(() {
-              _seriesImages[name] = data['image'] != null
-                  ? data['image']['medium']
-                  : '';
-            });
-          }
-        }
-      }
-    } catch (e) {
-      debugPrint("Errore: $e");
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final List<Series> progressList = AppData.userSeries;
+    progressList.sort((a, b) => b.percentage.compareTo(a.percentage));
     return Scaffold(
       backgroundColor: const Color(0xFFF2F0EB),
       appBar: AppBar(
@@ -70,34 +29,36 @@ class _SeriesProgressScreenState extends State<SeriesProgressScreen> {
           ),
         ),
       ),
-      body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: Color(0xFF8B261A)),
-            )
-          : ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-              children: [
-                _buildProgressCard(
-                  title: "Breaking Bad",
-                  episode: "S5 E9",
-                  percentage: 0.92,
-                  totalHours: "57h",
-                  timeLeft: "7h left",
-                  imageUrl: _seriesImages["Breaking Bad"] ?? "",
-                ),
-                const SizedBox(height: 15),
-                _buildProgressCard(
-                  title: "Squid Game",
-                  episode: "S3 E6",
-                  percentage: 1.0,
-                  totalHours: "24h",
-                  timeLeft: "Finished",
-                  imageUrl: _seriesImages["Squid Game"] ?? "",
-                  isFinished: true,
-                ),
-                const SizedBox(height: 130),
-              ],
+      body: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+        itemCount: progressList.length,
+        itemBuilder: (context, index) {
+          final series = progressList[index];
+
+          int hoursSeen = (series.totalHours * series.percentage).round();
+          int hoursLeft = series.totalHours - hoursSeen;
+
+          String leftText;
+          if (series.percentage >= 1.0) {
+            leftText = "Finished";
+          } else {
+            leftText = "${hoursLeft > 0 ? hoursLeft : 0}h left";
+          }
+
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 15),
+            child: _buildProgressCard(
+              title: series.name,
+              episode: series.episode,
+              percentage: series.percentage,
+              totalHours: series.timeLabel,
+              timeLeft: leftText,
+              imageUrl: series.imageUrl,
+              isFinished: series.percentage >= 1.0,
             ),
+          );
+        },
+      ),
     );
   }
 
@@ -126,27 +87,25 @@ class _SeriesProgressScreenState extends State<SeriesProgressScreen> {
       ),
       child: Row(
         children: [
-          ClipRRect(
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(18),
-              bottomLeft: Radius.circular(18),
+          Container(
+            margin: const EdgeInsets.all(10),
+            width: 60,
+            height: 90,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(15),
+              border: Border.all(color: const Color(0xFF2D3748), width: 1.5),
             ),
-            child: SizedBox(
-              width: 80,
-              height: double.infinity,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(13),
               child: imageUrl.isNotEmpty
-                  ? Image.network(
-                      imageUrl,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) =>
-                          Container(color: Colors.grey[300]),
-                    )
+                  ? Image.network(imageUrl, fit: BoxFit.cover)
                   : Container(
                       color: Colors.grey[300],
-                      child: const Icon(Icons.downloading, color: Colors.white),
+                      child: const Icon(Icons.movie_creation_outlined),
                     ),
             ),
           ),
+
           Expanded(
             child: Padding(
               padding: const EdgeInsets.all(12),

@@ -2,9 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'profile_screen.dart';
 import 'login_screen.dart';
+import 'models/appdata.dart';
 
-// 1. LA FUNZIONE MAIN (Indispensabile)
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await AppData.initializeData();
+
   runApp(const MyApp());
 }
 
@@ -22,12 +26,11 @@ class MyApp extends StatelessWidget {
         textTheme: GoogleFonts.firaSansCondensedTextTheme(),
         scaffoldBackgroundColor: const Color(0xFFF2F0EB),
       ),
-      home: const LoginScreen(), // Parte dalla Login
+      home: const LoginScreen(),
     );
   }
 }
 
-// 2. IL MAIN WRAPPER (Quello che mancava!)
 class MainWrapper extends StatefulWidget {
   const MainWrapper({super.key});
 
@@ -42,7 +45,7 @@ class _MainWrapperState extends State<MainWrapper> {
     const ProfileScreen(),
     const Center(child: Text("Explore")),
     const Center(child: Text("Favourites")),
-    const BingeModeScreen(), // La tua nuova pagina
+    const BingeModeScreen(),
   ];
 
   @override
@@ -114,7 +117,6 @@ class _MainWrapperState extends State<MainWrapper> {
   }
 }
 
-// 3. LA TUA PAGINA BINGE MODE (Sotto il resto)
 class BingeModeScreen extends StatelessWidget {
   const BingeModeScreen({super.key});
 

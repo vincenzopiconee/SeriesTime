@@ -3,87 +3,28 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'settings_screen.dart';
 import 'series_progress_screen.dart';
-
-class Series {
-  final String name;
-  final String imageUrl;
-  final double percentage;
-  final String time;
-
-  Series({
-    required this.name,
-    required this.imageUrl,
-    required this.percentage,
-    required this.time,
-  });
-}
+import 'models/appdata.dart';
+import 'models/series.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
-  Future<List<Series>> fetchSeriesData() async {
-    final List<String> showNames = [
-      "Peaky Blinders",
-      "Lost",
-      "Lucifer",
-      "Game of Thrones",
-      "Senna",
-      "Squid Game",
-      "Money Heist",
-      "Stranger Things",
-    ];
-
-    final List<double> percentages = [
-      1.0,
-      0.15,
-      0.65,
-      0.88,
-      0.50,
-      1.0,
-      0.75,
-      0.42,
-    ];
-    final List<String> hours = [
-      "36h",
-      "14h",
-      "54h",
-      "62h",
-      "3h",
-      "24h",
-      "29h",
-      "15h",
-    ];
-
-    List<Series> loadedSeries = [];
-
-    for (int i = 0; i < showNames.length; i++) {
-      try {
-        final response = await http.get(
-          Uri.parse(
-            'https://api.tvmaze.com/singlesearch/shows?q=${showNames[i]}',
-          ),
-        );
-
-        if (response.statusCode == 200) {
-          final data = json.decode(response.body);
-          loadedSeries.add(
-            Series(
-              name: data['name'],
-              imageUrl: data['image'] != null ? data['image']['medium'] : '',
-              percentage: percentages[i],
-              time: hours[i],
-            ),
-          );
-        }
-      } catch (e) {
-        debugPrint("Errore caricamento ${showNames[i]}: $e");
-      }
-    }
-    return loadedSeries;
-  }
-
   @override
   Widget build(BuildContext context) {
+    double totalHoursSeen = 0;
+    for (var series in AppData.userSeries) {
+      totalHoursSeen += (series.totalHours * series.percentage);
+    }
+
+    int days = (totalHoursSeen / 24).floor();
+    int remainingHours = (totalHoursSeen % 24).floor();
+    int minutes = ((totalHoursSeen - totalHoursSeen.floor()) * 60).round();
+    final List<Series> filteredSeries = AppData.userSeries
+        .where((s) => s.percentage < 1.0)
+        .toList();
+    filteredSeries.sort((a, b) => b.percentage.compareTo(a.percentage));
+    final List<Series> displaySeries = filteredSeries.take(6).toList();
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -134,8 +75,9 @@ class ProfileScreen extends StatelessWidget {
                     "STATISTICS",
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
+
                   const SizedBox(height: 15),
-                  _buildWatchTimeCard(),
+                  _buildWatchTimeCard(days, remainingHours, minutes),
                   const SizedBox(height: 20),
                   _buildFakeChart(),
                 ],
@@ -144,7 +86,28 @@ class ProfileScreen extends StatelessWidget {
 
             const SizedBox(height: 30),
 
-            // Titolo Griglia
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                "MY BADGES",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+            ),
+
+            const SizedBox(height: 15),
+
+            SizedBox(
+              height: 105,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: AppData.userBadges.length,
+                itemBuilder: (context, index) {
+                  return _buildBadgeItem(AppData.userBadges[index]);
+                },
+              ),
+            ),
+
+            const SizedBox(height: 30),
             const Align(
               alignment: Alignment.centerLeft,
               child: Text(
@@ -154,32 +117,18 @@ class ProfileScreen extends StatelessWidget {
             ),
             const SizedBox(height: 15),
 
-            FutureBuilder<List<Series>>(
-              future: fetchSeriesData(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(
-                    child: CircularProgressIndicator(color: Color(0xFF8B261A)),
-                  );
-                }
-                if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return const Text("Impossibile caricare le serie.");
-                }
-
-                return GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: snapshot.data!.length,
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 15,
-                    mainAxisSpacing: 15,
-                    childAspectRatio: 1.3,
-                  ),
-                  itemBuilder: (context, index) {
-                    return _buildSeriesCard(snapshot.data![index]);
-                  },
-                );
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: displaySeries.length,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 15,
+                mainAxisSpacing: 15,
+                childAspectRatio: 1.3,
+              ),
+              itemBuilder: (context, index) {
+                return _buildSeriesCard(displaySeries[index]);
               },
             ),
 
@@ -217,7 +166,7 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildWatchTimeCard() {
+  Widget _buildWatchTimeCard(int d, int h, int m) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 25),
@@ -228,9 +177,9 @@ class ProfileScreen extends StatelessWidget {
           BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10),
         ],
       ),
-      child: const Column(
+      child: Column(
         children: [
-          Text(
+          const Text(
             "TOTAL WATCH TIME:",
             textAlign: TextAlign.center,
             style: TextStyle(
@@ -240,10 +189,10 @@ class ProfileScreen extends StatelessWidget {
               letterSpacing: 1.2,
             ),
           ),
-          SizedBox(height: 10),
+          const SizedBox(height: 10),
           Text(
-            "10d  3h  2m",
-            style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+            "${d}d  ${h}h  ${m}m",
+            style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
           ),
         ],
       ),
@@ -267,18 +216,30 @@ class ProfileScreen extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            flex: 4,
-            child: ClipRRect(
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(20),
-                bottomLeft: Radius.circular(20),
+            flex: 5,
+            child: Container(
+              margin: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(15),
+                border: Border.all(color: const Color(0xFF2D3748), width: 1.5),
               ),
-              child: Image.network(
-                series.imageUrl,
-                height: double.infinity,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) =>
-                    const Icon(Icons.broken_image),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(13),
+                child: Image.network(
+                  series.imageUrl,
+                  height: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    width: double.infinity,
+                    height: double.infinity,
+                    color: Colors.grey[300],
+                    child: const Icon(
+                      Icons.broken_image,
+                      size: 24,
+                      color: Colors.grey,
+                    ),
+                  ),
+                ),
               ),
             ),
           ),
@@ -303,7 +264,7 @@ class ProfileScreen extends StatelessWidget {
                     Text(
                       "${(series.percentage * 100).toInt()}%",
                       style: const TextStyle(
-                        fontSize: 10,
+                        fontSize: 14,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -313,13 +274,13 @@ class ProfileScreen extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.access_time, size: 12, color: Colors.grey),
+                    const Icon(Icons.access_time, size: 18, color: Colors.grey),
                     const SizedBox(width: 3),
                     Text(
-                      series.time,
+                      series.timeLabel,
                       style: const TextStyle(
                         color: Colors.grey,
-                        fontSize: 11,
+                        fontSize: 14,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -453,6 +414,48 @@ class ProfileScreen extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBadgeItem(Map<String, String> badge) {
+    return Container(
+      width: 85,
+      margin: const EdgeInsets.only(right: 15),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFF2D3748), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 5,
+            offset: const Offset(2, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Image.asset(
+            badge['image']!,
+            height: 45,
+            width: 45,
+            fit: BoxFit.contain,
+            errorBuilder: (context, error, stackTrace) =>
+                const Icon(Icons.workspace_premium, color: Colors.amber),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            badge['name']!.toUpperCase(),
+            style: const TextStyle(
+              fontSize: 9,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF2D3748),
+            ),
+            textAlign: TextAlign.center,
           ),
         ],
       ),
