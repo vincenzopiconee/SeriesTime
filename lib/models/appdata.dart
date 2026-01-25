@@ -172,6 +172,22 @@ class AppData {
     return '';
   }
 
-  
-  
+
+static double getTotalWatchTimeHours() {
+  if (userSeries.isEmpty) return 0.0; // Sicurezza: evita calcoli su liste vuote
+  double total = 0;
+  for (var series in userSeries) {
+    total += (series.totalHours * series.percentage);
+  }
+  return total;
+}
+
+static Map<String, int> getTotalWatchTimeSplit() {
+  double totalHours = getTotalWatchTimeHours();
+  return {
+    "days": (totalHours / 24).floor(),
+    "hours": (totalHours % 24).floor(),
+    "minutes": ((totalHours - totalHours.floor()) * 60).round(),
+  };
+}
 }

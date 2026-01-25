@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'profile_screen.dart';
 import 'login_screen.dart';
 import 'models/appdata.dart';
+import 'binge_mode_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -117,6 +118,7 @@ class _MainWrapperState extends State<MainWrapper> {
   }
 }
 
+/*
 class BingeModeScreen extends StatelessWidget {
   const BingeModeScreen({super.key});
 
@@ -277,4 +279,4 @@ class BingeModeScreen extends StatelessWidget {
       ),
     );
   }
-}
+}*/

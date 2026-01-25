@@ -12,14 +12,10 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    double totalHoursSeen = 0;
-    for (var series in AppData.userSeries) {
-      totalHoursSeen += (series.totalHours * series.percentage);
-    }
-
-    int days = (totalHoursSeen / 24).floor();
-    int remainingHours = (totalHoursSeen % 24).floor();
-    int minutes = ((totalHoursSeen - totalHoursSeen.floor()) * 60).round();
+    final timeData = AppData.getTotalWatchTimeSplit();
+    final int days = timeData["days"]!;
+    final int remainingHours = timeData["hours"]!;
+    final int minutes = timeData["minutes"]!;
     final List<Series> filteredSeries = AppData.userSeries
         .where((s) => s.percentage < 1.0)
         .toList();

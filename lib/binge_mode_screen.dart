@@ -1,10 +1,19 @@
 import 'package:flutter/material.dart';
+import 'models/appdata.dart';
 
 class BingeModeScreen extends StatelessWidget {
   const BingeModeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final double totalHours = AppData.getTotalWatchTimeHours();
+    final Map<String, int> timeData = AppData.getTotalWatchTimeSplit();
+
+    final int d = timeData["days"] ?? 0;
+    final int h = timeData["hours"] ?? 0;
+    final int m = timeData["minutes"] ?? 0;
+    double progress = 480 > 0 ? totalHours / 480 : 0.0;
+    if (progress > 1.0) progress = 1.0;
     return Scaffold(
       backgroundColor: const Color(0xFFF2F0EB),
       appBar: AppBar(
@@ -32,10 +41,9 @@ class BingeModeScreen extends StatelessWidget {
           children: [
             _buildAchievementCard(
               title: "The Marathoner",
-              description:
-                  "Reach 20 days of total watch time. Your dedication is admirable.",
-              progressText: "10d 3h 2m / 20d 00h 00m",
-              progressValue: 0.5,
+              description: "Reach 20 days of total watch time.",
+              progressText: "${d}d ${h}h ${m}m / 20d 00h 00m",
+              progressValue: progress,
               imageUrl:
                   "https://static.tvmaze.com/uploads/images/medium_portrait/497/1243533.jpg",
               iconLabel: "20G",
