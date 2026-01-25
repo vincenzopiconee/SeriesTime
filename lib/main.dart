@@ -30,6 +30,14 @@ class MyApp extends StatelessWidget {
         textTheme: GoogleFonts.firaSansCondensedTextTheme(),
         scaffoldBackgroundColor: AppData.backgroundColor,
       ),
+      builder: (context, child) {
+        return MediaQuery(
+          data: MediaQuery.of(
+            context,
+          ).copyWith(textScaler: const TextScaler.linear(1.0)),
+          child: child!,
+        );
+      },
       home: const LoginScreen(),
     );
   }
