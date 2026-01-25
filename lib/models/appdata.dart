@@ -8,7 +8,80 @@ class AppData {
   static List<Series> userSeries = [];
   static List<UserBadge> userBadges = [];
   
+  static final List<UserBadge> marathonerMilestones = [
+  UserBadge(id: "mbase", title: "Marathoner", imagePath: "assets/images/marathoner_base.png", iconLabel: "1G", targetHours: 24, nextId: "mbronze"),
+  UserBadge(id: "mbronze", title: "Marathoner", imagePath: "assets/images/marathoner_bronze.png", iconLabel: "3G", targetHours: 72, nextId: "msilver"),
+  UserBadge(id: "msilver", title: "Marathoner", imagePath: "assets/images/marathoner_silver.png", iconLabel: "10G", targetHours: 240, nextId: "mgold"),
+  UserBadge(id: "mgold", title: "Marathoner", imagePath: "assets/images/marathoner_gold.png", iconLabel: "20G", targetHours: 480, nextId: "mdiamond"),
+  UserBadge(id: "mdiamond", title: "Marathoner", imagePath: "assets/images/marathoner_diamond.png", iconLabel: "100G", targetHours: 2400, nextId: null),
+];
+static final List<UserBadge> obsessionMilestones = [
+  UserBadge(id: "pbase", title: "Pure Obsession", imagePath: "assets/images/pure_obsession_base.png", iconLabel: "1H", targetHours: 1, nextId: "pbronze"),
+  UserBadge(id: "pbronze", title: "Pure Obsession", imagePath: "assets/images/pure_obsession_bronze.png", iconLabel: "3H", targetHours: 3, nextId: "psilver"),
+  UserBadge(id: "psilver", title: "Pure Obsession", imagePath: "assets/images/pure_obsession_silver.png", iconLabel: "8H", targetHours: 8, nextId: "pgold"),
+  UserBadge(id: "pgold", title: "Pure Obsession", imagePath: "assets/images/pure_obsession_gold.png", iconLabel: "14H", targetHours: 14, nextId: "pdiamond"),
+  UserBadge(id: "pdiamond", title: "Pure Obsession", imagePath: "assets/images/pure_obsession_diamond.png", iconLabel: "20H", targetHours: 20, nextId: null),
+];
+
+static final List<UserBadge> weekendMilestones = [
+  UserBadge(id: "wbase", title: "Weekend Warrior", imagePath: "assets/images/weekend_warrior_base.png", iconLabel: "3H / 3G", targetHours: 3, nextId: "wbronze"),
+  UserBadge(id: "wbronze", title: "Weekend Warrior", imagePath: "assets/images/weekend_warrior_bronze.png", iconLabel: "10H / 3G", targetHours: 10, nextId: "wsilver"),
+  UserBadge(id: "wsilver", title: "Weekend Warrior", imagePath: "assets/images/weekend_warrior_silver.png", iconLabel: "15H / 3G", targetHours: 15, nextId: "wgold"),
+  UserBadge(id: "wgold", title: "Weekend Warrior", imagePath: "assets/images/weekend_warrior_gold.png", iconLabel: "24H / 3G", targetHours: 24, nextId: "wdiamond"),
+  UserBadge(id: "wdiamond", title: "Weekend Warrior", imagePath: "assets/images/weekend_warrior_diamond.png", iconLabel: "48H / 3G", targetHours: 48, nextId: null),
+];
+static UserBadge getMarathonerTarget() {
+  double totalHours = getTotalWatchTimeHours();
   
+  UserBadge target = marathonerMilestones.first;
+
+  for (var badge in marathonerMilestones) {
+    if (totalHours >= badge.targetHours) {
+      if (badge.nextId != null) {
+        target = marathonerMilestones.firstWhere((b) => b.id == badge.nextId);
+      } else {
+        target = badge;
+      }
+    } else {
+      target = badge;
+      break;
+    }
+  }
+  return target;
+}
+static UserBadge getObsessionTarget(int currentObsessionHours) {
+  UserBadge target = obsessionMilestones.first;
+  for (var badge in obsessionMilestones) {
+    if (currentObsessionHours >= badge.targetHours) {
+      if (badge.nextId != null) {
+        target = obsessionMilestones.firstWhere((b) => b.id == badge.nextId, orElse: () => badge);
+      } else {
+        target = badge;
+      }
+    } else {
+      target = badge;
+      break;
+    }
+  }
+  return target;
+}
+
+static UserBadge getWeekendTarget(int currentWeekendHours) {
+  UserBadge target = weekendMilestones.first;
+  for (var badge in weekendMilestones) {
+    if (currentWeekendHours >= badge.targetHours) {
+      if (badge.nextId != null) {
+        target = weekendMilestones.firstWhere((b) => b.id == badge.nextId, orElse: () => badge);
+      } else {
+        target = badge;
+      }
+    } else {
+      target = badge;
+      break;
+    }
+  }
+  return target;
+}
   static Future<void> initializeData() async {
     userSeries.clear();
     
@@ -57,106 +130,34 @@ class AppData {
       ));
     }));
 
-    int totalHoursSeen = 0;
-    for (var series in userSeries) {
-      totalHoursSeen += (series.totalHours * series.percentage).toInt();
-    }
-
+    
     userBadges = [];
-
-    if (totalHoursSeen >= 24) {
-      String mPath = "assets/images/marathoner_base.png";
-      String mLabel = "1G";
-
-      if (totalHoursSeen >= 2400) { 
-        mPath = "assets/images/marathoner_diamond.png";
-        mLabel = "100G";
-      } else if (totalHoursSeen >= 480) { 
-        mPath = "assets/images/marathoner_gold.png";
-        mLabel = "20G";
-      } else if (totalHoursSeen >= 240) {
-        mPath = "assets/images/marathoner_silver.png";
-        mLabel = "10G";
-      } else if (totalHoursSeen >= 72) { 
-        mPath = "assets/images/marathoner_bronze.png";
-        mLabel = "3G";
-      }
-
-      userBadges.add(
-        UserBadge(
-          id: "marathoner",
-          title: "Marathoner",
-          imagePath: mPath,
-          iconLabel: mLabel,
-        ),
-      );
-    }
+final double totalHoursSeen = getTotalWatchTimeHours();
+UserBadge? currentMarathoner; 
+for (var badge in marathonerMilestones) {
+  if (totalHoursSeen >= badge.targetHours) currentMarathoner = badge;
+}
+if (currentMarathoner != null) userBadges.add(currentMarathoner);
     /* LOGICA PURE OBSESSION (Temporaneamente statica)
        Quando avrai la logica temporale, userai una variabile tipo 'maxConsecutiveHours'
     */
     
-    int maxConsecutiveHours = 3; // Questo valore verrà calcolato in futuro
-
-    if (maxConsecutiveHours >= 1) {
-      String pPath = "assets/images/pure_obsession_base.png";
-      String pLabel = "1H";
-
-      if (maxConsecutiveHours >= 20) {
-        pPath = "assets/images/pure_obsession_diamond.png";
-        pLabel = "20H";
-      } else if (maxConsecutiveHours >= 14) {
-        pPath = "assets/images/pure_obsession_gold.png";
-        pLabel = "14H";
-      } else if (maxConsecutiveHours >= 8) {
-        pPath = "assets/images/pure_obsession_silver.png";
-        pLabel = "8H";
-      } else if (maxConsecutiveHours >= 3) {
-        pPath = "assets/images/pure_obsession_bronze.png";
-        pLabel = "3H";
-      }
-
-      userBadges.add(
-        UserBadge(
-          id: "pure_obsession",
-          title: "Pure Obsession",
-          imagePath: pPath,
-          iconLabel: pLabel,
-        ),
-      );
-    }
+    int maxConsecutiveHours = 3; 
+UserBadge? currentObsession;
+for (var badge in obsessionMilestones) {
+  if (maxConsecutiveHours >= badge.targetHours) currentObsession = badge;
+}
+if (currentObsession != null) userBadges.add(currentObsession);
 
     /* LOGICA WEEKEND WARRIOR
        In futuro, questa variabile conterrà le ore viste tra Venerdì Sabato e Domenica
     */
-    int weekendHours = 50; 
-
-    if (weekendHours >= 3) {
-      String wPath = "assets/images/weekend_warrior_base.png";
-      String wLabel = "3H / 3G"; 
-
-      if (weekendHours >= 48) {
-        wPath = "assets/images/weekend_warrior_diamond.png";
-        wLabel = "48H / 3G";
-      } else if (weekendHours >= 24) {
-        wPath = "assets/images/weekend_warrior_gold.png";
-        wLabel = "24H / 3G";
-      } else if (weekendHours >= 15) {
-        wPath = "assets/images/weekend_warrior_silver.png";
-        wLabel = "15H / 3G";
-      } else if (weekendHours >= 10) {
-        wPath = "assets/images/weekend_warrior_bronze.png";
-        wLabel = "10H / 3G";
-      }
-
-      userBadges.add(
-        UserBadge(
-          id: "weekend_warrior",
-          title: "Weekend Warrior",
-          imagePath: wPath,
-          iconLabel: wLabel,
-        ),
-      );
-    }
+    int weekendHours = 50;
+UserBadge? currentWeekend;
+for (var badge in weekendMilestones) {
+  if (weekendHours >= badge.targetHours) currentWeekend = badge;
+}
+if (currentWeekend != null) userBadges.add(currentWeekend);
   }
 
   static Future<String> fetchImageUrl(String name) async {

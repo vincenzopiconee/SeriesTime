@@ -1,25 +1,50 @@
 import 'package:flutter/material.dart';
 import 'models/appdata.dart';
+import 'models/userbadge.dart';
 
 class BingeModeScreen extends StatelessWidget {
   const BingeModeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final UserBadge targetMarathoner = AppData.getMarathonerTarget();
     final double totalHours = AppData.getTotalWatchTimeHours();
-    final Map<String, int> timeData = AppData.getTotalWatchTimeSplit();
+    final timeData = AppData.getTotalWatchTimeSplit();
 
-    final int d = timeData["days"] ?? 0;
-    final int h = timeData["hours"] ?? 0;
-    final int m = timeData["minutes"] ?? 0;
-    double progress = 480 > 0 ? totalHours / 480 : 0.0;
-    if (progress > 1.0) progress = 1.0;
+    double progressMarathoner = totalHours / targetMarathoner.targetHours;
+    if (progressMarathoner > 1.0) progressMarathoner = 1.0;
+
+    bool isMarathonerFinished = totalHours >= 2400; // 100 giorni
+
+    int currentObsessionHours = 8;
+    final UserBadge targetObsession = AppData.getObsessionTarget(
+      currentObsessionHours,
+    );
+    double progressObsession =
+        currentObsessionHours / targetObsession.targetHours;
+    if (progressObsession > 1.0) progressObsession = 1.0;
+
+    bool isObsessionFinished = currentObsessionHours >= 20;
+
+    int currentWeekendHours = 11;
+    final UserBadge targetWeekend = AppData.getWeekendTarget(
+      currentWeekendHours,
+    );
+    double progressWeekend = currentWeekendHours / targetWeekend.targetHours;
+    if (progressWeekend > 1.0) progressWeekend = 1.0;
+
+    bool isWeekendFinished = currentWeekendHours >= 48;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF2F0EB),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black),
+          onPressed: () => Navigator.pop(context),
+        ),
         title: const Text(
           "BINGE MODE",
           style: TextStyle(
@@ -40,34 +65,43 @@ class BingeModeScreen extends StatelessWidget {
         child: Column(
           children: [
             _buildAchievementCard(
-              title: "The Marathoner",
-              description: "Reach 20 days of total watch time.",
-              progressText: "${d}d ${h}h ${m}m / 20d 00h 00m",
-              progressValue: progress,
-              imageUrl:
-                  "https://static.tvmaze.com/uploads/images/medium_portrait/497/1243533.jpg",
-              iconLabel: "20G",
+              title: targetMarathoner.title,
+              description: isMarathonerFinished
+                  ? "You are a true legend! Max level reached."
+                  : "Reach ${targetMarathoner.iconLabel.replaceAll('G', '')} days of total watch time.",
+              progressText: isMarathonerFinished
+                  ? "COMPLETED"
+                  : "${timeData["days"]}d ${timeData["hours"]}h / ${targetMarathoner.iconLabel.replaceAll('G', 'd 00h')}",
+              progressValue: progressMarathoner,
+              badge: targetMarathoner,
             ),
+
             const SizedBox(height: 20),
+
             _buildAchievementCard(
-              title: "Pure Obsession",
-              description:
-                  "Watch the same TV series for 3 consecutive hours without interruptions.",
-              progressText: "2h 50m / 3h 00m",
-              progressValue: 0.9,
-              imageUrl:
-                  "https://static.tvmaze.com/uploads/images/medium_portrait/498/1245341.jpg",
-              iconLabel: "3H",
+              title: targetObsession.title,
+              description: isObsessionFinished
+                  ? "Your obsession has no limits. Max level reached."
+                  : "Watch the same TV series for ${targetObsession.targetHours.toInt()} consecutive hours.",
+              progressText: isObsessionFinished
+                  ? "COMPLETED"
+                  : "${currentObsessionHours}h / ${targetObsession.iconLabel}",
+              progressValue: progressObsession,
+              badge: targetObsession,
             ),
+
             const SizedBox(height: 20),
+
             _buildAchievementCard(
-              title: "Weekend Warrior",
-              description: "Watch 8 hours of content within 3 days.",
-              progressText: "7h 30m / 8h 00m",
-              progressValue: 0.92,
-              imageUrl:
-                  "https://static.tvmaze.com/uploads/images/medium_portrait/495/1238914.jpg",
-              iconLabel: "8H / 3G",
+              title: targetWeekend.title,
+              description: isWeekendFinished
+                  ? "The ultimate weekend warrior! Max level reached."
+                  : "Watch ${targetWeekend.targetHours.toInt()} hours of content within 3 days.",
+              progressText: isWeekendFinished
+                  ? "COMPLETED"
+                  : "${currentWeekendHours}h / ${targetWeekend.iconLabel}",
+              progressValue: progressWeekend,
+              badge: targetWeekend,
             ),
           ],
         ),
@@ -80,11 +114,10 @@ class BingeModeScreen extends StatelessWidget {
     required String description,
     required String progressText,
     required double progressValue,
-    required String imageUrl,
-    required String iconLabel,
+    required UserBadge badge,
   }) {
     return Container(
-      padding: const EdgeInsets.all(15),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(25),
@@ -108,44 +141,13 @@ class BingeModeScreen extends StatelessWidget {
               borderRadius: BorderRadius.circular(15),
               border: Border.all(color: const Color(0xFF2D3748), width: 1.5),
             ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  iconLabel,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 10,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                SizedBox(
-                  height: 45,
-                  width: 45,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Image.network(
-                      imageUrl,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => const Icon(
-                        Icons.broken_image,
-                        color: Colors.grey,
-                        size: 30,
-                      ),
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        return const Center(
-                          child: SizedBox(
-                            width: 15,
-                            height: 15,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-              ],
+            child: Center(
+              child: Image.asset(
+                badge.imagePath,
+                height: 80,
+                width: 80,
+                fit: BoxFit.contain,
+              ),
             ),
           ),
           const SizedBox(width: 15),
@@ -157,7 +159,7 @@ class BingeModeScreen extends StatelessWidget {
                   title,
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
-                    fontSize: 16,
+                    fontSize: 18,
                   ),
                 ),
                 const SizedBox(height: 5),
@@ -174,10 +176,10 @@ class BingeModeScreen extends StatelessWidget {
                   alignment: Alignment.center,
                   children: [
                     Container(
-                      height: 22,
+                      height: 24,
                       decoration: BoxDecoration(
                         color: Colors.grey[300],
-                        borderRadius: BorderRadius.circular(11),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                     ),
                     Align(
@@ -185,10 +187,10 @@ class BingeModeScreen extends StatelessWidget {
                       child: FractionallySizedBox(
                         widthFactor: progressValue,
                         child: Container(
-                          height: 22,
+                          height: 24,
                           decoration: BoxDecoration(
                             color: const Color(0xFF8B261A),
-                            borderRadius: BorderRadius.circular(11),
+                            borderRadius: BorderRadius.circular(12),
                           ),
                         ),
                       ),
