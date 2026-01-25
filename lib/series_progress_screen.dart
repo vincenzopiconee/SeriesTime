@@ -7,25 +7,38 @@ class SeriesProgressScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final List<Series> progressList = AppData.userSeries;
-    progressList.sort((a, b) => b.percentage.compareTo(a.percentage));
+    if (AppData.currentUser == null) {
+      return const Scaffold(
+        backgroundColor: AppData.backgroundColor,
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final List<Series> progressList = List.from(AppData.userSeries);
+    progressList.sort(
+      (a, b) => b.percentage.compareTo(a.percentage),
+    ); //List sorted by percentage
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF2F0EB),
+      backgroundColor: AppData.backgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Color(0xFF2D3748)),
+          icon: const Icon(
+            Icons.arrow_back_ios_new,
+            color: AppData.accentColor,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         centerTitle: true,
         title: const Text(
-          "MY SERIES\nPROGRESS",
+          "MY PROGRESS",
           textAlign: TextAlign.center,
           style: TextStyle(
             color: Colors.black,
             fontWeight: FontWeight.bold,
-            fontSize: 20,
+            fontSize: 27,
           ),
         ),
       ),
@@ -76,7 +89,7 @@ class SeriesProgressScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFF2D3748), width: 2),
+        border: Border.all(color: AppData.accentColor, width: 2),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.1),
@@ -93,7 +106,7 @@ class SeriesProgressScreen extends StatelessWidget {
             height: 90,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(15),
-              border: Border.all(color: const Color(0xFF2D3748), width: 1.5),
+              border: Border.all(color: AppData.accentColor, width: 1.5),
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(13),
@@ -168,7 +181,7 @@ class SeriesProgressScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: const Color(0xFF2D3748),
+        color: AppData.accentColor,
         borderRadius: BorderRadius.circular(10),
       ),
       child: Text(
@@ -206,7 +219,7 @@ class SeriesProgressScreen extends StatelessWidget {
           child: Container(
             height: 8,
             decoration: BoxDecoration(
-              color: const Color(0xFF8B261A),
+              color: AppData.primaryColor,
               borderRadius: BorderRadius.circular(4),
             ),
           ),

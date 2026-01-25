@@ -7,50 +7,43 @@ class BingeModeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final UserBadge targetMarathoner = AppData.getMarathonerTarget();
-    final double totalHours = AppData.getTotalWatchTimeHours();
+    if (AppData.currentUser == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    final user = AppData.currentUser!;
     final timeData = AppData.getTotalWatchTimeSplit();
 
-    double progressMarathoner = totalHours / targetMarathoner.targetHours;
+    // populating Data and the progress for each achievement
+    final UserBadge targetMarathoner = AppData.getMarathonerTarget();
+    double progressMarathoner =
+        user.totalHoursWatched / targetMarathoner.targetHours;
     if (progressMarathoner > 1.0) progressMarathoner = 1.0;
-
-    bool isMarathonerFinished = totalHours >= 2400; // 100 giorni
-
-    int currentObsessionHours = 8;
+    bool isMarathonerFinished = user.totalHoursWatched >= 2400; // 100 days
     final UserBadge targetObsession = AppData.getObsessionTarget(
-      currentObsessionHours,
+      user.maxConsecutiveHours,
     );
     double progressObsession =
-        currentObsessionHours / targetObsession.targetHours;
+        user.maxConsecutiveHours / targetObsession.targetHours;
     if (progressObsession > 1.0) progressObsession = 1.0;
-
-    bool isObsessionFinished = currentObsessionHours >= 20;
-
-    int currentWeekendHours = 11;
-    final UserBadge targetWeekend = AppData.getWeekendTarget(
-      currentWeekendHours,
-    );
-    double progressWeekend = currentWeekendHours / targetWeekend.targetHours;
+    bool isObsessionFinished = user.maxConsecutiveHours >= 20;
+    final UserBadge targetWeekend = AppData.getWeekendTarget(user.weekendHours);
+    double progressWeekend = user.weekendHours / targetWeekend.targetHours;
     if (progressWeekend > 1.0) progressWeekend = 1.0;
-
-    bool isWeekendFinished = currentWeekendHours >= 48;
+    bool isWeekendFinished = user.weekendHours >= 48;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF2F0EB),
+      backgroundColor: AppData.backgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
-        ),
         title: const Text(
           "BINGE MODE",
           style: TextStyle(
             color: Colors.black,
             fontWeight: FontWeight.bold,
-            fontSize: 22,
+            fontSize: 27,
             letterSpacing: 1.2,
           ),
         ),
@@ -59,11 +52,12 @@ class BingeModeScreen extends StatelessWidget {
         padding: const EdgeInsets.only(
           left: 20,
           right: 20,
-          top: 10,
+          top: 30,
           bottom: 120,
         ),
         child: Column(
           children: [
+            // CARD MARATHONER
             _buildAchievementCard(
               title: targetMarathoner.title,
               description: isMarathonerFinished
@@ -78,6 +72,7 @@ class BingeModeScreen extends StatelessWidget {
 
             const SizedBox(height: 20),
 
+            // CARD PURE OBSESSION
             _buildAchievementCard(
               title: targetObsession.title,
               description: isObsessionFinished
@@ -85,13 +80,14 @@ class BingeModeScreen extends StatelessWidget {
                   : "Watch the same TV series for ${targetObsession.targetHours.toInt()} consecutive hours.",
               progressText: isObsessionFinished
                   ? "COMPLETED"
-                  : "${currentObsessionHours}h / ${targetObsession.iconLabel}",
+                  : "${user.maxConsecutiveHours}h / ${targetObsession.iconLabel}",
               progressValue: progressObsession,
               badge: targetObsession,
             ),
 
             const SizedBox(height: 20),
 
+            // CARD WEEKEND WARRIOR
             _buildAchievementCard(
               title: targetWeekend.title,
               description: isWeekendFinished
@@ -99,7 +95,7 @@ class BingeModeScreen extends StatelessWidget {
                   : "Watch ${targetWeekend.targetHours.toInt()} hours of content within 3 days.",
               progressText: isWeekendFinished
                   ? "COMPLETED"
-                  : "${currentWeekendHours}h / ${targetWeekend.iconLabel}",
+                  : "${user.weekendHours}h / ${targetWeekend.iconLabel}",
               progressValue: progressWeekend,
               badge: targetWeekend,
             ),
@@ -120,11 +116,11 @@ class BingeModeScreen extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(25),
-        border: Border.all(color: const Color(0xFF2D3748), width: 2),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppData.accentColor, width: 2),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withOpacity(0.3),
             blurRadius: 10,
             offset: const Offset(4, 4),
           ),
@@ -134,24 +130,25 @@ class BingeModeScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 80,
-            height: 80,
+            width: 90,
+            height: 90,
             decoration: BoxDecoration(
-              color: const Color(0xFFF2F0EB),
+              color: AppData.backgroundColor,
               borderRadius: BorderRadius.circular(15),
-              border: Border.all(color: const Color(0xFF2D3748), width: 1.5),
+              border: Border.all(color: AppData.accentColor, width: 1.5),
             ),
             child: Center(
               child: Image.asset(
                 badge.imagePath,
-                height: 80,
-                width: 80,
+                height: 70,
+                width: 70,
                 fit: BoxFit.contain,
               ),
             ),
           ),
           const SizedBox(width: 15),
           Expanded(
+            // expanded is needed to occupy all the space of the Row (or Column) Widget
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -173,10 +170,11 @@ class BingeModeScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 15),
                 Stack(
+                  // stack permits to overlap one or more widget
                   alignment: Alignment.center,
                   children: [
                     Container(
-                      height: 24,
+                      height: 21,
                       decoration: BoxDecoration(
                         color: Colors.grey[300],
                         borderRadius: BorderRadius.circular(12),
@@ -187,9 +185,9 @@ class BingeModeScreen extends StatelessWidget {
                       child: FractionallySizedBox(
                         widthFactor: progressValue,
                         child: Container(
-                          height: 24,
+                          height: 20,
                           decoration: BoxDecoration(
-                            color: const Color(0xFF8B261A),
+                            color: AppData.primaryColor,
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
@@ -198,7 +196,7 @@ class BingeModeScreen extends StatelessWidget {
                     Text(
                       progressText,
                       style: const TextStyle(
-                        color: Colors.white,
+                        color: AppData.whiteColor,
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
                       ),
