@@ -32,6 +32,7 @@ class ProfileScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
+        scrolledUnderElevation: 0,
         actions: [
           IconButton(
             icon: const Icon(Icons.settings, color: Colors.black87),

@@ -1,5 +1,7 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:seriestime/firebase_options.dart';
 import 'profile_screen.dart';
 import 'login_screen.dart';
 import 'models/appdata.dart';
@@ -12,6 +14,10 @@ Future<void> main() async {
     SystemUiMode.immersiveSticky,
   ); //disable the bottom andrord navigation bar
   await AppData.initializeData();
+
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
 
   runApp(const MyApp());
 }
