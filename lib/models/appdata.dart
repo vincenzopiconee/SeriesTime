@@ -39,11 +39,10 @@ static final List<UserBadge> weekendMilestones = [
   UserBadge(id: "wgold", title: "Weekend Warrior", imagePath: "assets/images/weekend_warrior_gold.png", iconLabel: "24H", targetHours: 24, nextId: "wdiamond"),
   UserBadge(id: "wdiamond", title: "Weekend Warrior", imagePath: "assets/images/weekend_warrior_diamond.png", iconLabel: "48H", targetHours: 48, nextId: null),
 ];
-//assign the badges to the user.
 static void generateUserBadges() {
   userBadges.clear();
   if (currentUser == null) return;
-  UserBadge? currentM; //nullable
+  UserBadge? currentM; 
   for (var badge in marathonerMilestones) {
     if (currentUser!.totalHoursWatched >= badge.targetHours) currentM = badge; //currentUser cannot be null
   }
@@ -181,20 +180,17 @@ currentUser = User(
   }*/
   static Future<void> initializeData() async {
     userSeries.clear();
-    
-    // Recuperiamo l'utente loggato tramite Firebase Auth
+
     final firebaseUser = auth.FirebaseAuth.instance.currentUser;
     if (firebaseUser == null) return;
 
-    // Puntiamo al documento dell'utente su Firestore
     final userDoc = _db.collection('users').doc(firebaseUser.uid);
     final snapshot = await userDoc.get();
 
     if (!snapshot.exists) {
-      // SE IL DOCUMENTO NON ESISTE: È il primo accesso, popoliamo il DB
+      // if there's no data in the DB, let's populate
       await _populateFirstTime(firebaseUser, userDoc);
     } else {
-      // SE ESISTE: Carichiamo i dati reali dal cloud
       final data = snapshot.data()!;
       currentUser = User(
         name: data['name'] ?? firebaseUser.displayName ?? "User",
@@ -204,19 +200,19 @@ currentUser = User(
         notification: data['notification'] ?? true,
       );
 
-      // Carichiamo la sottocollezione delle serie TV
-      final seriesSnap = await userDoc.collection('series').get();
-      for (var doc in seriesSnap.docs) {
-        userSeries.add(Series(
-          name: doc.id,
-          imageUrl: doc['imageUrl'],
-          percentage: (doc['percentage'] ?? 0).toDouble(),
-          totalHours: doc['totalHours'] ?? 0,
-          episode: doc['episode'] ?? "",
-        ));
-      }
+final seriesSnap = await userDoc.collection('series').get();
+for (var doc in seriesSnap.docs) {
+  double realHours = await calculateSeriesTotalHours(doc.id);
+  
+  userSeries.add(Series(
+    name: doc.id,
+    imageUrl: doc['imageUrl'],
+    percentage: (doc['percentage'] ?? 0).toDouble(),
+    totalHours: realHours, 
+    episode: doc['episode'] ?? "",
+  ));
+}
     }
-    // Ricalcoliamo i badge in base ai dati caricati
     generateUserBadges();
   }
 
@@ -234,82 +230,87 @@ static Stream<QuerySnapshot> seriesStream() {
   return _db.collection('users').doc(firebaseUser.uid).collection('series').snapshots();
 }
 
-  static Future<void> _populateFirstTime(auth.User fbUser, DocumentReference docRef) async {
-    // La tua lista originale di dati locali per il primo avvio
-    final List<Map<String, dynamic>> localData = [
-      {"name": "Peaky Blinders", "perc": 1.0, "time": 36, "ep": "Finished"},
-      {"name": "Lost", "perc": 0.15, "time": 14, "ep": "S1 E5"},
-      {"name": "Squid Game", "perc": 1.0, "time": 24, "ep": "Finished"},
-      {"name": "Breaking Bad", "perc": 0.95, "time": 57, "ep": "S5 E12"},
-      {"name": "Stranger Things", "perc": 0.88, "time": 42, "ep": "S4 E7"},
-      {"name": "The Boys", "perc": 0.75, "time": 24, "ep": "S3 E4"},
-      {"name": "Dark", "perc": 0.92, "time": 26, "ep": "S3 E6"},
-      {"name": "The Crown", "perc": 0.40, "time": 50, "ep": "S4 E2"},
-      {"name": "The Bear", "perc": 0.98, "time": 12, "ep": "S2 E10"},
-      {"name": "Succession", "perc": 0.65, "time": 38, "ep": "S3 E5"},
-      {"name": "Severance", "perc": 0.20, "time": 9, "ep": "S1 E2"},
-      {"name": "The Last of Us", "perc": 0.94, "time": 10, "ep": "S1 E9"},
-      {"name": "Better Call Saul", "perc": 0.80, "time": 60, "ep": "S6 E3"},
-      {"name": "Friends", "perc": 1.0, "time": 85, "ep": "Finished"},
-      {"name": "The Office US", "perc": 0.55, "time": 72, "ep": "S6 E14"}, 
-      {"name": "Black Mirror", "perc": 0.30, "time": 22, "ep": "S4 E1"},
-      {"name": "Narcos", "perc": 0.85, "time": 25, "ep": "S3 E2"},
-      {"name": "Wednesday", "perc": 0.90, "time": 8, "ep": "S1 E7"},
-      {"name": "La Casa de Papel", "perc": 0.99, "time": 46, "ep": "S5 E10"}, 
-      {"name": "True Detective", "perc": 0.45, "time": 24, "ep": "S2 E1"},
-      {"name": "Sherlock", "perc": 0.70, "time": 18, "ep": "S3 E2"},
-      {"name": "Mindhunter", "perc": 0.50, "time": 19, "ep": "S2 E5"},
-      {"name": "The Mandalorian", "perc": 0.60, "time": 16, "ep": "S2 E8"},
-      {"name": "Vikings", "perc": 0.35, "time": 70, "ep": "S4 E12"},
-      {"name": "Cobra Kai", "perc": 0.82, "time": 30, "ep": "S5 E1"},
-      {"name": "Arcane", "perc": 0.96, "time": 6, "ep": "S1 E8"},
-      {"name": "Ted Lasso", "perc": 0.10, "time": 22, "ep": "S1 E3"},
-      {"name": "The Witcher", "perc": 0.25, "time": 24, "ep": "S2 E2"},
-      {"name": "House of the Dragon", "perc": 0.89, "time": 10, "ep": "S1 E9"},
-      {"name": "Euphoria", "perc": 0.48, "time": 16, "ep": "S2 E4"},
-      {"name": "Fargo", "perc": 0.15, "time": 40, "ep": "S1 E6"},
-    ];
+static Future<void> _populateFirstTime(auth.User fbUser, DocumentReference docRef) async {
+  final List<String> seriesToTrack = ["Peaky Blinders", "Lost", "Breaking Bad"];
 
-    // Inizializziamo l'oggetto User con i dati di Google
-    currentUser = User(
-      name: fbUser.displayName ?? "User",
-      totalHoursWatched: 0.0,
-      maxConsecutiveHours: 3,
-      weekendHours: 40,
-      notification: true,
-    );
+  for (String name in seriesToTrack) {
+    // 1. Chiamiamo l'API per ottenere TUTTI i dati della serie e degli episodi
+    final response = await http.get(Uri.parse('https://api.tvmaze.com/singlesearch/shows?q=$name&embed=episodes'));
+    
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      final List episodesFromApi = data['_embedded']['episodes'];
+      final String imageUrl = data['image']?['medium'] ?? "";
 
-    // Carichiamo le immagini e salviamo ogni serie su Firestore
-    for (var item in localData) {
-      final url = await fetchImageUrl(item['name']);
-      final s = Series(
-        name: item['name'],
-        imageUrl: url,
-        percentage: item['perc'],
-        totalHours: item['time'],
-        episode: item['ep'],
-      );
-      userSeries.add(s);
+      DocumentReference seriesRef = docRef.collection('series').doc(name);
 
-      // Scrittura della singola serie nel DB
-      await docRef.collection('series').doc(s.name).set({
-        'imageUrl': s.imageUrl,
-        'percentage': s.percentage,
-        'totalHours': s.totalHours,
-        'episode': s.episode,
+      // 2. Salviamo i dati generali della serie
+      await seriesRef.set({
+        'imageUrl': imageUrl,
+        'percentage': 0.0,
+        'totalHours': 0.0,
+        'episode': "S1 E1",
       });
-    }
 
-    // Calcoliamo il tempo totale e salviamo il profilo principale dell'utente
-    currentUser!.totalHoursWatched = getTotalWatchTimeHours();
-    await docRef.set({
-      'name': currentUser!.name,
-      'totalHoursWatched': currentUser!.totalHoursWatched,
-      'maxConsecutiveHours': currentUser!.maxConsecutiveHours,
-      'weekendHours': currentUser!.weekendHours,
-      'notification': currentUser!.notification,
-    });
+      // 3. Creiamo la struttura Stagioni -> Episodi con i dati REALI dell'API
+      for (var ep in episodesFromApi) {
+        int seasonNum = ep['season'];
+        int episodeNum = ep['number'];
+        int runtime = ep['runtime'] ?? 60; // <--- DURATA REALE DALL'API
+
+        DocumentReference seasonRef = seriesRef.collection('seasons').doc('Season $seasonNum');
+        // Usiamo set con merge per non sovrascrivere la stagione ogni volta
+        await seasonRef.set({'season_number': seasonNum}, SetOptions(merge: true));
+
+        await seasonRef.collection('episodes').doc('Episode $episodeNum').set({
+          'episode_number': episodeNum,
+          'runtime': runtime, // Salviamo i minuti reali!
+          'timestamp': FieldValue.serverTimestamp(),
+          'watched': (seasonNum == 1 && episodeNum <= 3), // Esempio: visti solo primi 3
+        });
+      }
+
+      // 4. Infine sincronizziamo le ore totali basandoci sui minuti appena salvati
+      await syncSeriesTotalHours(name);
+    }
   }
+
+  // Creazione profilo utente...
+  await docRef.set({
+    'name': fbUser.displayName ?? "User",
+    'totalHoursWatched': 0.0,
+    'maxConsecutiveHours': 0,
+    'weekendHours': 0,
+    'notification': true,
+  });
+}
+
+// 2. MODIFICA SETUP NEW TECHNICAL STRUCTURE (per aggiornare utenti esistenti)
+static Future<void> setupNewTechnicalStructure() async {
+  final user = auth.FirebaseAuth.instance.currentUser;
+  if (user == null) return;
+
+  final userDoc = FirebaseFirestore.instance.collection('users').doc(user.uid);
+  List<String> seriesToUpdate = ["Peaky Blinders", "Lost", "Breaking Bad"];
+
+  for (String seriesName in seriesToUpdate) {
+    DocumentReference seriesRef = userDoc.collection('series').doc(seriesName);
+
+    // Creiamo una Stagione 1 di test
+    DocumentReference seasonRef = seriesRef.collection('seasons').doc('Season 1');
+    await seasonRef.set({'season_number': 1});
+
+    // Aggiungiamo un episodio reale (non più test_ep)
+    await seasonRef.collection('episodes').doc('Episode 1').set({
+      'episode_number': 1,
+      'runtime': 45,
+      'timestamp': DateTime.now(),
+      'watched': true,
+    });
+    
+    debugPrint("Struttura Stagioni creata per $seriesName");
+  }
+}
 static Future<String> fetchImageUrl(String name) async {
   //first try the singlesearch, if no image was found, try to scan the complete list of names
   try {
@@ -340,7 +341,13 @@ static double getTotalWatchTimeHours() {
   if (userSeries.isEmpty) return 0.0; 
   double total = 0;
   for (var series in userSeries) {
-    total += (series.totalHours * series.percentage);
+    total += (series.totalHours);
+  }
+  final firebaseUser = auth.FirebaseAuth.instance.currentUser;
+  if (firebaseUser != null) {
+    _db.collection('users').doc(firebaseUser.uid).update({
+      'totalHoursWatched': total,
+    });
   }
   return total;
 }
@@ -352,5 +359,100 @@ static Map<String, int> getTotalWatchTimeSplit() {
     "hours": (totalHours % 24).floor(),
     "minutes": ((totalHours - totalHours.floor()) * 60).round(),
   };
+}
+
+static Future<double> calculateSeriesTotalHours(String seriesName) async {
+  final user = auth.FirebaseAuth.instance.currentUser;
+  if (user == null) return 0.0;
+
+  double totalMinutes = 0;
+
+  final seasonsSnapshot = await _db
+      .collection('users')
+      .doc(user.uid)
+      .collection('series')
+      .doc(seriesName)
+      .collection('seasons')
+      .get();
+
+  for (var seasonDoc in seasonsSnapshot.docs) {
+    final episodesSnapshot = await seasonDoc.reference
+        .collection('episodes')
+        .where('watched', isEqualTo: true)
+        .get();
+    for (var episodeDoc in episodesSnapshot.docs) {
+      totalMinutes += (episodeDoc.data()['runtime'] ?? 0);
+    }
+  }
+
+  return totalMinutes / 60.0;
+}
+static Future<List<dynamic>> fetchSeriesEpisodes(String seriesName) async {
+  try {
+    final res = await http.get(Uri.parse('https://api.tvmaze.com/singlesearch/shows?q=$seriesName&embed=episodes'));
+    if (res.statusCode == 200) {
+      final data = json.decode(res.body);
+      return data['_embedded']['episodes'] as List<dynamic>;
+    }
+  } catch (e) {
+    debugPrint("Errore fetch episodi: $e");
+  }
+  return [];
+}
+static Future<void> syncSeriesTotalHours(String seriesName) async {
+  final user = auth.FirebaseAuth.instance.currentUser;
+  if (user == null) return;
+
+  final seriesRef = FirebaseFirestore.instance
+      .collection('users')
+      .doc(user.uid)
+      .collection('series')
+      .doc(seriesName);
+
+  double watchedMinutes = 0;
+
+  final seasonsSnap = await seriesRef.collection('seasons').get();
+  for (var seasonDoc in seasonsSnap.docs) {
+    final episodesSnap = await seasonDoc.reference
+        .collection('episodes')
+        .where('watched', isEqualTo: true)
+        .get();
+
+    for (var epDoc in episodesSnap.docs) {
+      watchedMinutes += (epDoc.data()['runtime'] ?? 0);
+    }
+  }
+
+  double watchedHours = watchedMinutes / 60.0;
+
+  double totalSeriesHours = await getSeriesTotalRuntimeFromApi(seriesName);
+
+  double newPercentage = watchedHours / totalSeriesHours;
+  if (newPercentage > 1.0) newPercentage = 1.0; 
+
+  await seriesRef.update({
+    'totalHours': watchedHours,
+    'percentage': newPercentage,
+  });
+  
+}
+static Future<double> getSeriesTotalRuntimeFromApi(String seriesName) async {
+  try {
+    final response = await http.get(Uri.parse(
+        'https://api.tvmaze.com/singlesearch/shows?q=$seriesName&embed=episodes'));
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      final List episodes = data['_embedded']['episodes'];
+      
+      int totalMinutes = 0;
+      for (var ep in episodes) {
+        totalMinutes += (ep['runtime'] as int? ?? 0);
+      }
+      return totalMinutes / 60.0; 
+    }
+  } catch (e) {
+    debugPrint("Errore recupero ore totali API: $e");
+  }
+  return 1.0; 
 }
 }

@@ -49,7 +49,7 @@ class SeriesProgressScreen extends StatelessWidget {
           final series = progressList[index];
 
           int hoursSeen = (series.totalHours * series.percentage).round();
-          int hoursLeft = series.totalHours - hoursSeen;
+          double hoursLeft = series.totalHours - hoursSeen;
 
           String leftText;
           if (series.percentage >= 1.0) {

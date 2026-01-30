@@ -12,6 +12,8 @@ import 'models/user.dart';
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
+  // ... (import e inizio classe uguali)
+
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<DocumentSnapshot>(
@@ -35,38 +37,43 @@ class ProfileScreen extends StatelessWidget {
 
             final userData = userSnapshot.data!.data() as Map<String, dynamic>;
 
+            double computedGlobalHours = 0;
+
+            AppData.userSeries = seriesSnapshot.data!.docs.map((doc) {
+              final sData = doc.data() as Map<String, dynamic>;
+
+              AppData.syncSeriesTotalHours(doc.id);
+
+              return Series(
+                name: doc.id,
+                imageUrl: sData['imageUrl'] ?? "",
+                percentage: (sData['percentage'] ?? 0).toDouble(),
+                totalHours: (sData['totalHours'] ?? 0).toDouble(),
+                episode: sData['episode'] ?? "",
+              );
+            }).toList();
+
             AppData.currentUser = User(
               name: userData['name'] ?? "User",
-              totalHoursWatched: (userData['totalHoursWatched'] ?? 0)
-                  .toDouble(),
+              totalHoursWatched: computedGlobalHours,
               maxConsecutiveHours: userData['maxConsecutiveHours'] ?? 3,
               weekendHours: userData['weekendHours'] ?? 40,
               notification: userData['notification'] ?? true,
             );
 
-            AppData.userSeries = seriesSnapshot.data!.docs.map((doc) {
-              final sData = doc.data() as Map<String, dynamic>;
-              return Series(
-                name: doc.id,
-                imageUrl: sData['imageUrl'] ?? "",
-                percentage: (sData['percentage'] ?? 0).toDouble(),
-                totalHours: sData['totalHours'] ?? 0,
-                episode: sData['episode'] ?? "",
-              );
-            }).toList();
-
             final timeData = AppData.getTotalWatchTimeSplit();
             final int days = timeData["days"]!;
             final int remainingHours = timeData["hours"]!;
             final int minutes = timeData["minutes"]!;
-            AppData.generateUserBadges();
+
+            AppData.generateUserBadges(); // Ora i badge vedranno le ore corrette
+
             final List<Series> filteredSeries = AppData.userSeries
                 .where((s) => s.percentage < 1.0)
                 .toList();
             filteredSeries.sort((a, b) => b.percentage.compareTo(a.percentage));
             final List<Series> displaySeries = filteredSeries.take(6).toList();
 
-            // DEFINIZIONE VARIABILE MANCANTE
             final currentUser = AppData.currentUser!;
 
             return Scaffold(

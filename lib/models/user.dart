@@ -1,7 +1,7 @@
 // models/user.dart
 class User {
   final String name;
-  double totalHoursWatched;
+  final double totalHoursWatched;
   final int maxConsecutiveHours;
   final int weekendHours;
   final bool notification;

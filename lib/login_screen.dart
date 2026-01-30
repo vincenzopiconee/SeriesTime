@@ -70,11 +70,11 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _signInWithGoogle() async {
-    setState(() => _isLoading = true); // Attiva il caricamento
+    setState(() => _isLoading = true);
     try {
       final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
       if (googleUser == null) {
-        setState(() => _isLoading = false); // Utente ha annullato
+        setState(() => _isLoading = false);
         return;
       }
 
@@ -88,28 +88,33 @@ class _LoginScreenState extends State<LoginScreen> {
 
       final UserCredential userCredential = await FirebaseAuth.instance
           .signInWithCredential(credential);
-
       if (userCredential.user != null) {
+        // Aspetta che i dati siano inizializzati (e l'eventuale primo popolamento fatto)
         await AppData.initializeData();
 
+        // Ora che siamo sicuri che l'utente esiste nel DB, forziamo l'aggiornamento
+        // se non è già stato fatto dal populateFirstTime
+        await AppData.setupNewTechnicalStructure();
+
         if (!mounted) return;
+
+        // Dai un secondo a Firebase di propagare i dati prima di cambiare schermata
+        await Future.delayed(const Duration(seconds: 1));
+
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const MainWrapper()),
         );
       }
     } catch (e) {
-      print("Errore durante il login Google: $e");
+      print("login error occured: $e");
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text("Errore durante l'accesso: $e")));
+        ).showSnackBar(SnackBar(content: Text("An access error occured: $e")));
       }
     } finally {
-      if (mounted)
-        setState(
-          () => _isLoading = false,
-        ); // Disattiva il caricamento in ogni caso
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -182,15 +187,12 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
 
-          // Modifica il pulsante esistente
           Positioned(
             bottom: 120,
             left: 40,
             right: 40,
             child: ElevatedButton(
-              onPressed: _isLoading
-                  ? null
-                  : _signInWithGoogle, // Disabilita se carica
+              onPressed: _isLoading ? null : _signInWithGoogle,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppData.primaryColor,
                 padding: const EdgeInsets.symmetric(vertical: 18),
@@ -218,10 +220,9 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
 
-          // Aggiungi questo in fondo allo Stack (dopo l'ultimo Positioned)
           if (_isLoading)
             Container(
-              color: Colors.black.withOpacity(0.5), // Scura lo sfondo
+              color: Colors.black.withOpacity(0.5),
               child: const Center(
                 child: CircularProgressIndicator(color: AppData.primaryColor),
               ),

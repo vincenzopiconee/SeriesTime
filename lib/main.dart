@@ -12,7 +12,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setEnabledSystemUIMode(
     SystemUiMode.immersiveSticky,
-  ); //disable the bottom andrord navigation bar
+  ); //disable the bottom android navigation bar
   //await AppData.initializeData();
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);

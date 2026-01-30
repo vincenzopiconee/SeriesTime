@@ -11,7 +11,10 @@ class BingeModeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Ascoltiamo sia i dati utente che le serie per calcolare le ore reali
+    //streamBuilder handles the stream of data, stream is the source (firebase),
+    // the builder is the function triggered when the DB is changed
+    // ( then context is the context of the app and the snapshot is an object
+    // which contain the state of the app (snapsht.data, snapshot.error) )
     return StreamBuilder<DocumentSnapshot>(
       stream: FirebaseFirestore.instance
           .collection('users')
@@ -19,6 +22,7 @@ class BingeModeScreen extends StatelessWidget {
           .snapshots(),
       builder: (context, userSnapshot) {
         return StreamBuilder<QuerySnapshot>(
+          // nested streambuilder to collect also the series
           stream: FirebaseFirestore.instance
               .collection('users')
               .doc(auth.FirebaseAuth.instance.currentUser?.uid)
@@ -31,8 +35,8 @@ class BingeModeScreen extends StatelessWidget {
               );
             }
 
-            // 1. SINCRONIZZAZIONE DATI FIRESTORE -> APPDATA
             final userData = userSnapshot.data!.data() as Map<String, dynamic>;
+            //saves the date in the snaphot as a Map
             AppData.currentUser = User(
               name: userData['name'] ?? "User",
               totalHoursWatched: (userData['totalHoursWatched'] ?? 0)
@@ -53,20 +57,16 @@ class BingeModeScreen extends StatelessWidget {
               );
             }).toList();
 
-            // 2. CALCOLO VALORI REALI (Basato sulle serie aggiornate)
             final user = AppData.currentUser!;
-            // Ricalcoliamo il tempo totale basato sulle percentuali attuali nel DB
             final double realTotalHours = AppData.getTotalWatchTimeHours();
             final timeData = AppData.getTotalWatchTimeSplit();
 
-            // Calcolo Marathoner Target
             final UserBadge targetMarathoner = AppData.getMarathonerTarget();
             double progressMarathoner =
                 realTotalHours / targetMarathoner.targetHours;
             if (progressMarathoner > 1.0) progressMarathoner = 1.0;
             bool isMarathonerFinished = realTotalHours >= 2400;
 
-            // Calcolo Obsession Target
             final UserBadge targetObsession = AppData.getObsessionTarget(
               user.maxConsecutiveHours,
             );
@@ -75,7 +75,6 @@ class BingeModeScreen extends StatelessWidget {
             if (progressObsession > 1.0) progressObsession = 1.0;
             bool isObsessionFinished = user.maxConsecutiveHours >= 20;
 
-            // Calcolo Weekend Target
             final UserBadge targetWeekend = AppData.getWeekendTarget(
               user.weekendHours,
             );
@@ -154,7 +153,6 @@ class BingeModeScreen extends StatelessWidget {
     );
   }
 
-  // Widget _buildAchievementCard rimane lo stesso del tuo codice originale...
   Widget _buildAchievementCard({
     required String title,
     required String description,
