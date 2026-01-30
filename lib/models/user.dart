@@ -2,8 +2,8 @@
 class User {
   final String name;
   final double totalHoursWatched;
-  final int maxConsecutiveHours;
-  final int weekendHours;
+  final double maxConsecutiveHours;
+  final double weekendHours;
   final bool notification;
 
   User({

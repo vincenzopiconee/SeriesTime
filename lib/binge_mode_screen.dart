@@ -41,8 +41,9 @@ class BingeModeScreen extends StatelessWidget {
               name: userData['name'] ?? "User",
               totalHoursWatched: (userData['totalHoursWatched'] ?? 0)
                   .toDouble(),
-              maxConsecutiveHours: userData['maxConsecutiveHours'] ?? 0,
-              weekendHours: userData['weekendHours'] ?? 0,
+              maxConsecutiveHours: (userData['maxConsecutiveHours'] ?? 0)
+                  .toDouble(),
+              weekendHours: (userData['weekendHours'] ?? 0).toDouble(),
               notification: userData['notification'] ?? true,
             );
 
@@ -127,19 +128,20 @@ class BingeModeScreen extends StatelessWidget {
                           : "Watch the same TV series for ${targetObsession.targetHours.toInt()} consecutive hours.",
                       progressText: isObsessionFinished
                           ? "COMPLETED"
-                          : "${user.maxConsecutiveHours}h / ${targetObsession.iconLabel}",
+                          : "${user.maxConsecutiveHours.toStringAsFixed(1)}h / ${targetObsession.iconLabel}",
                       progressValue: progressObsession,
                       badge: targetObsession,
                     ),
                     const SizedBox(height: 20),
+                    // In binge_mode_screen.dart
                     _buildAchievementCard(
                       title: targetWeekend.title,
                       description: isWeekendFinished
                           ? "The ultimate weekend warrior! Max level reached."
-                          : "Watch ${targetWeekend.targetHours.toInt()} hours of content within 3 days.",
+                          : "Watch ${targetWeekend.targetHours.toInt()} hours between Friday and Sunday.", // Descrizione aggiornata
                       progressText: isWeekendFinished
                           ? "COMPLETED"
-                          : "${user.weekendHours}h / ${targetWeekend.iconLabel}",
+                          : "${user.weekendHours.toStringAsFixed(1)}h / ${targetWeekend.iconLabel}",
                       progressValue: progressWeekend,
                       badge: targetWeekend,
                     ),

@@ -53,11 +53,14 @@ class ProfileScreen extends StatelessWidget {
               );
             }).toList();
 
+            // In profile_screen.dart
             AppData.currentUser = User(
               name: userData['name'] ?? "User",
-              totalHoursWatched: computedGlobalHours,
-              maxConsecutiveHours: userData['maxConsecutiveHours'] ?? 3,
-              weekendHours: userData['weekendHours'] ?? 40,
+              totalHoursWatched: (userData['totalHoursWatched'] ?? 0)
+                  .toDouble(),
+              maxConsecutiveHours: (userData['maxConsecutiveHours'] ?? 0)
+                  .toDouble(),
+              weekendHours: (userData['weekendHours'] ?? 0).toDouble(),
               notification: userData['notification'] ?? true,
             );
 
