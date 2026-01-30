@@ -13,11 +13,9 @@ Future<void> main() async {
   SystemChrome.setEnabledSystemUIMode(
     SystemUiMode.immersiveSticky,
   ); //disable the bottom andrord navigation bar
-  await AppData.initializeData();
+  //await AppData.initializeData();
 
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   runApp(const MyApp());
 }

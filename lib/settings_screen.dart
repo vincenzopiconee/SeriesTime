@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'login_screen.dart';
 import 'models/appdata.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -118,7 +120,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const SizedBox(height: 25),
 
                   ElevatedButton(
-                    onPressed: () {
+                    onPressed: () async {
+                      // 1. Disconnetti da Firebase
+                      await FirebaseAuth.instance.signOut();
+
+                      // 2. Disconnetti da Google (questo forza la scelta dell'account al rientro)
+                      await GoogleSignIn().signOut();
+
+                      if (!mounted) return;
+
+                      // 3. Torna alla schermata di login pulendo lo storico delle pagine
                       Navigator.of(context).pushAndRemoveUntil(
                         MaterialPageRoute(
                           builder: (context) => const LoginScreen(),

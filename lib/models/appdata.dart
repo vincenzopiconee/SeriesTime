@@ -4,7 +4,10 @@ import 'package:http/http.dart' as http;
 import 'userbadge.dart'; 
 import 'user.dart';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart' as auth;
 class AppData {
+  static final FirebaseFirestore _db = FirebaseFirestore.instance; 
   static List<Series> userSeries = [];
   static List<UserBadge> userBadges = [];
   static User? currentUser;
@@ -110,7 +113,7 @@ static UserBadge getWeekendTarget(int currentWeekendHours) {
   }
   return target;
 }
-  static Future<void> initializeData() async {
+ /* static Future<void> initializeData() async {
     userSeries.clear();
     
 final List<Map<String, dynamic>> localData = [
@@ -175,6 +178,137 @@ currentUser = User(
     notification: true,        
   );
   generateUserBadges();
+  }*/
+  static Future<void> initializeData() async {
+    userSeries.clear();
+    
+    // Recuperiamo l'utente loggato tramite Firebase Auth
+    final firebaseUser = auth.FirebaseAuth.instance.currentUser;
+    if (firebaseUser == null) return;
+
+    // Puntiamo al documento dell'utente su Firestore
+    final userDoc = _db.collection('users').doc(firebaseUser.uid);
+    final snapshot = await userDoc.get();
+
+    if (!snapshot.exists) {
+      // SE IL DOCUMENTO NON ESISTE: È il primo accesso, popoliamo il DB
+      await _populateFirstTime(firebaseUser, userDoc);
+    } else {
+      // SE ESISTE: Carichiamo i dati reali dal cloud
+      final data = snapshot.data()!;
+      currentUser = User(
+        name: data['name'] ?? firebaseUser.displayName ?? "User",
+        totalHoursWatched: (data['totalHoursWatched'] ?? 0).toDouble(),
+        maxConsecutiveHours: data['maxConsecutiveHours'] ?? 3,
+        weekendHours: data['weekendHours'] ?? 40,
+        notification: data['notification'] ?? true,
+      );
+
+      // Carichiamo la sottocollezione delle serie TV
+      final seriesSnap = await userDoc.collection('series').get();
+      for (var doc in seriesSnap.docs) {
+        userSeries.add(Series(
+          name: doc.id,
+          imageUrl: doc['imageUrl'],
+          percentage: (doc['percentage'] ?? 0).toDouble(),
+          totalHours: doc['totalHours'] ?? 0,
+          episode: doc['episode'] ?? "",
+        ));
+      }
+    }
+    // Ricalcoliamo i badge in base ai dati caricati
+    generateUserBadges();
+  }
+
+static Stream<DocumentSnapshot> userStream() {
+  final firebaseUser = auth.FirebaseAuth.instance.currentUser;
+  if (firebaseUser == null) return const Stream.empty();
+  
+  return _db.collection('users').doc(firebaseUser.uid).snapshots();
+}
+
+static Stream<QuerySnapshot> seriesStream() {
+  final firebaseUser = auth.FirebaseAuth.instance.currentUser;
+  if (firebaseUser == null) return const Stream.empty();
+  
+  return _db.collection('users').doc(firebaseUser.uid).collection('series').snapshots();
+}
+
+  static Future<void> _populateFirstTime(auth.User fbUser, DocumentReference docRef) async {
+    // La tua lista originale di dati locali per il primo avvio
+    final List<Map<String, dynamic>> localData = [
+      {"name": "Peaky Blinders", "perc": 1.0, "time": 36, "ep": "Finished"},
+      {"name": "Lost", "perc": 0.15, "time": 14, "ep": "S1 E5"},
+      {"name": "Squid Game", "perc": 1.0, "time": 24, "ep": "Finished"},
+      {"name": "Breaking Bad", "perc": 0.95, "time": 57, "ep": "S5 E12"},
+      {"name": "Stranger Things", "perc": 0.88, "time": 42, "ep": "S4 E7"},
+      {"name": "The Boys", "perc": 0.75, "time": 24, "ep": "S3 E4"},
+      {"name": "Dark", "perc": 0.92, "time": 26, "ep": "S3 E6"},
+      {"name": "The Crown", "perc": 0.40, "time": 50, "ep": "S4 E2"},
+      {"name": "The Bear", "perc": 0.98, "time": 12, "ep": "S2 E10"},
+      {"name": "Succession", "perc": 0.65, "time": 38, "ep": "S3 E5"},
+      {"name": "Severance", "perc": 0.20, "time": 9, "ep": "S1 E2"},
+      {"name": "The Last of Us", "perc": 0.94, "time": 10, "ep": "S1 E9"},
+      {"name": "Better Call Saul", "perc": 0.80, "time": 60, "ep": "S6 E3"},
+      {"name": "Friends", "perc": 1.0, "time": 85, "ep": "Finished"},
+      {"name": "The Office US", "perc": 0.55, "time": 72, "ep": "S6 E14"}, 
+      {"name": "Black Mirror", "perc": 0.30, "time": 22, "ep": "S4 E1"},
+      {"name": "Narcos", "perc": 0.85, "time": 25, "ep": "S3 E2"},
+      {"name": "Wednesday", "perc": 0.90, "time": 8, "ep": "S1 E7"},
+      {"name": "La Casa de Papel", "perc": 0.99, "time": 46, "ep": "S5 E10"}, 
+      {"name": "True Detective", "perc": 0.45, "time": 24, "ep": "S2 E1"},
+      {"name": "Sherlock", "perc": 0.70, "time": 18, "ep": "S3 E2"},
+      {"name": "Mindhunter", "perc": 0.50, "time": 19, "ep": "S2 E5"},
+      {"name": "The Mandalorian", "perc": 0.60, "time": 16, "ep": "S2 E8"},
+      {"name": "Vikings", "perc": 0.35, "time": 70, "ep": "S4 E12"},
+      {"name": "Cobra Kai", "perc": 0.82, "time": 30, "ep": "S5 E1"},
+      {"name": "Arcane", "perc": 0.96, "time": 6, "ep": "S1 E8"},
+      {"name": "Ted Lasso", "perc": 0.10, "time": 22, "ep": "S1 E3"},
+      {"name": "The Witcher", "perc": 0.25, "time": 24, "ep": "S2 E2"},
+      {"name": "House of the Dragon", "perc": 0.89, "time": 10, "ep": "S1 E9"},
+      {"name": "Euphoria", "perc": 0.48, "time": 16, "ep": "S2 E4"},
+      {"name": "Fargo", "perc": 0.15, "time": 40, "ep": "S1 E6"},
+    ];
+
+    // Inizializziamo l'oggetto User con i dati di Google
+    currentUser = User(
+      name: fbUser.displayName ?? "User",
+      totalHoursWatched: 0.0,
+      maxConsecutiveHours: 3,
+      weekendHours: 40,
+      notification: true,
+    );
+
+    // Carichiamo le immagini e salviamo ogni serie su Firestore
+    for (var item in localData) {
+      final url = await fetchImageUrl(item['name']);
+      final s = Series(
+        name: item['name'],
+        imageUrl: url,
+        percentage: item['perc'],
+        totalHours: item['time'],
+        episode: item['ep'],
+      );
+      userSeries.add(s);
+
+      // Scrittura della singola serie nel DB
+      await docRef.collection('series').doc(s.name).set({
+        'imageUrl': s.imageUrl,
+        'percentage': s.percentage,
+        'totalHours': s.totalHours,
+        'episode': s.episode,
+      });
+    }
+
+    // Calcoliamo il tempo totale e salviamo il profilo principale dell'utente
+    currentUser!.totalHoursWatched = getTotalWatchTimeHours();
+    await docRef.set({
+      'name': currentUser!.name,
+      'totalHoursWatched': currentUser!.totalHoursWatched,
+      'maxConsecutiveHours': currentUser!.maxConsecutiveHours,
+      'weekendHours': currentUser!.weekendHours,
+      'notification': currentUser!.notification,
+    });
   }
 static Future<String> fetchImageUrl(String name) async {
   //first try the singlesearch, if no image was found, try to scan the complete list of names

@@ -4,6 +4,8 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'main.dart';
 import 'models/appdata.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -16,6 +18,7 @@ class _LoginScreenState extends State<LoginScreen> {
   late ScrollController _scrollController;
   List<String> _posters = [];
   Timer? _scrollTimer;
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -63,6 +66,50 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } catch (e) {
       print('Error occured on poster: $e');
+    }
+  }
+
+  Future<void> _signInWithGoogle() async {
+    setState(() => _isLoading = true); // Attiva il caricamento
+    try {
+      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+      if (googleUser == null) {
+        setState(() => _isLoading = false); // Utente ha annullato
+        return;
+      }
+
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+
+      final AuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      final UserCredential userCredential = await FirebaseAuth.instance
+          .signInWithCredential(credential);
+
+      if (userCredential.user != null) {
+        await AppData.initializeData();
+
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const MainWrapper()),
+        );
+      }
+    } catch (e) {
+      print("Errore durante il login Google: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Errore durante l'accesso: $e")));
+      }
+    } finally {
+      if (mounted)
+        setState(
+          () => _isLoading = false,
+        ); // Disattiva il caricamento in ogni caso
     }
   }
 
@@ -135,17 +182,15 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
 
+          // Modifica il pulsante esistente
           Positioned(
             bottom: 120,
             left: 40,
             right: 40,
             child: ElevatedButton(
-              onPressed: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => const MainWrapper()),
-                );
-              },
+              onPressed: _isLoading
+                  ? null
+                  : _signInWithGoogle, // Disabilita se carica
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppData.primaryColor,
                 padding: const EdgeInsets.symmetric(vertical: 18),
@@ -153,16 +198,34 @@ class _LoginScreenState extends State<LoginScreen> {
                   borderRadius: BorderRadius.circular(30),
                 ),
               ),
-              child: const Text(
-                "LOG IN/ SIGN IN",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                ),
-              ),
+              child: _isLoading
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : const Text(
+                      "LOG IN WITH GOOGLE",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
             ),
           ),
+
+          // Aggiungi questo in fondo allo Stack (dopo l'ultimo Positioned)
+          if (_isLoading)
+            Container(
+              color: Colors.black.withOpacity(0.5), // Scura lo sfondo
+              child: const Center(
+                child: CircularProgressIndicator(color: AppData.primaryColor),
+              ),
+            ),
         ],
       ),
     );
