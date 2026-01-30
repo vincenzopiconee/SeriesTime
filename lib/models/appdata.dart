@@ -231,18 +231,23 @@ static Stream<QuerySnapshot> seriesStream() {
 }
 
 static Future<void> _populateFirstTime(auth.User fbUser, DocumentReference docRef) async {
-    // Creazione profilo utente...
+  // 1. CREAZIONE IMMEDIATA UTENTE (per evitare l'errore not-found)
   await docRef.set({
     'name': fbUser.displayName ?? "User",
     'totalHoursWatched': 0.0,
     'maxConsecutiveHours': 0.0,
     'weekendHours': 0.0,
     'notification': true,
-  });
-  final List<String> seriesToTrack = ["Peaky Blinders", "Lost", "Breaking Bad"];
+  }, SetOptions(merge: true));
+
+  final List<String> seriesToTrack = ["Peaky Blinders", "Breaking Bad", "The Bear"];
+
+  // Definiamo delle date di riferimento per i test
+  DateTime venerdi = DateTime(2025, 10, 24, 20, 0); // Venerdì sera
+  DateTime sabato = DateTime(2025, 10, 25, 14, 0);  // Sabato pomeriggio
+  DateTime lunedi = DateTime(2025, 10, 27, 09, 0);  // Lunedì mattina
 
   for (String name in seriesToTrack) {
-    // 1. Chiamiamo l'API per ottenere TUTTI i dati della serie e degli episodi
     final response = await http.get(Uri.parse('https://api.tvmaze.com/singlesearch/shows?q=$name&embed=episodes'));
     
     if (response.statusCode == 200) {
@@ -252,38 +257,58 @@ static Future<void> _populateFirstTime(auth.User fbUser, DocumentReference docRe
 
       DocumentReference seriesRef = docRef.collection('series').doc(name);
 
-      // 2. Salviamo i dati generali della serie
       await seriesRef.set({
         'imageUrl': imageUrl,
         'percentage': 0.0,
         'totalHours': 0.0,
         'episode': "S1 E1",
-      });
+      }, SetOptions(merge: true));
 
-      // 3. Creiamo la struttura Stagioni -> Episodi con i dati REALI dell'API
       for (var ep in episodesFromApi) {
         int seasonNum = ep['season'];
         int episodeNum = ep['number'];
-        int runtime = ep['runtime'] ?? 60; // <--- DURATA REALE DALL'API
+        int runtime = ep['runtime'] ?? 60;
+        
+        // LOGICA DEI VALORI FITTIZZI
+        bool isWatched = false;
+        DateTime? watchDate;
+
+        if (name == "Breaking Bad" && seasonNum == 1) {
+          // SCENARIO 1: Pure Obsession (Maratona di 3 episodi consecutivi il lunedì)
+          isWatched = episodeNum <= 3;
+          // Episodi a distanza di 50 minuti l'uno dall'altro (runtime ~47m + 3m pausa)
+          watchDate = lunedi.add(Duration(minutes: (episodeNum - 1) * 50));
+        } 
+        else if (name == "Peaky Blinders" && seasonNum == 1) {
+          // SCENARIO 2: Weekend Warrior (Venerdì e Sabato)
+          isWatched = episodeNum <= 4;
+          if (episodeNum <= 2) {
+            watchDate = venerdi.add(Duration(minutes: (episodeNum - 1) * 65));
+          } else {
+            watchDate = sabato.add(Duration(minutes: (episodeNum - 3) * 65));
+          }
+        }
+        else if (name == "The Bear") {
+          // Serie con pochi episodi visti per non completare tutto subito
+          isWatched = (seasonNum == 1 && episodeNum == 1);
+          watchDate = DateTime.now().subtract(const Duration(days: 5));
+        }
 
         DocumentReference seasonRef = seriesRef.collection('seasons').doc('Season $seasonNum');
-        // Usiamo set con merge per non sovrascrivere la stagione ogni volta
         await seasonRef.set({'season_number': seasonNum}, SetOptions(merge: true));
 
         await seasonRef.collection('episodes').doc('Episode $episodeNum').set({
           'episode_number': episodeNum,
-          'runtime': runtime, // Salviamo i minuti reali!
-          'timestamp': FieldValue.serverTimestamp(),
-          'watched': (seasonNum == 1 && episodeNum <= 3), // Esempio: visti solo primi 3
-        });
+          'runtime': runtime,
+          'timestamp': watchDate != null ? Timestamp.fromDate(watchDate) : FieldValue.serverTimestamp(),
+          'watched': isWatched,
+        }, SetOptions(merge: true));
       }
 
-      // 4. Infine sincronizziamo le ore totali basandoci sui minuti appena salvati
+      // Sincronizziamo i dati della serie appena creata
       await syncSeriesTotalHours(name);
     }
   }
-
-
 }
 
 // 2. MODIFICA SETUP NEW TECHNICAL STRUCTURE (per aggiornare utenti esistenti)
@@ -541,16 +566,15 @@ static Future<void> calculateWeekendWarrior() async {
   final user = auth.FirebaseAuth.instance.currentUser;
   if (user == null) return;
 
-  double totalWeekendMinutes = 0;
+  // Mappa per raggruppare i minuti per ogni weekend specifico
+  // Chiave: "Anno-Settimana" (es: "2025-43")
+  Map<String, double> weekendGroups = {};
 
-  // 1. Recuperiamo tutte le serie dell'utente
   final seriesSnap = await _db.collection('users').doc(user.uid).collection('series').get();
 
   for (var seriesDoc in seriesSnap.docs) {
     final seasonsSnap = await seriesDoc.reference.collection('seasons').get();
-    
     for (var seasonDoc in seasonsSnap.docs) {
-      // 2. Prendiamo solo gli episodi visti
       final episodesSnap = await seasonDoc.reference.collection('episodes')
           .where('watched', isEqualTo: true)
           .get();
@@ -560,25 +584,40 @@ static Future<void> calculateWeekendWarrior() async {
         if (data['timestamp'] != null) {
           DateTime date = (data['timestamp'] as Timestamp).toDate();
           
-          // 3. Filtriamo: Venerdì (5), Sabato (6), Domenica (7)
-          if (date.weekday == DateTime.friday || 
-              date.weekday == DateTime.saturday || 
-              date.weekday == DateTime.sunday) {
-            totalWeekendMinutes += (data['runtime'] ?? 0).toDouble();
+          // Consideriamo Venerdì (5), Sabato (6), Domenica (7)
+          if (date.weekday >= DateTime.friday && date.weekday <= DateTime.sunday) {
+            // Calcoliamo a quale settimana appartiene il weekend.
+            // Nota: Se è venerdì, appartiene alla settimana corrente.
+            String weekendKey = "${date.year}-${_getIsoWeekNumber(date)}";
+            
+            double runtime = (data['runtime'] ?? 0).toDouble();
+            weekendGroups[weekendKey] = (weekendGroups[weekendKey] ?? 0) + runtime;
           }
         }
       }
     }
   }
 
-  double weekendHours = totalWeekendMinutes / 60.0;
+  // Troviamo il weekend con il totale più alto
+  double maxWeekendMinutes = 0;
+  if (weekendGroups.isNotEmpty) {
+    maxWeekendMinutes = weekendGroups.values.reduce((a, b) => a > b ? a : b);
+  }
 
-  // 4. Aggiorniamo il database dell'utente
+  double maxWeekendHours = maxWeekendMinutes / 60.0;
+
+  // Aggiorniamo il database solo se abbiamo migliorato il record
   await _db.collection('users').doc(user.uid).set({
-    'weekendHours': weekendHours,
+    'weekendHours': maxWeekendHours,
   }, SetOptions(merge: true));
   
-  debugPrint("Weekend Warrior aggiornato: $weekendHours ore");
+  debugPrint("Record Weekend Warrior: $maxWeekendHours ore nel weekend migliore");
+}
+
+// Funzione helper per ottenere il numero della settimana (ISO 8601)
+static int _getIsoWeekNumber(DateTime date) {
+  int daysSinceJan1 = date.difference(DateTime(date.year, 1, 1)).inDays;
+  return ((daysSinceJan1 + DateTime(date.year, 1, 1).weekday - 1) / 7).floor() + 1;
 }
 
 }

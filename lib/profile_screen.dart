@@ -292,6 +292,7 @@ class ProfileScreen extends StatelessWidget {
   }
 
   Widget _buildSeriesCard(Series series) {
+    String formattedTime = "${series.totalHours.toStringAsFixed(2)}h";
     return Container(
       decoration: BoxDecoration(
         color: AppData.whiteColor,
@@ -369,7 +370,7 @@ class ProfileScreen extends StatelessWidget {
                     const Icon(Icons.access_time, size: 18, color: Colors.grey),
                     const SizedBox(width: 3),
                     Text(
-                      series.timeLabel,
+                      formattedTime,
                       style: const TextStyle(
                         color: Colors.grey,
                         fontSize: 14,
