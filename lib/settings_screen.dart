@@ -3,7 +3,6 @@ import 'login_screen.dart';
 import 'models/appdata.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:firebase_auth/firebase_auth.dart' as auth; 
 
 
 class SettingsScreen extends StatefulWidget {
@@ -26,7 +25,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final user = AppData.currentUser;
-    return Scaffold(
+    return GestureDetector(
+    onHorizontalDragUpdate: (details) {
+      if (details.delta.dx > 18) { 
+        Navigator.pop(context);
+      }
+    },
+    child: Scaffold(
       backgroundColor: AppData.backgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -159,6 +164,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ],
         ),
       ),
+    ),
     );
   }
 

@@ -260,7 +260,7 @@ static Future<void> _populateFirstTime(auth.User fbUser, DocumentReference docRe
       final List episodesFromApi = data['_embedded']['episodes'];
       final String imageUrl = data['image']?['medium'] ?? "";
 
-      DocumentReference seriesRef = docRef.collection('series').doc(name);
+      DocumentReference seriesRef = docRef.collection('series').doc(name); // take the serie with ame "name"
 
       await seriesRef.set({
         'imageUrl': imageUrl,
@@ -294,7 +294,7 @@ static Future<void> _populateFirstTime(auth.User fbUser, DocumentReference docRe
           watchDate = DateTime.now().subtract(const Duration(days: 5));
         }
 
-        DocumentReference seasonRef = seriesRef.collection('seasons').doc('Season $seasonNum');
+        DocumentReference seasonRef = seriesRef.collection('seasons').doc('Season $seasonNum'); // take the season number seasonNum
         await seasonRef.set({'season_number': seasonNum}, SetOptions(merge: true));
 
         await seasonRef.collection('episodes').doc('Episode $episodeNum').set({
@@ -329,9 +329,7 @@ static Future<void> setupNewTechnicalStructure() async {
       'timestamp': DateTime.now(),
       'watched': true,
     });
-    
-    debugPrint("Struttura Stagioni creata per $seriesName");
-  }
+      }
 }
 static Future<String> fetchImageUrl(String name) async {
   //first try the singlesearch, if no image was found, try to scan the complete list of names
@@ -354,7 +352,7 @@ static Future<String> fetchImageUrl(String name) async {
       }
     }
   } catch (e) {
-    debugPrint("Errore immagine per $name: $e");
+    debugPrint("Image error for $name: $e");
   }
   return ''; 
 }
@@ -417,7 +415,7 @@ static Future<List<dynamic>> fetchSeriesEpisodes(String seriesName) async {
       return data['_embedded']['episodes'] as List<dynamic>;
     }
   } catch (e) {
-    debugPrint("Errore fetch episodi: $e");
+    debugPrint("fetch episode error: $e");
   }
   return [];
 }
@@ -547,7 +545,6 @@ static Future<void> calculatePureObsession(String seriesName) async {
 
   if (maxSessionHours > recordAttuale) {
     await userDoc.update({'maxConsecutiveHours': maxSessionHours});
-    debugPrint("NUOVO RECORD PURE OBSESSION: $maxSessionHours ore!");
   }
 }
 static Future<void> calculateWeekendWarrior() async {
@@ -594,16 +591,12 @@ static Future<void> calculateWeekendWarrior() async {
     'weekendHours': maxWeekendHours,
   }, SetOptions(merge: true));
   
-  debugPrint("Record Weekend Warrior: $maxWeekendHours ore nel weekend migliore");
 }
 
 static int _getIsoWeekNumber(DateTime date) {
   int daysSinceJan1 = date.difference(DateTime(date.year, 1, 1)).inDays;
   return ((daysSinceJan1 + DateTime(date.year, 1, 1).weekday - 1) / 7).floor() + 1;
 }
-static String? getUserProfileImage() {
-    final auth.User? firebaseUser = auth.FirebaseAuth.instance.currentUser;
-    return firebaseUser?.photoURL; 
-}
+
 
 }

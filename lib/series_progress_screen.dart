@@ -19,7 +19,13 @@ class SeriesProgressScreen extends StatelessWidget {
       (a, b) => b.percentage.compareTo(a.percentage),
     ); //List sorted by percentage
 
-    return Scaffold(
+     return GestureDetector(
+    onHorizontalDragUpdate: (details) {
+      if (details.delta.dx > 18) { 
+        Navigator.pop(context);
+      }
+    },
+    child: Scaffold(
       backgroundColor: AppData.backgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -76,7 +82,8 @@ class SeriesProgressScreen extends StatelessWidget {
           );
         },
       ),
-    );
+    ),
+     );
   }
 
   Widget _buildProgressCard({
