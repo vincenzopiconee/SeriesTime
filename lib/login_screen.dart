@@ -6,6 +6,7 @@ import 'main.dart';
 import 'models/appdata.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'dart:io';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -73,7 +74,9 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
     try {
       final GoogleSignIn googleSignIn = GoogleSignIn(
-      clientId: '192989615567-ceb6bb8lrdr2vovmraf4lrgsitptb5qr.apps.googleusercontent.com', //for ios
+      clientId: Platform.isIOS 
+      ? '192989615567-ceb6bb8lrdr2vovmraf4lrgsitptb5qr.apps.googleusercontent.com' 
+      : null,
     );
     final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
       if (googleUser == null) {
