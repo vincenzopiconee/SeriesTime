@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart' as auth;
 import 'models/appdata.dart';
 import 'models/userbadge.dart';
 import 'models/user.dart';
@@ -16,18 +15,11 @@ class BingeModeScreen extends StatelessWidget {
     // ( then context is the context of the app and the snapshot is an object
     // which contain the state of the app (snapsht.data, snapshot.error) )
     return StreamBuilder<DocumentSnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('users')
-          .doc(auth.FirebaseAuth.instance.currentUser?.uid)
-          .snapshots(),
+      stream: AppData.userStream(),
       builder: (context, userSnapshot) {
         return StreamBuilder<QuerySnapshot>(
           // nested streambuilder to collect also the series
-          stream: FirebaseFirestore.instance
-              .collection('users')
-              .doc(auth.FirebaseAuth.instance.currentUser?.uid)
-              .collection('series')
-              .snapshots(),
+          stream: AppData.seriesStream(),
           builder: (context, seriesSnapshot) {
             if (!userSnapshot.hasData || !seriesSnapshot.hasData) {
               return const Scaffold(

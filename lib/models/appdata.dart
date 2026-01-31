@@ -178,6 +178,11 @@ currentUser = User(
   );
   generateUserBadges();
   }*/
+
+  //doc.id returns the name of the document
+  //doc.data() returns a map Map<String, dynamic> with all the data in the document
+  //doc.reference is the path of the document
+
   static Future<void> initializeData() async {
     userSeries.clear();
 
@@ -185,23 +190,24 @@ currentUser = User(
     if (firebaseUser == null) return;
 
     final userDoc = _db.collection('users').doc(firebaseUser.uid);
-    final snapshot = await userDoc.get();
+    final snapshot = await userDoc.get(); //get() returns a future which contain a snapshot of the data in the Doc
 
     if (!snapshot.exists) {
       // if there's no data in the DB, let's populate
       await _populateFirstTime(firebaseUser, userDoc);
     } else {
-      final data = snapshot.data()!;
+      final data = snapshot.data()!; 
       currentUser = User(
-        name: data['name'] ?? firebaseUser.displayName ?? "User",
+        name: data['name'] ?? firebaseUser.displayName ?? "User", //firebaseUser.displayName contains the google user name
         totalHoursWatched: (data['totalHoursWatched'] ?? 0).toDouble(),
-        maxConsecutiveHours: data['maxConsecutiveHours'] ?? 3,
-        weekendHours:( data['weekendHours'] ?? 40).toDouble(),
+        maxConsecutiveHours: data['maxConsecutiveHours'] ?? 0,
+        weekendHours:( data['weekendHours'] ?? 0).toDouble(),
         notification: data['notification'] ?? true,
+        photoUrl: firebaseUser.photoURL,
       );
 
 final seriesSnap = await userDoc.collection('series').get();
-for (var doc in seriesSnap.docs) {
+for (var doc in seriesSnap.docs) { //.docs transforms the result in a List
   double realHours = await calculateSeriesTotalHours(doc.id);
   
   userSeries.add(Series(
@@ -221,6 +227,7 @@ static Stream<DocumentSnapshot> userStream() {
   if (firebaseUser == null) return const Stream.empty();
   
   return _db.collection('users').doc(firebaseUser.uid).snapshots();
+  // differently from get(), the snapshot keep the data updated
 }
 
 static Stream<QuerySnapshot> seriesStream() {
@@ -593,6 +600,10 @@ static Future<void> calculateWeekendWarrior() async {
 static int _getIsoWeekNumber(DateTime date) {
   int daysSinceJan1 = date.difference(DateTime(date.year, 1, 1)).inDays;
   return ((daysSinceJan1 + DateTime(date.year, 1, 1).weekday - 1) / 7).floor() + 1;
+}
+static String? getUserProfileImage() {
+    final auth.User? firebaseUser = auth.FirebaseAuth.instance.currentUser;
+    return firebaseUser?.photoURL; 
 }
 
 }

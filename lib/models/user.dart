@@ -4,6 +4,7 @@ class User {
   final double maxConsecutiveHours;
   final double weekendHours;
   final bool notification;
+  final String? photoUrl;
 
   User({
     required this.name,
@@ -11,5 +12,6 @@ class User {
     required this.maxConsecutiveHours,
     required this.weekendHours,
     required this.notification,
+    this.photoUrl,
   });
 }

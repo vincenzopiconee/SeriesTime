@@ -6,7 +6,7 @@ import 'models/appdata.dart';
 import 'models/series.dart';
 import 'models/userbadge.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart' as auth;
+import 'package:firebase_auth/firebase_auth.dart' as auth; 
 import 'models/user.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -16,17 +16,10 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<DocumentSnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('users')
-          .doc(auth.FirebaseAuth.instance.currentUser?.uid)
-          .snapshots(),
+      stream: AppData.userStream(),
       builder: (context, userSnapshot) {
         return StreamBuilder<QuerySnapshot>(
-          stream: FirebaseFirestore.instance
-              .collection('users')
-              .doc(auth.FirebaseAuth.instance.currentUser?.uid)
-              .collection('series')
-              .snapshots(),
+          stream: AppData.seriesStream(),
           builder: (context, seriesSnapshot) {
             if (!userSnapshot.hasData || !seriesSnapshot.hasData) {
               return const Scaffold(
@@ -60,6 +53,7 @@ class ProfileScreen extends StatelessWidget {
                   .toDouble(),
               weekendHours: (userData['weekendHours'] ?? 0).toDouble(),
               notification: userData['notification'] ?? true,
+              photoUrl: userData['photoUrl'] ?? auth.FirebaseAuth.instance.currentUser?.photoURL,
             );
 
             final timeData = AppData.getTotalWatchTimeSplit();
@@ -103,10 +97,15 @@ class ProfileScreen extends StatelessWidget {
                 ),
                 child: Column(
                   children: [
-                    const CircleAvatar(
-                      radius: 45,
-                      backgroundColor: AppData.avatarColor,
-                      child: Icon(Icons.person, size: 55, color: Colors.white),
+                   CircleAvatar(
+                   radius: 45,
+                   backgroundColor: AppData.avatarColor,
+                   backgroundImage: currentUser.photoUrl != null 
+                   ? NetworkImage(currentUser.photoUrl!) 
+                   : null,
+                   child: currentUser.photoUrl == null 
+                   ? const Icon(Icons.person, size: 55, color: Colors.white) 
+                    : null,
                     ),
                     const SizedBox(height: 12),
                     Text(

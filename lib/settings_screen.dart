@@ -3,6 +3,8 @@ import 'login_screen.dart';
 import 'models/appdata.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:firebase_auth/firebase_auth.dart' as auth; 
+
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -47,10 +49,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            const CircleAvatar(
+             CircleAvatar(
               radius: 45,
               backgroundColor: AppData.avatarColor,
-              child: Icon(Icons.person, size: 55, color: Colors.white),
+              backgroundImage: user?.photoUrl != null 
+      ? NetworkImage(user!.photoUrl!) 
+      : null,
+              child: user?.photoUrl == null
+      ? const Icon(Icons.person, size: 55, color: Colors.white)
+      : null,
             ),
             const SizedBox(height: 12),
             Text(
