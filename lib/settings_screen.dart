@@ -121,15 +121,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                   ElevatedButton(
                     onPressed: () async {
-                      // 1. Disconnetti da Firebase
                       await FirebaseAuth.instance.signOut();
-
-                      // 2. Disconnetti da Google (questo forza la scelta dell'account al rientro)
                       await GoogleSignIn().signOut();
 
                       if (!mounted) return;
-
-                      // 3. Torna alla schermata di login pulendo lo storico delle pagine
                       Navigator.of(context).pushAndRemoveUntil(
                         MaterialPageRoute(
                           builder: (context) => const LoginScreen(),

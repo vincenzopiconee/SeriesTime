@@ -231,7 +231,6 @@ static Stream<QuerySnapshot> seriesStream() {
 }
 
 static Future<void> _populateFirstTime(auth.User fbUser, DocumentReference docRef) async {
-  // 1. CREAZIONE IMMEDIATA UTENTE (per evitare l'errore not-found)
   await docRef.set({
     'name': fbUser.displayName ?? "User",
     'totalHoursWatched': 0.0,
@@ -242,10 +241,9 @@ static Future<void> _populateFirstTime(auth.User fbUser, DocumentReference docRe
 
   final List<String> seriesToTrack = ["Peaky Blinders", "Breaking Bad", "The Bear"];
 
-  // Definiamo delle date di riferimento per i test
-  DateTime venerdi = DateTime(2025, 10, 24, 20, 0); // Venerdì sera
-  DateTime sabato = DateTime(2025, 10, 25, 14, 0);  // Sabato pomeriggio
-  DateTime lunedi = DateTime(2025, 10, 27, 09, 0);  // Lunedì mattina
+  DateTime venerdi = DateTime(2025, 10, 24, 20, 0); 
+  DateTime sabato = DateTime(2025, 10, 25, 14, 0);  
+  DateTime lunedi = DateTime(2025, 10, 27, 09, 0);  
 
   for (String name in seriesToTrack) {
     final response = await http.get(Uri.parse('https://api.tvmaze.com/singlesearch/shows?q=$name&embed=episodes'));
@@ -269,18 +267,14 @@ static Future<void> _populateFirstTime(auth.User fbUser, DocumentReference docRe
         int episodeNum = ep['number'];
         int runtime = ep['runtime'] ?? 60;
         
-        // LOGICA DEI VALORI FITTIZZI
         bool isWatched = false;
         DateTime? watchDate;
 
         if (name == "Breaking Bad" && seasonNum == 1) {
-          // SCENARIO 1: Pure Obsession (Maratona di 3 episodi consecutivi il lunedì)
           isWatched = episodeNum <= 3;
-          // Episodi a distanza di 50 minuti l'uno dall'altro (runtime ~47m + 3m pausa)
           watchDate = lunedi.add(Duration(minutes: (episodeNum - 1) * 50));
         } 
         else if (name == "Peaky Blinders" && seasonNum == 1) {
-          // SCENARIO 2: Weekend Warrior (Venerdì e Sabato)
           isWatched = episodeNum <= 4;
           if (episodeNum <= 2) {
             watchDate = venerdi.add(Duration(minutes: (episodeNum - 1) * 65));
@@ -289,7 +283,6 @@ static Future<void> _populateFirstTime(auth.User fbUser, DocumentReference docRe
           }
         }
         else if (name == "The Bear") {
-          // Serie con pochi episodi visti per non completare tutto subito
           isWatched = (seasonNum == 1 && episodeNum == 1);
           watchDate = DateTime.now().subtract(const Duration(days: 5));
         }
@@ -305,13 +298,11 @@ static Future<void> _populateFirstTime(auth.User fbUser, DocumentReference docRe
         }, SetOptions(merge: true));
       }
 
-      // Sincronizziamo i dati della serie appena creata
       await syncSeriesTotalHours(name);
     }
   }
 }
 
-// 2. MODIFICA SETUP NEW TECHNICAL STRUCTURE (per aggiornare utenti esistenti)
 static Future<void> setupNewTechnicalStructure() async {
   final user = auth.FirebaseAuth.instance.currentUser;
   if (user == null) return;
@@ -322,11 +313,9 @@ static Future<void> setupNewTechnicalStructure() async {
   for (String seriesName in seriesToUpdate) {
     DocumentReference seriesRef = userDoc.collection('series').doc(seriesName);
 
-    // Creiamo una Stagione 1 di test
     DocumentReference seasonRef = seriesRef.collection('seasons').doc('Season 1');
     await seasonRef.set({'season_number': 1});
 
-    // Aggiungiamo un episodio reale (non più test_ep)
     await seasonRef.collection('episodes').doc('Episode 1').set({
       'episode_number': 1,
       'runtime': 45,
@@ -482,7 +471,6 @@ static Future<double> getSeriesTotalRuntimeFromApi(String seriesName) async {
   }
   return 1.0; 
 }
-// In models/appdata.dart
 
 static Future<void> calculatePureObsession(String seriesName) async {
   final user = auth.FirebaseAuth.instance.currentUser;
@@ -490,7 +478,6 @@ static Future<void> calculatePureObsession(String seriesName) async {
 
   final seriesRef = _db.collection('users').doc(user.uid).collection('series').doc(seriesName);
   
-  // 1. Recuperiamo tutti gli episodi visti di tutte le stagioni della serie
   List<Map<String, dynamic>> watchedEpisodes = [];
   final seasonsSnap = await seriesRef.collection('seasons').get();
   
@@ -505,7 +492,6 @@ static Future<void> calculatePureObsession(String seriesName) async {
 
   if (watchedEpisodes.isEmpty) return;
 
-  // 2. Ordiniamo gli episodi per timestamp (dal più vecchio al più recente)
   watchedEpisodes.sort((a, b) {
     final tA = a['timestamp'] as Timestamp?;
     final tB = b['timestamp'] as Timestamp?;
@@ -530,29 +516,24 @@ static Future<void> calculatePureObsession(String seriesName) async {
         DateTime previousTime = previousTimestamp.toDate();
         double previousRuntime = (watchedEpisodes[i-1]['runtime'] ?? 0).toDouble();
 
-        // Differenza tra l'inizio dell'episodio attuale e l'inizio del precedente
         int diffInMinutes = currentTime.difference(previousTime).inMinutes;
         
-        // Se l'episodio attuale inizia entro il runtime del precedente + 10 minuti di pausa
         if (diffInMinutes <= (previousRuntime + 10)) {
           currentSessionMinutes += runtime;
         } else {
-          // La sessione si è interrotta, salviamo il record se è il più alto
           if ((currentSessionMinutes / 60) > maxSessionHours) {
             maxSessionHours = currentSessionMinutes / 60;
           }
-          currentSessionMinutes = runtime; // Inizia una nuova sessione
+          currentSessionMinutes = runtime; 
         }
       }
     }
   }
   
-  // Controllo finale per l'ultima sessione attiva
   if ((currentSessionMinutes / 60) > maxSessionHours) {
     maxSessionHours = currentSessionMinutes / 60;
   }
 
-  // 3. Aggiorniamo il record globale dell'utente se abbiamo superato il vecchio massimo
   final userDoc = _db.collection('users').doc(user.uid);
   final userSnap = await userDoc.get();
   double recordAttuale = (userSnap.data()?['maxConsecutiveHours'] ?? 0).toDouble();
@@ -566,8 +547,7 @@ static Future<void> calculateWeekendWarrior() async {
   final user = auth.FirebaseAuth.instance.currentUser;
   if (user == null) return;
 
-  // Mappa per raggruppare i minuti per ogni weekend specifico
-  // Chiave: "Anno-Settimana" (es: "2025-43")
+  
   Map<String, double> weekendGroups = {};
 
   final seriesSnap = await _db.collection('users').doc(user.uid).collection('series').get();
@@ -584,10 +564,8 @@ static Future<void> calculateWeekendWarrior() async {
         if (data['timestamp'] != null) {
           DateTime date = (data['timestamp'] as Timestamp).toDate();
           
-          // Consideriamo Venerdì (5), Sabato (6), Domenica (7)
           if (date.weekday >= DateTime.friday && date.weekday <= DateTime.sunday) {
-            // Calcoliamo a quale settimana appartiene il weekend.
-            // Nota: Se è venerdì, appartiene alla settimana corrente.
+          
             String weekendKey = "${date.year}-${_getIsoWeekNumber(date)}";
             
             double runtime = (data['runtime'] ?? 0).toDouble();
@@ -598,7 +576,6 @@ static Future<void> calculateWeekendWarrior() async {
     }
   }
 
-  // Troviamo il weekend con il totale più alto
   double maxWeekendMinutes = 0;
   if (weekendGroups.isNotEmpty) {
     maxWeekendMinutes = weekendGroups.values.reduce((a, b) => a > b ? a : b);
@@ -606,7 +583,6 @@ static Future<void> calculateWeekendWarrior() async {
 
   double maxWeekendHours = maxWeekendMinutes / 60.0;
 
-  // Aggiorniamo il database solo se abbiamo migliorato il record
   await _db.collection('users').doc(user.uid).set({
     'weekendHours': maxWeekendHours,
   }, SetOptions(merge: true));
@@ -614,7 +590,6 @@ static Future<void> calculateWeekendWarrior() async {
   debugPrint("Record Weekend Warrior: $maxWeekendHours ore nel weekend migliore");
 }
 
-// Funzione helper per ottenere il numero della settimana (ISO 8601)
 static int _getIsoWeekNumber(DateTime date) {
   int daysSinceJan1 = date.difference(DateTime(date.year, 1, 1)).inDays;
   return ((daysSinceJan1 + DateTime(date.year, 1, 1).weekday - 1) / 7).floor() + 1;

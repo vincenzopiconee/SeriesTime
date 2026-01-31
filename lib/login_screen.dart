@@ -73,7 +73,7 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
     try {
       final GoogleSignIn googleSignIn = GoogleSignIn(
-      clientId: '192989615567-ceb6bb8lrdr2vovmraf4lrgsitptb5qr.apps.googleusercontent.com',
+      clientId: '192989615567-ceb6bb8lrdr2vovmraf4lrgsitptb5qr.apps.googleusercontent.com', //for ios
     );
     final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
       if (googleUser == null) {
@@ -92,16 +92,10 @@ class _LoginScreenState extends State<LoginScreen> {
       final UserCredential userCredential = await FirebaseAuth.instance
           .signInWithCredential(credential);
       if (userCredential.user != null) {
-        // Aspetta che i dati siano inizializzati (e l'eventuale primo popolamento fatto)
         await AppData.initializeData();
-
-        // Ora che siamo sicuri che l'utente esiste nel DB, forziamo l'aggiornamento
-        // se non è già stato fatto dal populateFirstTime
         await AppData.setupNewTechnicalStructure();
 
         if (!mounted) return;
-
-        // Dai un secondo a Firebase di propagare i dati prima di cambiare schermata
         await Future.delayed(const Duration(seconds: 1));
 
         Navigator.pushReplacement(

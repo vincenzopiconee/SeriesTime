@@ -12,7 +12,6 @@ import 'models/user.dart';
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
-  // ... (import e inizio classe uguali)
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +36,7 @@ class ProfileScreen extends StatelessWidget {
 
             final userData = userSnapshot.data!.data() as Map<String, dynamic>;
 
-            double computedGlobalHours = 0;
+            //double computedGlobalHours = 0;
 
             AppData.userSeries = seriesSnapshot.data!.docs.map((doc) {
               final sData = doc.data() as Map<String, dynamic>;
@@ -53,7 +52,6 @@ class ProfileScreen extends StatelessWidget {
               );
             }).toList();
 
-            // In profile_screen.dart
             AppData.currentUser = User(
               name: userData['name'] ?? "User",
               totalHoursWatched: (userData['totalHoursWatched'] ?? 0)
@@ -69,7 +67,7 @@ class ProfileScreen extends StatelessWidget {
             final int remainingHours = timeData["hours"]!;
             final int minutes = timeData["minutes"]!;
 
-            AppData.generateUserBadges(); // Ora i badge vedranno le ore corrette
+            AppData.generateUserBadges(); 
 
             final List<Series> filteredSeries = AppData.userSeries
                 .where((s) => s.percentage < 1.0)
@@ -292,7 +290,7 @@ class ProfileScreen extends StatelessWidget {
   }
 
   Widget _buildSeriesCard(Series series) {
-    String formattedTime = "${series.totalHours.toStringAsFixed(2)}h";
+    String formattedTime = formatHours(series.totalHours);
     return Container(
       decoration: BoxDecoration(
         color: AppData.whiteColor,
@@ -367,13 +365,13 @@ class ProfileScreen extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.access_time, size: 18, color: Colors.grey),
+                    const Icon(Icons.access_time, size: 15, color: Colors.grey),
                     const SizedBox(width: 3),
                     Text(
                       formattedTime,
                       style: const TextStyle(
                         color: Colors.grey,
-                        fontSize: 14,
+                        fontSize: 11,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -546,4 +544,13 @@ class ProfileScreen extends StatelessWidget {
       ),
     );
   }
+  String formatHours(double totalHours) {
+  if (totalHours <= 0) return "0m";
+  int h = totalHours.toInt();
+  int m = ((totalHours - h) * 60).round();
+  
+  if (h == 0) return "${m}m";
+  if (m == 0) return "${h}h";
+  return "${h}h ${m}m";
+}
 }

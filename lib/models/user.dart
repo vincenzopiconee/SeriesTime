@@ -1,4 +1,3 @@
-// models/user.dart
 class User {
   final String name;
   final double totalHoursWatched;
