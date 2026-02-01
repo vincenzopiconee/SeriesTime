@@ -3,7 +3,7 @@ class User {
   final double totalHoursWatched;
   final double maxConsecutiveHours;
   final double weekendHours;
-  final bool notification;
+   bool notification;
   final String? photoUrl;
 
   User({

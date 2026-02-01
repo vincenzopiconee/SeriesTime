@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'login_screen.dart';
 import 'models/appdata.dart';
@@ -114,8 +116,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             value: isNotificationsEnabled,
                             activeThumbColor: Colors.white,
                             activeTrackColor: AppData.primaryColor,
-                            onChanged: (val) =>
-                                setState(() => isNotificationsEnabled = val),
+                            onChanged: (val) => _updateNotificationPreference(val),
                           ),
                         ],
                       ),
@@ -212,5 +213,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
         const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.black87),
       ],
     );
+  }
+
+  Future<void> _updateNotificationPreference(bool value) async {
+    final firebaseUser = FirebaseAuth.instance.currentUser;
+    if (firebaseUser == null) return;
+
+    setState (() {
+        isNotificationsEnabled = value;
+    });
+    try {
+        await FirebaseFirestore.instance
+        .collection('users')
+        .doc(firebaseUser.uid)
+        .update({'notification': value});
+
+        if (AppData.currentUser !=null ){
+          AppData.currentUser!.notification = value;
+        }
+    } catch(e){
+      debugPrint("An error occured during the notification updating: $e");
+    }
   }
 }

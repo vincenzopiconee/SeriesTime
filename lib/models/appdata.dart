@@ -260,7 +260,7 @@ static Future<void> _populateFirstTime(auth.User fbUser, DocumentReference docRe
       final List episodesFromApi = data['_embedded']['episodes'];
       final String imageUrl = data['image']?['medium'] ?? "";
 
-      DocumentReference seriesRef = docRef.collection('series').doc(name); // take the serie with ame "name"
+      DocumentReference seriesRef = docRef.collection('series').doc(name); // take the serie with name "name"
 
       await seriesRef.set({
         'imageUrl': imageUrl,
