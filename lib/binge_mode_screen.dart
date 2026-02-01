@@ -1,107 +1,149 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'models/appdata.dart';
 import 'models/userbadge.dart';
+import 'models/user.dart';
+import 'models/series.dart';
 
 class BingeModeScreen extends StatelessWidget {
   const BingeModeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    if (AppData.currentUser == null) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
+    //streamBuilder handles the stream of data, stream is the source (firebase),
+    // the builder is the function triggered when the DB is changed
+    // ( then context is the context of the app and the snapshot is an object
+    // which contain the state of the app (snapsht.data, snapshot.error) )
+    return StreamBuilder<DocumentSnapshot>(
+      stream: AppData.userStream(),
+      builder: (context, userSnapshot) {
+        return StreamBuilder<QuerySnapshot>(
+          // nested streambuilder to collect also the series
+          stream: AppData.seriesStream(),
+          builder: (context, seriesSnapshot) {
+            if (!userSnapshot.hasData || !seriesSnapshot.hasData) {
+              return const Scaffold(
+                body: Center(child: CircularProgressIndicator()),
+              );
+            }
 
-    final user = AppData.currentUser!;
-    final timeData = AppData.getTotalWatchTimeSplit();
+            final userData = userSnapshot.data!.data() as Map<String, dynamic>;
+            //saves the date in the snaphot as a Map
+            AppData.currentUser = User(
+              name: userData['name'] ?? "User",
+              totalHoursWatched: (userData['totalHoursWatched'] ?? 0)
+                  .toDouble(),
+              maxConsecutiveHours: (userData['maxConsecutiveHours'] ?? 0)
+                  .toDouble(),
+              weekendHours: (userData['weekendHours'] ?? 0).toDouble(),
+              notification: userData['notification'] ?? true,
+            );
 
-    // populating Data and the progress for each achievement
-    final UserBadge targetMarathoner = AppData.getMarathonerTarget();
-    double progressMarathoner =
-        user.totalHoursWatched / targetMarathoner.targetHours;
-    if (progressMarathoner > 1.0) progressMarathoner = 1.0;
-    bool isMarathonerFinished = user.totalHoursWatched >= 2400; // 100 days
-    final UserBadge targetObsession = AppData.getObsessionTarget(
-      user.maxConsecutiveHours,
-    );
-    double progressObsession =
-        user.maxConsecutiveHours / targetObsession.targetHours;
-    if (progressObsession > 1.0) progressObsession = 1.0;
-    bool isObsessionFinished = user.maxConsecutiveHours >= 20;
-    final UserBadge targetWeekend = AppData.getWeekendTarget(user.weekendHours);
-    double progressWeekend = user.weekendHours / targetWeekend.targetHours;
-    if (progressWeekend > 1.0) progressWeekend = 1.0;
-    bool isWeekendFinished = user.weekendHours >= 48;
+            AppData.userSeries = seriesSnapshot.data!.docs.map((doc) {
+              final sData = doc.data() as Map<String, dynamic>;
+              return Series(
+                name: doc.id,
+                imageUrl: sData['imageUrl'] ?? "",
+                percentage: (sData['percentage'] ?? 0).toDouble(),
+                totalHours: sData['totalHours'] ?? 0,
+                episode: sData['episode'] ?? "",
+              );
+            }).toList();
 
-    return Scaffold(
-      backgroundColor: AppData.backgroundColor,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: true,
-        title: const Text(
-          "BINGE MODE",
-          style: TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-            fontSize: 27,
-            letterSpacing: 1.2,
-          ),
-        ),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.only(
-          left: 20,
-          right: 20,
-          top: 30,
-          bottom: 120,
-        ),
-        child: Column(
-          children: [
-            // CARD MARATHONER
-            _buildAchievementCard(
-              title: targetMarathoner.title,
-              description: isMarathonerFinished
-                  ? "You are a true legend! Max level reached."
-                  : "Reach ${targetMarathoner.iconLabel.replaceAll('G', '')} days of total watch time.",
-              progressText: isMarathonerFinished
-                  ? "COMPLETED"
-                  : "${timeData["days"]}d ${timeData["hours"]}h / ${targetMarathoner.iconLabel.replaceAll('G', 'd 00h')}",
-              progressValue: progressMarathoner,
-              badge: targetMarathoner,
-            ),
+            final user = AppData.currentUser!;
+            final double realTotalHours = AppData.getTotalWatchTimeHours();
+            final timeData = AppData.getTotalWatchTimeSplit();
 
-            const SizedBox(height: 20),
+            final UserBadge targetMarathoner = AppData.getMarathonerTarget();
+            double progressMarathoner =
+                realTotalHours / targetMarathoner.targetHours;
+            if (progressMarathoner > 1.0) progressMarathoner = 1.0;
+            bool isMarathonerFinished = realTotalHours >= 2400;
 
-            // CARD PURE OBSESSION
-            _buildAchievementCard(
-              title: targetObsession.title,
-              description: isObsessionFinished
-                  ? "Your obsession has no limits. Max level reached."
-                  : "Watch the same TV series for ${targetObsession.targetHours.toInt()} consecutive hours.",
-              progressText: isObsessionFinished
-                  ? "COMPLETED"
-                  : "${user.maxConsecutiveHours}h / ${targetObsession.iconLabel}",
-              progressValue: progressObsession,
-              badge: targetObsession,
-            ),
+            final UserBadge targetObsession = AppData.getObsessionTarget(
+              user.maxConsecutiveHours,
+            );
+            double progressObsession =
+                user.maxConsecutiveHours / targetObsession.targetHours;
+            if (progressObsession > 1.0) progressObsession = 1.0;
+            bool isObsessionFinished = user.maxConsecutiveHours >= 20;
 
-            const SizedBox(height: 20),
+            final UserBadge targetWeekend = AppData.getWeekendTarget(
+              user.weekendHours,
+            );
+            double progressWeekend =
+                user.weekendHours / targetWeekend.targetHours;
+            if (progressWeekend > 1.0) progressWeekend = 1.0;
+            bool isWeekendFinished = user.weekendHours >= 48;
 
-            // CARD WEEKEND WARRIOR
-            _buildAchievementCard(
-              title: targetWeekend.title,
-              description: isWeekendFinished
-                  ? "The ultimate weekend warrior! Max level reached."
-                  : "Watch ${targetWeekend.targetHours.toInt()} hours of content within 3 days.",
-              progressText: isWeekendFinished
-                  ? "COMPLETED"
-                  : "${user.weekendHours}h / ${targetWeekend.iconLabel}",
-              progressValue: progressWeekend,
-              badge: targetWeekend,
-            ),
-          ],
-        ),
-      ),
+            return Scaffold(
+              backgroundColor: AppData.backgroundColor,
+              appBar: AppBar(
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                centerTitle: true,
+                title: const Text(
+                  "BINGE MODE",
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 27,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+              ),
+              body: SingleChildScrollView(
+                padding: const EdgeInsets.only(
+                  left: 20,
+                  right: 20,
+                  top: 30,
+                  bottom: 120,
+                ),
+                child: Column(
+                  children: [
+                    _buildAchievementCard(
+                      title: targetMarathoner.title,
+                      description: isMarathonerFinished
+                          ? "You are a true legend! Max level reached."
+                          : "Reach ${targetMarathoner.iconLabel.replaceAll('G', '')} days of total watch time.",
+                      progressText: isMarathonerFinished
+                          ? "COMPLETED"
+                          : "${timeData["days"]}d ${timeData["hours"]}h / ${targetMarathoner.iconLabel.replaceAll('G', 'd 00h')}",
+                      progressValue: progressMarathoner,
+                      badge: targetMarathoner,
+                    ),
+                    const SizedBox(height: 20),
+                    _buildAchievementCard(
+                      title: targetObsession.title,
+                      description: isObsessionFinished
+                          ? "Your obsession has no limits. Max level reached."
+                          : "Watch the same TV series for ${targetObsession.targetHours.toInt()} consecutive hours.",
+                      progressText: isObsessionFinished
+                          ? "COMPLETED"
+                          : "${user.maxConsecutiveHours.toStringAsFixed(1)}h / ${targetObsession.iconLabel}",
+                      progressValue: progressObsession,
+                      badge: targetObsession,
+                    ),
+                    const SizedBox(height: 20),
+                    // In binge_mode_screen.dart
+                    _buildAchievementCard(
+                      title: targetWeekend.title,
+                      description: isWeekendFinished
+                          ? "The ultimate weekend warrior! Max level reached."
+                          : "Watch ${targetWeekend.targetHours.toInt()} hours between Friday and Sunday.", // Descrizione aggiornata
+                      progressText: isWeekendFinished
+                          ? "COMPLETED"
+                          : "${user.weekendHours.toStringAsFixed(1)}h / ${targetWeekend.iconLabel}",
+                      progressValue: progressWeekend,
+                      badge: targetWeekend,
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -148,7 +190,6 @@ class BingeModeScreen extends StatelessWidget {
           ),
           const SizedBox(width: 15),
           Expanded(
-            // expanded is needed to occupy all the space of the Row (or Column) Widget
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -170,7 +211,6 @@ class BingeModeScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 15),
                 Stack(
-                  // stack permits to overlap one or more widget
                   alignment: Alignment.center,
                   children: [
                     Container(

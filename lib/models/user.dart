@@ -1,10 +1,10 @@
-// models/user.dart
 class User {
   final String name;
   final double totalHoursWatched;
-  final int maxConsecutiveHours;
-  final int weekendHours;
-  final bool notification;
+  final double maxConsecutiveHours;
+  final double weekendHours;
+   bool notification;
+  final String? photoUrl;
 
   User({
     required this.name,
@@ -12,5 +12,6 @@ class User {
     required this.maxConsecutiveHours,
     required this.weekendHours,
     required this.notification,
+    this.photoUrl,
   });
 }

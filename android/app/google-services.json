@@ -12,7 +12,20 @@
           "package_name": "com.example.seriestime"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "192989615567-ui3rab5if63dacbfkc836fnove7chndj.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.seriestime",
+            "certificate_hash": "0b1746c8e6d3261cddd6624d153e662cd8c80399"
+          }
+        },
+        {
+          "client_id": "192989615567-euuo783hcf9im26rp7hroqedt6gnn415.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDOr58DN2w4O5E2bHuinfeMGEqyzsvVjQc"
@@ -20,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "192989615567-euuo783hcf9im26rp7hroqedt6gnn415.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "192989615567-ceb6bb8lrdr2vovmraf4lrgsitptb5qr.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.seriestime"
+              }
+            }
+          ]
         }
       }
     }

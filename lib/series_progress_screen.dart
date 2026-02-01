@@ -19,7 +19,13 @@ class SeriesProgressScreen extends StatelessWidget {
       (a, b) => b.percentage.compareTo(a.percentage),
     ); //List sorted by percentage
 
-    return Scaffold(
+     return GestureDetector(
+    onHorizontalDragUpdate: (details) {
+      if (details.delta.dx > 18) { 
+        Navigator.pop(context);
+      }
+    },
+    child: Scaffold(
       backgroundColor: AppData.backgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -48,14 +54,18 @@ class SeriesProgressScreen extends StatelessWidget {
         itemBuilder: (context, index) {
           final series = progressList[index];
 
-          int hoursSeen = (series.totalHours * series.percentage).round();
-          int hoursLeft = series.totalHours - hoursSeen;
+          double hoursSeen = series.totalHours ;
+          double totalSeriesDuration = series.percentage > 0 
+      ? hoursSeen / series.percentage 
+      : hoursSeen;
+          double hoursLeft = totalSeriesDuration - hoursSeen;
 
+          String seenText = "${formatHours(hoursSeen)} seen";
           String leftText;
           if (series.percentage >= 1.0) {
             leftText = "Finished";
           } else {
-            leftText = "${hoursLeft > 0 ? hoursLeft : 0}h left";
+            leftText = "${formatHours(hoursLeft)} left";
           }
 
           return Padding(
@@ -64,7 +74,7 @@ class SeriesProgressScreen extends StatelessWidget {
               title: series.name,
               episode: series.episode,
               percentage: series.percentage,
-              totalHours: series.timeLabel,
+              totalHours: seenText,
               timeLeft: leftText,
               imageUrl: series.imageUrl,
               isFinished: series.percentage >= 1.0,
@@ -72,7 +82,8 @@ class SeriesProgressScreen extends StatelessWidget {
           );
         },
       ),
-    );
+    ),
+     );
   }
 
   Widget _buildProgressCard({
@@ -227,4 +238,13 @@ class SeriesProgressScreen extends StatelessWidget {
       ],
     );
   }
+  String formatHours(double totalHours) {
+  if (totalHours <= 0) return "0m";
+  int h = totalHours.toInt(); 
+  int m = ((totalHours - h) * 60).round(); 
+  
+  if (h == 0) return "${m}m";
+  if (m == 0) return "${h}h";
+  return "${h}h ${m}m";
+}
 }
