@@ -277,8 +277,8 @@ static Future<void> _populateFirstTime(auth.User fbUser, DocumentReference docRe
         bool isWatched = false;
         DateTime? watchDate;
 
-        if (name == "Breaking Bad" && seasonNum == 1) {
-          isWatched = episodeNum <= 3;
+        if (name == "Breaking Bad" && (seasonNum == 1 || seasonNum == 2)) {
+          isWatched = true;
           watchDate = lunedi.add(Duration(minutes: (episodeNum - 1) * 50));
         } 
         else if (name == "Peaky Blinders" && seasonNum == 1) {
@@ -310,27 +310,7 @@ static Future<void> _populateFirstTime(auth.User fbUser, DocumentReference docRe
   }
 }
 
-static Future<void> setupNewTechnicalStructure() async {
-  final user = auth.FirebaseAuth.instance.currentUser;
-  if (user == null) return;
 
-  final userDoc = FirebaseFirestore.instance.collection('users').doc(user.uid);
-  List<String> seriesToUpdate = ["Peaky Blinders", "Lost", "Breaking Bad"];
-
-  for (String seriesName in seriesToUpdate) {
-    DocumentReference seriesRef = userDoc.collection('series').doc(seriesName);
-
-    DocumentReference seasonRef = seriesRef.collection('seasons').doc('Season 1');
-    await seasonRef.set({'season_number': 1});
-
-    await seasonRef.collection('episodes').doc('Episode 1').set({
-      'episode_number': 1,
-      'runtime': 45,
-      'timestamp': DateTime.now(),
-      'watched': true,
-    });
-      }
-}
 static Future<String> fetchImageUrl(String name) async {
   //first try the singlesearch, if no image was found, try to scan the complete list of names
   try {
@@ -407,18 +387,7 @@ static Future<double> calculateSeriesTotalHours(String seriesName) async {
 
   return totalMinutes / 60.0;
 }
-static Future<List<dynamic>> fetchSeriesEpisodes(String seriesName) async {
-  try {
-    final res = await http.get(Uri.parse('https://api.tvmaze.com/singlesearch/shows?q=$seriesName&embed=episodes'));
-    if (res.statusCode == 200) {
-      final data = json.decode(res.body);
-      return data['_embedded']['episodes'] as List<dynamic>;
-    }
-  } catch (e) {
-    debugPrint("fetch episode error: $e");
-  }
-  return [];
-}
+
 static Future<void> syncSeriesTotalHours(String seriesName) async {
   final user = auth.FirebaseAuth.instance.currentUser;
   if (user == null) return;
@@ -541,9 +510,9 @@ static Future<void> calculatePureObsession(String seriesName) async {
 
   final userDoc = _db.collection('users').doc(user.uid);
   final userSnap = await userDoc.get();
-  double recordAttuale = (userSnap.data()?['maxConsecutiveHours'] ?? 0).toDouble();
+  double actualRecord = (userSnap.data()?['maxConsecutiveHours'] ?? 0).toDouble();
 
-  if (maxSessionHours > recordAttuale) {
+  if (maxSessionHours > actualRecord) {
     await userDoc.update({'maxConsecutiveHours': maxSessionHours});
   }
 }
@@ -570,10 +539,10 @@ static Future<void> calculateWeekendWarrior() async {
           
           if (date.weekday >= DateTime.friday && date.weekday <= DateTime.sunday) {
           
-            String weekendKey = "${date.year}-${_getIsoWeekNumber(date)}";
+            String weekendId = "${date.year}-${_getIdWeekNumber(date)}"; // ex. 2023-43
             
             double runtime = (data['runtime'] ?? 0).toDouble();
-            weekendGroups[weekendKey] = (weekendGroups[weekendKey] ?? 0) + runtime;
+            weekendGroups[weekendId] = (weekendGroups[weekendId] ?? 0) + runtime;
           }
         }
       }
@@ -593,9 +562,10 @@ static Future<void> calculateWeekendWarrior() async {
   
 }
 
-static int _getIsoWeekNumber(DateTime date) {
+static int _getIdWeekNumber(DateTime date) { // return the weekend number from 1 to 52
   int daysSinceJan1 = date.difference(DateTime(date.year, 1, 1)).inDays;
   return ((daysSinceJan1 + DateTime(date.year, 1, 1).weekday - 1) / 7).floor() + 1;
+  //dateTime(..).weekday returns the day of the week as monday, Tuesday etc..
 }
 
 

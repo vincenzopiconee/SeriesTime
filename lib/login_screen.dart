@@ -74,11 +74,13 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
     try {
       final GoogleSignIn googleSignIn = GoogleSignIn(
-      clientId: Platform.isIOS 
-      ? '192989615567-ceb6bb8lrdr2vovmraf4lrgsitptb5qr.apps.googleusercontent.com' 
-      : null,
-    );
-    final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+        clientId:
+            Platform
+                .isIOS // for Ios (android uses the SHA-1)
+            ? '192989615567-ceb6bb8lrdr2vovmraf4lrgsitptb5qr.apps.googleusercontent.com'
+            : null,
+      );
+      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
       if (googleUser == null) {
         setState(() => _isLoading = false);
         return;
@@ -96,7 +98,6 @@ class _LoginScreenState extends State<LoginScreen> {
           .signInWithCredential(credential);
       if (userCredential.user != null) {
         await AppData.initializeData();
-        await AppData.setupNewTechnicalStructure();
 
         if (!mounted) return;
         await Future.delayed(const Duration(seconds: 1));
@@ -120,6 +121,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   void dispose() {
+    // to stop the scrolling
     _scrollTimer?.cancel();
     _scrollController.dispose();
     super.dispose();
