@@ -8,6 +8,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as auth;
 class AppData {
   static final FirebaseFirestore _db = FirebaseFirestore.instance; 
+  static const String tmdbApiKey = "1a4c56551c8917b157c4a6fdd2fca54d";
   static List<Series> userSeries = [];
   static List<UserBadge> userBadges = [];
   static User? currentUser;
@@ -238,6 +239,7 @@ static Stream<QuerySnapshot> seriesStream() {
 }
 
 static Future<void> _populateFirstTime(auth.User fbUser, DocumentReference docRef) async {
+  
   await docRef.set({
     'name': fbUser.displayName ?? "User",
     'totalHoursWatched': 0.0,
@@ -253,86 +255,108 @@ static Future<void> _populateFirstTime(auth.User fbUser, DocumentReference docRe
   DateTime lunedi = DateTime(2025, 10, 27, 09, 0);  
 
   for (String name in seriesToTrack) {
-    final response = await http.get(Uri.parse('https://api.tvmaze.com/singlesearch/shows?q=$name&embed=episodes'));
+    final searchUrl = "https://api.themoviedb.org/3/search/tv?api_key=$tmdbApiKey&query=${Uri.encodeComponent(name)}";
+    final searchRes = await http.get(Uri.parse(searchUrl));
     
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      final List episodesFromApi = data['_embedded']['episodes'];
-      final String imageUrl = data['image']?['medium'] ?? "";
+    if (searchRes.statusCode == 200) {
+      final searchData = json.decode(searchRes.body);
+      if (searchData['results'].isEmpty) continue;
 
-      DocumentReference seriesRef = docRef.collection('series').doc(name); // take the serie with name "name"
+      final int seriesId = searchData['results'][0]['id'];
+      final String imageUrl = "https://image.tmdb.org/t/p/w500${searchData['results'][0]['poster_path']}";
 
-      await seriesRef.set({
-        'imageUrl': imageUrl,
-        'percentage': 0.0,
-        'totalHours': 0.0,
-        'episode': "S1 E1",
-      }, SetOptions(merge: true));
+      final seriesDetailUrl = "https://api.themoviedb.org/3/tv/$seriesId?api_key=$tmdbApiKey&language=en-US";
+      final seriesDetailRes = await http.get(Uri.parse(seriesDetailUrl));
+      int avgRuntime = 45; // Default se il campo manca
 
-      for (var ep in episodesFromApi) {
-        int seasonNum = ep['season'];
-        int episodeNum = ep['number'];
-        int runtime = ep['runtime'] ?? 60;
-        
-        bool isWatched = false;
-        DateTime? watchDate;
-
-        if (name == "Breaking Bad" && (seasonNum == 1 || seasonNum == 2)) {
-          isWatched = true;
-          watchDate = lunedi.add(Duration(minutes: (episodeNum - 1) * 50));
-        } 
-        else if (name == "Peaky Blinders" && seasonNum == 1) {
-          isWatched = episodeNum <= 4;
-          if (episodeNum <= 2) {
-            watchDate = venerdi.add(Duration(minutes: (episodeNum - 1) * 65));
-          } else {
-            watchDate = sabato.add(Duration(minutes: (episodeNum - 3) * 65));
-          }
+      if (seriesDetailRes.statusCode == 200) {
+        final seriesData = json.decode(seriesDetailRes.body);
+        if (seriesData['episode_run_time'] != null && (seriesData['episode_run_time'] as List).isNotEmpty) {
+          avgRuntime = seriesData['episode_run_time'][0];
         }
-        else if (name == "The Bear") {
-          isWatched = (seasonNum == 1 && episodeNum == 1);
-          watchDate = DateTime.now().subtract(const Duration(days: 5));
-        }
-
-        DocumentReference seasonRef = seriesRef.collection('seasons').doc('Season $seasonNum'); // take the season number seasonNum
-        await seasonRef.set({'season_number': seasonNum}, SetOptions(merge: true));
-
-        await seasonRef.collection('episodes').doc('Episode $episodeNum').set({
-          'episode_number': episodeNum,
-          'runtime': runtime,
-          'timestamp': watchDate != null ? Timestamp.fromDate(watchDate) : FieldValue.serverTimestamp(),
-          'watched': isWatched,
-        }, SetOptions(merge: true));
       }
 
-      await syncSeriesTotalHours(name);
+      final detailUrl = "https://api.themoviedb.org/3/tv/$seriesId/season/1?api_key=$tmdbApiKey&language=it-IT";
+      final detailRes = await http.get(Uri.parse(detailUrl));
+
+      if (detailRes.statusCode == 200) {
+        final seasonData = json.decode(detailRes.body);
+        final List episodesFromApi = seasonData['episodes'];
+
+        DocumentReference seriesRef = docRef.collection('series').doc(name);
+
+        await seriesRef.set({
+          'imageUrl': imageUrl,
+          'percentage': 0.0,
+          'totalHours': 0.0,
+          'episode': "S1 E1",
+        }, SetOptions(merge: true));
+
+        for (var ep in episodesFromApi) {
+          int seasonNum = ep['season_number'];
+          int episodeNum = ep['episode_number'];
+          
+          int runtime = (ep['runtime'] != null && ep['runtime'] > 0) 
+              ? ep['runtime'] 
+              : avgRuntime;
+          
+          bool isWatched = false;
+          DateTime? watchDate;
+
+          if (name == "Breaking Bad" && (seasonNum == 1 || seasonNum == 2)) {
+            isWatched = true;
+            watchDate = lunedi.add(Duration(minutes: (episodeNum - 1) * 50));
+          } 
+          else if (name == "Peaky Blinders" && seasonNum == 1) {
+            isWatched = episodeNum <= 4;
+            if (episodeNum <= 2) {
+              watchDate = venerdi.add(Duration(minutes: (episodeNum - 1) * 65));
+            } else {
+              watchDate = sabato.add(Duration(minutes: (episodeNum - 3) * 65));
+            }
+          }
+          else if (name == "The Bear") {
+            isWatched = (seasonNum == 1 && episodeNum == 1);
+            watchDate = DateTime.now().subtract(const Duration(days: 5));
+          }
+
+          DocumentReference seasonRef = seriesRef.collection('seasons').doc('Season $seasonNum');
+          await seasonRef.set({'season_number': seasonNum}, SetOptions(merge: true));
+
+          await seasonRef.collection('episodes').doc('Episode $episodeNum').set({
+            'episode_number': episodeNum,
+            'runtime': runtime,
+            'timestamp': watchDate != null ? Timestamp.fromDate(watchDate) : FieldValue.serverTimestamp(),
+            'watched': isWatched,
+          }, SetOptions(merge: true));
+        }
+        
+        await syncSeriesTotalHours(name);
+      }
     }
   }
 }
-
-
 static Future<String> fetchImageUrl(String name) async {
-  //first try the singlesearch, if no image was found, try to scan the complete list of names
+  final String url = "https://api.themoviedb.org/3/search/tv?api_key=$tmdbApiKey&query=${Uri.encodeComponent(name)}&language=it-IT";
+
   try {
-    final singleRes = await http.get(Uri.parse('https://api.tvmaze.com/singlesearch/shows?q=$name'));
-    if (singleRes.statusCode == 200) {
-      final data = json.decode(singleRes.body);
-      if (data['image'] != null && data['image']['medium'] != null) {
-        return data['image']['medium'];
-      }
-    }
-    final searchRes = await http.get(Uri.parse('https://api.tvmaze.com/search/shows?q=$name'));
-    if (searchRes.statusCode == 200) {
-      final List data = json.decode(searchRes.body);
-      for (var result in data) {
-        final show = result['show'];
-        if (show['image'] != null && show['image']['medium'] != null) {
-          return show['image']['medium'];
-        }
+    final res = await http.get(
+      Uri.parse(url),
+      headers: {
+        'User-Agent': 'SeriesTimeApp/1.0',
+        'Accept': 'application/json',
+      },
+    );
+
+    if (res.statusCode == 200) {
+      final data = json.decode(res.body);
+      if (data['results'] != null && data['results'].isNotEmpty) {
+        String path = data['results'][0]['poster_path'] ?? "";
+        return "https://image.tmdb.org/t/p/w500$path";
       }
     }
   } catch (e) {
-    debugPrint("Image error for $name: $e");
+    debugPrint("Errore immagine TMDB per $name: $e");
   }
   return ''; 
 }
@@ -428,24 +452,32 @@ static Future<void> syncSeriesTotalHours(String seriesName) async {
 }
 static Future<double> getSeriesTotalRuntimeFromApi(String seriesName) async {
   try {
-    final response = await http.get(Uri.parse(
-        'https://api.tvmaze.com/singlesearch/shows?q=$seriesName&embed=episodes'));
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      final List episodes = data['_embedded']['episodes'];
-      
-      int totalMinutes = 0;
-      for (var ep in episodes) {
-        totalMinutes += (ep['runtime'] as int? ?? 0);
+    final searchUrl = "https://api.themoviedb.org/3/search/tv?api_key=$tmdbApiKey&query=${Uri.encodeComponent(seriesName)}";
+    final searchRes = await http.get(Uri.parse(searchUrl));
+    
+    if (searchRes.statusCode == 200) {
+      final searchData = json.decode(searchRes.body);
+      if (searchData['results'].isNotEmpty) {
+        final int seriesId = searchData['results'][0]['id'];
+
+        final detailRes = await http.get(Uri.parse("https://api.themoviedb.org/3/tv/$seriesId?api_key=$tmdbApiKey&language=it-IT"));
+        final data = json.decode(detailRes.body);
+
+        int episodesCount = data['number_of_episodes'] ?? 0;
+        int runtime = 45; 
+
+        if (data['episode_run_time'] != null && (data['episode_run_time'] as List).isNotEmpty) {
+          runtime = data['episode_run_time'][0];
+        }
+
+        return (episodesCount * runtime) / 60.0; 
       }
-      return totalMinutes / 60.0; 
     }
   } catch (e) {
-    debugPrint("Errore recupero ore totali API: $e");
+    debugPrint("Errore calcolo runtime totale TMDB: $e");
   }
   return 1.0; 
 }
-
 static Future<void> calculatePureObsession(String seriesName) async {
   final user = auth.FirebaseAuth.instance.currentUser;
   if (user == null) return;

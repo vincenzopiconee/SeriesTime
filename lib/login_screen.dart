@@ -52,21 +52,35 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _fetchPosters() async {
     try {
       final response = await http.get(
-        Uri.parse('https://api.tvmaze.com/shows'),
+        Uri.parse(
+          'https://api.themoviedb.org/3/trending/tv/week?api_key=${AppData.tmdbApiKey}',
+        ),
+        headers: {
+          'User-Agent': 'SeriesTimeApp/1.0',
+          'Accept': 'application/json',
+        },
       );
+
       if (response.statusCode == 200) {
-        final List data = json.decode(response.body);
+        final Map<String, dynamic> data = json.decode(response.body);
+        final List results = data['results'];
+
         setState(() {
-          _posters = data
-              .take(30)
-              .map((s) => s['image']?['medium']?.toString() ?? '')
+          _posters = results
+              .map((item) {
+                String? path = item['poster_path'];
+                return path != null
+                    ? 'https://image.tmdb.org/t/p/w500$path'
+                    : '';
+              })
               .where((url) => url.isNotEmpty)
               .toList();
+
           _posters = [..._posters, ..._posters];
         });
       }
     } catch (e) {
-      print('Error occured on poster: $e');
+      debugPrint('Error occurred on TMDB posters: $e');
     }
   }
 
