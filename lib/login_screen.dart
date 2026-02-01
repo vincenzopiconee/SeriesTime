@@ -4,6 +4,9 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'main.dart';
 import 'models/appdata.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'dart:io';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -16,6 +19,7 @@ class _LoginScreenState extends State<LoginScreen> {
   late ScrollController _scrollController;
   List<String> _posters = [];
   Timer? _scrollTimer;
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -48,26 +52,90 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _fetchPosters() async {
     try {
       final response = await http.get(
-        Uri.parse('https://api.tvmaze.com/shows'),
+        Uri.parse(
+          'https://api.themoviedb.org/3/trending/tv/week?api_key=${AppData.tmdbApiKey}',
+        ),
+        headers: {
+          'User-Agent': 'SeriesTimeApp/1.0',
+          'Accept': 'application/json',
+        },
       );
+
       if (response.statusCode == 200) {
-        final List data = json.decode(response.body);
+        final Map<String, dynamic> data = json.decode(response.body);
+        final List results = data['results'];
+
         setState(() {
-          _posters = data
-              .take(30)
-              .map((s) => s['image']?['medium']?.toString() ?? '')
+          _posters = results
+              .map((item) {
+                String? path = item['poster_path'];
+                return path != null
+                    ? 'https://image.tmdb.org/t/p/w500$path'
+                    : '';
+              })
               .where((url) => url.isNotEmpty)
               .toList();
+
           _posters = [..._posters, ..._posters];
         });
       }
     } catch (e) {
-      print('Error occured on poster: $e');
+      debugPrint('Error occurred on TMDB posters: $e');
+    }
+  }
+
+  Future<void> _signInWithGoogle() async {
+    setState(() => _isLoading = true);
+    try {
+      final GoogleSignIn googleSignIn = GoogleSignIn(
+        clientId:
+            Platform
+                .isIOS // for Ios (android uses the SHA-1)
+            ? '192989615567-ceb6bb8lrdr2vovmraf4lrgsitptb5qr.apps.googleusercontent.com'
+            : null,
+      );
+      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+      if (googleUser == null) {
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+
+      final AuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      final UserCredential userCredential = await FirebaseAuth.instance
+          .signInWithCredential(credential);
+      if (userCredential.user != null) {
+        await AppData.initializeData();
+
+        if (!mounted) return;
+        await Future.delayed(const Duration(seconds: 1));
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const MainWrapper()),
+        );
+      }
+    } catch (e) {
+      print("login error occured: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("An access error occured: $e")));
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   @override
   void dispose() {
+    // to stop the scrolling
     _scrollTimer?.cancel();
     _scrollController.dispose();
     super.dispose();
@@ -140,12 +208,7 @@ class _LoginScreenState extends State<LoginScreen> {
             left: 40,
             right: 40,
             child: ElevatedButton(
-              onPressed: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => const MainWrapper()),
-                );
-              },
+              onPressed: _isLoading ? null : _signInWithGoogle,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppData.primaryColor,
                 padding: const EdgeInsets.symmetric(vertical: 18),
@@ -153,16 +216,33 @@ class _LoginScreenState extends State<LoginScreen> {
                   borderRadius: BorderRadius.circular(30),
                 ),
               ),
-              child: const Text(
-                "LOG IN/ SIGN IN",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                ),
-              ),
+              child: _isLoading
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : const Text(
+                      "LOG IN WITH GOOGLE",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
             ),
           ),
+
+          if (_isLoading)
+            Container(
+              color: Colors.black.withOpacity(0.5),
+              child: const Center(
+                child: CircularProgressIndicator(color: AppData.primaryColor),
+              ),
+            ),
         ],
       ),
     );

@@ -5,173 +5,244 @@ import 'series_progress_screen.dart';
 import 'models/appdata.dart';
 import 'models/series.dart';
 import 'models/userbadge.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart' as auth; 
+import 'models/user.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
+
   @override
   Widget build(BuildContext context) {
-    if (AppData.currentUser == null) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
-
-    final user = AppData.currentUser!;
-    final timeData = AppData.getTotalWatchTimeSplit();
-
-    final int days = timeData["days"]!;
-    final int remainingHours = timeData["hours"]!;
-    final int minutes = timeData["minutes"]!;
-
-    final List<Series> filteredSeries = AppData.userSeries
-        .where((s) => s.percentage < 1.0)
-        .toList();
-    filteredSeries.sort((a, b) => b.percentage.compareTo(a.percentage));
-    final List<Series> displaySeries = filteredSeries.take(6).toList();
-
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings, color: Colors.black87),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const SettingsScreen()),
+    return StreamBuilder<DocumentSnapshot>(
+      stream: AppData.userStream(),
+      builder: (context, userSnapshot) {
+        return StreamBuilder<QuerySnapshot>(
+          stream: AppData.seriesStream(),
+          builder: (context, seriesSnapshot) {
+            if (!userSnapshot.hasData || !seriesSnapshot.hasData) {
+              return const Scaffold(
+                body: Center(child: CircularProgressIndicator()),
               );
-            },
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 10),
-        child: Column(
-          children: [
-            const CircleAvatar(
-              radius: 45,
-              backgroundColor: AppData.avatarColor,
-              child: Icon(Icons.person, size: 55, color: Colors.white),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              user.name.toUpperCase(),
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: AppData.primaryColor,
-                letterSpacing: 1.2,
-              ),
-            ),
-            const SizedBox(height: 25),
+            }
 
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(15),
-              decoration: BoxDecoration(
-                border: Border.all(color: AppData.accentColor, width: 2),
-                borderRadius: BorderRadius.circular(25),
-              ),
-              child: Column(
-                children: [
-                  const Text(
-                    "STATISTICS",
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                  const SizedBox(height: 15),
-                  _buildWatchTimeCard(days, remainingHours, minutes),
-                  const SizedBox(height: 20),
-                  _buildFakeChart(),
-                ],
-              ),
-            ),
+            final userData = userSnapshot.data!.data() as Map<String, dynamic>;
 
-            const SizedBox(height: 30),
+            //double computedGlobalHours = 0;
 
-            const Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                "MY BADGES",
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-              ),
-            ),
-            const SizedBox(height: 15),
+            AppData.userSeries = seriesSnapshot.data!.docs.map((doc) {
+              final sData = doc.data() as Map<String, dynamic>;
 
-            SizedBox(
-              height: 115,
-              child: AppData.userBadges.isEmpty
-                  ? _buildEmptyBadgesMessage()
-                  : ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: AppData.userBadges.length,
-                      itemBuilder: (context, index) {
-                        return _buildBadgeItem(AppData.userBadges[index]);
-                      },
-                    ),
-            ),
+              AppData.syncSeriesTotalHours(doc.id);
 
-            const SizedBox(height: 30),
+              return Series(
+                name: doc.id,
+                imageUrl: sData['imageUrl'] ?? "",
+                percentage: (sData['percentage'] ?? 0).toDouble(),
+                totalHours: (sData['totalHours'] ?? 0).toDouble(),
+                episode: sData['episode'] ?? "",
+              );
+            }).toList();
 
-            const Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                "SERIES WATCH TIME",
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-              ),
-            ),
-            const SizedBox(height: 15),
+            AppData.currentUser = User(
+              name: userData['name'] ?? "User",
+              totalHoursWatched: (userData['totalHoursWatched'] ?? 0)
+                  .toDouble(),
+              maxConsecutiveHours: (userData['maxConsecutiveHours'] ?? 0)
+                  .toDouble(),
+              weekendHours: (userData['weekendHours'] ?? 0).toDouble(),
+              notification: userData['notification'] ?? true,
+              photoUrl: userData['photoUrl'] ?? auth.FirebaseAuth.instance.currentUser?.photoURL,
+            );
 
-            displaySeries.isEmpty
-                ? const Text("All series completed! Well done.")
-                : GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: displaySeries.length,
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 15,
-                          mainAxisSpacing: 15,
-                          childAspectRatio: 1.3,
+            final timeData = AppData.getTotalWatchTimeSplit();
+            final int days = timeData["days"]!;
+            final int remainingHours = timeData["hours"]!;
+            final int minutes = timeData["minutes"]!;
+
+            AppData.generateUserBadges(); 
+
+            final List<Series> filteredSeries = AppData.userSeries
+                .where((s) => s.percentage < 1.0)
+                .toList();
+            filteredSeries.sort((a, b) => b.percentage.compareTo(a.percentage));
+            final List<Series> displaySeries = filteredSeries.take(6).toList();
+
+            final currentUser = AppData.currentUser!;
+
+            return Scaffold(
+              appBar: AppBar(
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                scrolledUnderElevation: 0,
+                actions: [
+                  IconButton(
+                    icon: const Icon(Icons.settings, color: Colors.black87),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const SettingsScreen(),
                         ),
-                    itemBuilder: (context, index) {
-                      return _buildSeriesCard(displaySeries[index]);
+                      );
                     },
                   ),
-
-            const SizedBox(height: 15),
-
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const SeriesProgressScreen(),
-                  ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppData.accentColor,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
+                ],
+              ),
+              body: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 30,
-                  vertical: 12,
+                  horizontal: 25,
+                  vertical: 10,
+                ),
+                child: Column(
+                  children: [
+                   CircleAvatar(
+                   radius: 45,
+                   backgroundColor: AppData.avatarColor,
+                   backgroundImage: currentUser.photoUrl != null 
+                   ? NetworkImage(currentUser.photoUrl!) 
+                   : null,
+                   child: currentUser.photoUrl == null 
+                   ? const Icon(Icons.person, size: 55, color: Colors.white) 
+                    : null,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      currentUser.name.toUpperCase(),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: AppData.primaryColor,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: 25),
+
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(15),
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: AppData.accentColor,
+                          width: 2,
+                        ),
+                        borderRadius: BorderRadius.circular(25),
+                      ),
+                      child: Column(
+                        children: [
+                          const Text(
+                            "STATISTICS",
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          const SizedBox(height: 15),
+                          _buildWatchTimeCard(days, remainingHours, minutes),
+                          const SizedBox(height: 20),
+                          _buildFakeChart(),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 30),
+
+                    const Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        "MY BADGES",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 15),
+
+                    SizedBox(
+                      height: 115,
+                      child: AppData.userBadges.isEmpty
+                          ? _buildEmptyBadgesMessage()
+                          : ListView.builder(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: AppData.userBadges.length,
+                              itemBuilder: (context, index) {
+                                return _buildBadgeItem(
+                                  AppData.userBadges[index],
+                                );
+                              },
+                            ),
+                    ),
+
+                    const SizedBox(height: 30),
+
+                    const Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        "SERIES WATCH TIME",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 15),
+
+                    displaySeries.isEmpty
+                        ? const Text("All series completed! Well done.")
+                        : GridView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: displaySeries.length,
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 2,
+                                  crossAxisSpacing: 15,
+                                  mainAxisSpacing: 15,
+                                  childAspectRatio: 1.3,
+                                ),
+                            itemBuilder: (context, index) {
+                              return _buildSeriesCard(displaySeries[index]);
+                            },
+                          ),
+
+                    const SizedBox(height: 15),
+
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const SeriesProgressScreen(),
+                          ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppData.accentColor,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 30,
+                          vertical: 12,
+                        ),
+                      ),
+                      child: const Text(
+                        "View More",
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    const SizedBox(height: 120),
+                  ],
                 ),
               ),
-              child: const Text(
-                "View More",
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-            const SizedBox(height: 120),
-          ],
-        ),
-      ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -218,6 +289,7 @@ class ProfileScreen extends StatelessWidget {
   }
 
   Widget _buildSeriesCard(Series series) {
+    String formattedTime = formatHours(series.totalHours);
     return Container(
       decoration: BoxDecoration(
         color: AppData.whiteColor,
@@ -292,13 +364,13 @@ class ProfileScreen extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.access_time, size: 18, color: Colors.grey),
+                    const Icon(Icons.access_time, size: 15, color: Colors.grey),
                     const SizedBox(width: 3),
                     Text(
-                      series.timeLabel,
+                      formattedTime,
                       style: const TextStyle(
                         color: Colors.grey,
-                        fontSize: 14,
+                        fontSize: 11,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -471,4 +543,13 @@ class ProfileScreen extends StatelessWidget {
       ),
     );
   }
+  String formatHours(double totalHours) {
+  if (totalHours <= 0) return "0m";
+  int h = totalHours.toInt();
+  int m = ((totalHours - h) * 60).round();
+  
+  if (h == 0) return "${m}m";
+  if (m == 0) return "${h}h";
+  return "${h}h ${m}m";
+}
 }

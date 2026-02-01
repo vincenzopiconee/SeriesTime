@@ -1,6 +1,11 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'login_screen.dart';
 import 'models/appdata.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -22,7 +27,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final user = AppData.currentUser;
-    return Scaffold(
+    return GestureDetector(
+    onHorizontalDragUpdate: (details) {
+      if (details.delta.dx > 18) { 
+        Navigator.pop(context);
+      }
+    },
+    child: Scaffold(
       backgroundColor: AppData.backgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -45,10 +56,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            const CircleAvatar(
+             CircleAvatar(
               radius: 45,
               backgroundColor: AppData.avatarColor,
-              child: Icon(Icons.person, size: 55, color: Colors.white),
+              backgroundImage: user?.photoUrl != null 
+      ? NetworkImage(user!.photoUrl!) 
+      : null,
+              child: user?.photoUrl == null
+      ? const Icon(Icons.person, size: 55, color: Colors.white)
+      : null,
             ),
             const SizedBox(height: 12),
             Text(
@@ -100,8 +116,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             value: isNotificationsEnabled,
                             activeThumbColor: Colors.white,
                             activeTrackColor: AppData.primaryColor,
-                            onChanged: (val) =>
-                                setState(() => isNotificationsEnabled = val),
+                            onChanged: (val) => _updateNotificationPreference(val),
                           ),
                         ],
                       ),
@@ -118,7 +133,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const SizedBox(height: 25),
 
                   ElevatedButton(
-                    onPressed: () {
+                    onPressed: () async {
+                      await FirebaseAuth.instance.signOut();
+                      await GoogleSignIn().signOut();
+
+                      if (!mounted) return;
                       Navigator.of(context).pushAndRemoveUntil(
                         MaterialPageRoute(
                           builder: (context) => const LoginScreen(),
@@ -146,6 +165,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ],
         ),
       ),
+    ),
     );
   }
 
@@ -193,5 +213,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
         const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.black87),
       ],
     );
+  }
+
+  Future<void> _updateNotificationPreference(bool value) async {
+    final firebaseUser = FirebaseAuth.instance.currentUser;
+    if (firebaseUser == null) return;
+
+    setState (() {
+        isNotificationsEnabled = value;
+    });
+    try {
+        await FirebaseFirestore.instance
+        .collection('users')
+        .doc(firebaseUser.uid)
+        .update({'notification': value});
+
+        if (AppData.currentUser !=null ){
+          AppData.currentUser!.notification = value;
+        }
+    } catch(e){
+      debugPrint("An error occured during the notification updating: $e");
+    }
   }
 }

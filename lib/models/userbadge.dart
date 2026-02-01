@@ -1,4 +1,3 @@
-// models/userbadge.dart
 class UserBadge {
   final String id;
   final String title;
