@@ -7,6 +7,7 @@ import 'login_screen.dart';
 import 'models/appdata.dart';
 import 'binge_mode_screen.dart';
 import 'package:flutter/services.dart';
+import 'explore_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -29,7 +30,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'TV Series Tracker',
+      title: 'SeriesTime',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: AppData.primaryColor),
         useMaterial3: true,
@@ -61,7 +62,7 @@ class _MainWrapperState extends State<MainWrapper> {
 
   final List<Widget> _pages = [
     const ProfileScreen(),
-    const Center(child: Text("Explore")),
+    const ExploreScreen(),
     const Center(child: Text("Favourites")),
     const BingeModeScreen(),
   ];
@@ -81,7 +82,7 @@ class _MainWrapperState extends State<MainWrapper> {
       margin: const EdgeInsets.only(bottom: 0, left: 0, right: 0),
       decoration: BoxDecoration(
         color: AppData.primaryColor,
-        borderRadius: BorderRadius.circular(30),
+        //borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.2),
