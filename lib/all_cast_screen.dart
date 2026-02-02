@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:seriestime/models/tvShowDetails.dart';
+import 'package:seriestime/models/tv_show_details.dart';
 import 'models/appdata.dart';
 
 class AllCastScreen extends StatefulWidget {

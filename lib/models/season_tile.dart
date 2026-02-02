@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:seriestime/models/appdata.dart';
-import 'package:seriestime/models/tvShowDetails.dart';
+import 'package:seriestime/models/tv_show_details.dart';
 
 const String apiKey = "0cbb1da4932d8722fcddf451692e1b2e"; 
 
