@@ -12,7 +12,7 @@ class AppData {
   static List<Series> userSeries = [];
   static List<UserBadge> userBadges = [];
   static User? currentUser;
-  static const Color primaryColor = Color(0xFF8C1C13);     // Bordeaux
+  static const Color primaryColor = Color(0xFF791209);     // Bordeaux
   static const Color accentColor = Color(0xFF364156);      // Blu 
   static const Color backgroundColor = Color(0xFFEEF0E9);  // White like
   static const Color avatarColor = Color(0xFF4A5568);
