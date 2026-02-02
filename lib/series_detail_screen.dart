@@ -1,13 +1,12 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:seriestime/models/seasonTile.dart';
-import 'package:seriestime/models/tvShowDetails.dart';
+import 'package:seriestime/models/season_tile.dart';
+import 'package:seriestime/models/tv_show_details.dart';
 import 'models/appdata.dart'; // Assicurati che il percorso sia corretto
 import 'all_cast_screen.dart';
 
 // --- CONFIGURATION ---
-// TODO: Inserisci qui la tua API KEY di TMDB (Idealmente sarebbe in un file config separato)
 const String apiKey = "0cbb1da4932d8722fcddf451692e1b2e";
 
 class SeriesDetailScreen extends StatefulWidget {
@@ -180,7 +179,7 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> with SingleTick
             alignment: Alignment.topCenter, // Mantiene la parte alta (spesso le teste degli attori)
           )
         else
-          Container(color: primary.withOpacity(0.3)),
+          Container(color: primary.withAlpha(77)),
         
         // 2. Gradiente Scuro (Migliorato per leggibilità su header più basso)
         Container(
@@ -189,9 +188,9 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> with SingleTick
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
-                Colors.black.withOpacity(0.2), // Leggero scuro in alto per la freccia back
+                Colors.black.withAlpha(51), // Leggero scuro in alto per la freccia back
                 Colors.transparent,
-                Colors.black.withOpacity(0.9), // Scuro in basso per i testi
+                Colors.black.withAlpha(230), // Scuro in basso per i testi
               ],
               stops: const [0.0, 0.4, 1.0],
             ),
@@ -211,7 +210,7 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> with SingleTick
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(8),
                   boxShadow: [
-                    BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 8, offset: const Offset(0, 4))
+                    BoxShadow(color: Colors.black.withAlpha(128), blurRadius: 8, offset: const Offset(0, 4))
                   ]
                 ),
                 child: ClipRRect(
@@ -248,7 +247,7 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> with SingleTick
                       const SizedBox(height: 4),
                       Text(
                         "\"${_details!.tagline}\"",
-                        style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 12, fontStyle: FontStyle.italic),
+                        style: TextStyle(color: Colors.white.withAlpha(230), fontSize: 12, fontStyle: FontStyle.italic),
                          maxLines: 2, overflow: TextOverflow.ellipsis,
                       ),
                     ],
@@ -333,7 +332,7 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> with SingleTick
                       color: AppData.whiteColor, // Sfondo bianco
                       borderRadius: BorderRadius.circular(12), // Bordi arrotondati container
                       boxShadow: [
-                        BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2))
+                        BoxShadow(color: Colors.black.withAlpha(13), blurRadius: 4, offset: const Offset(0, 2))
                       ],
                     ),
                     // ----------------------------------------
@@ -510,7 +509,7 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> with SingleTick
         color: AppData.whiteColor,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.grey.shade200),
-         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 5, offset: const Offset(0, 2))]
+         boxShadow: [BoxShadow(color: Colors.black.withAlpha(7), blurRadius: 5, offset: const Offset(0, 2))]
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: children),
     );

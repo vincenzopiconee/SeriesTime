@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:seriestime/models/tvShowDetails.dart';
+import 'package:seriestime/models/tv_show_details.dart';
 import 'models/appdata.dart';
 
 class AllCastScreen extends StatefulWidget {
@@ -65,7 +65,7 @@ class _AllCastScreenState extends State<AllCastScreen> {
                 color: AppData.whiteColor, // Sfondo Bianco
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2))
+                  BoxShadow(color: Colors.black.withAlpha(13), blurRadius: 4, offset: const Offset(0, 2))
                 ]
               ),
               child: Column(

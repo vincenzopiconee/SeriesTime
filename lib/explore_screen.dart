@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:seriestime/models/tvShow.dart';
+import 'package:seriestime/models/tv_show.dart';
 import 'models/appdata.dart'; // Importazione dei colori da AppData
 import 'series_detail_screen.dart';
 
@@ -137,7 +137,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: Colors.grey.shade300), 
                   boxShadow: [
-                    BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2))
+                    BoxShadow(color: Colors.black.withAlpha(13), blurRadius: 4, offset: const Offset(0, 2))
                   ]
                 ),
                 child: TextField(
@@ -283,7 +283,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
           border: Border.all(color: borderColor, width: 2.0), // Bordo Accent come da richiesta
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withAlpha(26),
               blurRadius: 4,
               offset: const Offset(0, 4),
             ),

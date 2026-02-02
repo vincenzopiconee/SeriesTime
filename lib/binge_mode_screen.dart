@@ -162,7 +162,7 @@ class BingeModeScreen extends StatelessWidget {
         border: Border.all(color: AppData.accentColor, width: 2),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.3),
+            color: Colors.black.withAlpha(77),
             blurRadius: 10,
             offset: const Offset(4, 4),
           ),

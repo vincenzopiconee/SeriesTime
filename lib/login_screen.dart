@@ -173,9 +173,9 @@ class _LoginScreenState extends State<LoginScreen> {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  Colors.black.withOpacity(0.8),
+                  Colors.black.withAlpha(200),
                   Colors.transparent,
-                  Colors.black,
+                  Colors.black.withAlpha(200),
                 ],
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
@@ -188,15 +188,13 @@ class _LoginScreenState extends State<LoginScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Image.asset('assets/images/logo.png', width: 200, height: 200),
-                const SizedBox(height: 20),
                 const Text(
-                  "SERIES\nTIME",
-                  textAlign: TextAlign.center,
+                  "SeriesTime",
                   style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 48,
+                    color: AppData.backgroundColor,
+                    fontSize: 45,
                     fontWeight: FontWeight.bold,
-                    letterSpacing: 4,
+                    height: 0.8,
                   ),
                 ),
               ],
@@ -204,7 +202,7 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
 
           Positioned(
-            bottom: 120,
+            bottom: 110,
             left: 40,
             right: 40,
             child: ElevatedButton(
@@ -235,14 +233,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
             ),
           ),
-
-          if (_isLoading)
-            Container(
-              color: Colors.black.withOpacity(0.5),
-              child: const Center(
-                child: CircularProgressIndicator(color: AppData.primaryColor),
-              ),
-            ),
         ],
       ),
     );
