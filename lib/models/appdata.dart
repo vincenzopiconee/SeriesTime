@@ -19,100 +19,103 @@ class AppData {
   static const Color whiteColor = Colors.white;
 
   static final List<UserBadge> marathonerMilestones = [
-  UserBadge(id: "mbase", title: "Marathoner", imagePath: "assets/images/marathoner_base.png", iconLabel: "1G", targetHours: 24, nextId: "mbronze"),
-  UserBadge(id: "mbronze", title: "Marathoner", imagePath: "assets/images/marathoner_bronze.png", iconLabel: "3G", targetHours: 72, nextId: "msilver"),
-  UserBadge(id: "msilver", title: "Marathoner", imagePath: "assets/images/marathoner_silver.png", iconLabel: "10G", targetHours: 240, nextId: "mgold"),
-  UserBadge(id: "mgold", title: "Marathoner", imagePath: "assets/images/marathoner_gold.png", iconLabel: "20G", targetHours: 480, nextId: "mdiamond"),
-  UserBadge(id: "mdiamond", title: "Marathoner", imagePath: "assets/images/marathoner_diamond.png", iconLabel: "100G", targetHours: 2400, nextId: null),
-];
-static final List<UserBadge> obsessionMilestones = [
-  UserBadge(id: "pbase", title: "Pure Obsession", imagePath: "assets/images/pure_obsession_base.png", iconLabel: "1H", targetHours: 1, nextId: "pbronze"),
-  UserBadge(id: "pbronze", title: "Pure Obsession", imagePath: "assets/images/pure_obsession_bronze.png", iconLabel: "3H", targetHours: 3, nextId: "psilver"),
-  UserBadge(id: "psilver", title: "Pure Obsession", imagePath: "assets/images/pure_obsession_silver.png", iconLabel: "8H", targetHours: 8, nextId: "pgold"),
-  UserBadge(id: "pgold", title: "Pure Obsession", imagePath: "assets/images/pure_obsession_gold.png", iconLabel: "14H", targetHours: 14, nextId: "pdiamond"),
-  UserBadge(id: "pdiamond", title: "Pure Obsession", imagePath: "assets/images/pure_obsession_diamond.png", iconLabel: "20H", targetHours: 20, nextId: null),
-];
+    UserBadge(id: "mbase", title: "Marathoner", imagePath: "assets/images/marathoner_base.png", iconLabel: "1G", targetHours: 24, nextId: "mbronze"),
+    UserBadge(id: "mbronze", title: "Marathoner", imagePath: "assets/images/marathoner_bronze.png", iconLabel: "3G", targetHours: 72, nextId: "msilver"),
+    UserBadge(id: "msilver", title: "Marathoner", imagePath: "assets/images/marathoner_silver.png", iconLabel: "10G", targetHours: 240, nextId: "mgold"),
+    UserBadge(id: "mgold", title: "Marathoner", imagePath: "assets/images/marathoner_gold.png", iconLabel: "20G", targetHours: 480, nextId: "mdiamond"),
+    UserBadge(id: "mdiamond", title: "Marathoner", imagePath: "assets/images/marathoner_diamond.png", iconLabel: "100G", targetHours: 2400, nextId: null),
+  ];
 
-static final List<UserBadge> weekendMilestones = [
-  UserBadge(id: "wbase", title: "Weekend Warrior", imagePath: "assets/images/weekend_warrior_base.png", iconLabel: "3H", targetHours: 3, nextId: "wbronze"),
-  UserBadge(id: "wbronze", title: "Weekend Warrior", imagePath: "assets/images/weekend_warrior_bronze.png", iconLabel: "10H", targetHours: 10, nextId: "wsilver"),
-  UserBadge(id: "wsilver", title: "Weekend Warrior", imagePath: "assets/images/weekend_warrior_silver.png", iconLabel: "15H", targetHours: 15, nextId: "wgold"),
-  UserBadge(id: "wgold", title: "Weekend Warrior", imagePath: "assets/images/weekend_warrior_gold.png", iconLabel: "24H", targetHours: 24, nextId: "wdiamond"),
-  UserBadge(id: "wdiamond", title: "Weekend Warrior", imagePath: "assets/images/weekend_warrior_diamond.png", iconLabel: "48H", targetHours: 48, nextId: null),
-];
-static void generateUserBadges() {
-  userBadges.clear();
-  if (currentUser == null) return;
-  UserBadge? currentM; 
-  for (var badge in marathonerMilestones) {
-    if (currentUser!.totalHoursWatched >= badge.targetHours) currentM = badge; //currentUser cannot be null
-  }
-  if (currentM != null) userBadges.add(currentM);
-  UserBadge? currentO;
-  for (var badge in obsessionMilestones) {
-    if (currentUser!.maxConsecutiveHours >= badge.targetHours) currentO = badge;
-  }
-  if (currentO != null) userBadges.add(currentO);
-  UserBadge? currentW;
-  for (var badge in weekendMilestones) {
-    if (currentUser!.weekendHours >= badge.targetHours) currentW = badge;
-  }
-  if (currentW != null) userBadges.add(currentW);
-}
+  static final List<UserBadge> obsessionMilestones = [
+    UserBadge(id: "pbase", title: "Pure Obsession", imagePath: "assets/images/pure_obsession_base.png", iconLabel: "1H", targetHours: 1, nextId: "pbronze"),
+    UserBadge(id: "pbronze", title: "Pure Obsession", imagePath: "assets/images/pure_obsession_bronze.png", iconLabel: "3H", targetHours: 3, nextId: "psilver"),
+    UserBadge(id: "psilver", title: "Pure Obsession", imagePath: "assets/images/pure_obsession_silver.png", iconLabel: "8H", targetHours: 8, nextId: "pgold"),
+    UserBadge(id: "pgold", title: "Pure Obsession", imagePath: "assets/images/pure_obsession_gold.png", iconLabel: "14H", targetHours: 14, nextId: "pdiamond"),
+    UserBadge(id: "pdiamond", title: "Pure Obsession", imagePath: "assets/images/pure_obsession_diamond.png", iconLabel: "20H", targetHours: 20, nextId: null),
+  ];
 
-static UserBadge getMarathonerTarget() {
-  double totalHours = getTotalWatchTimeHours();
-  UserBadge target = marathonerMilestones.first; //considering 24h as the first target
-  for (var badge in marathonerMilestones) {
-    //if the target is reached, change the target to the next one
-    if (totalHours >= badge.targetHours) {
-      if (badge.nextId != null) {
-        //take the first element of the list (.firstWhere) whith the corresponfing badge Id
-        target = marathonerMilestones.firstWhere((b) => b.id == badge.nextId);
+  static final List<UserBadge> weekendMilestones = [
+    UserBadge(id: "wbase", title: "Weekend Warrior", imagePath: "assets/images/weekend_warrior_base.png", iconLabel: "3H", targetHours: 3, nextId: "wbronze"),
+    UserBadge(id: "wbronze", title: "Weekend Warrior", imagePath: "assets/images/weekend_warrior_bronze.png", iconLabel: "10H", targetHours: 10, nextId: "wsilver"),
+    UserBadge(id: "wsilver", title: "Weekend Warrior", imagePath: "assets/images/weekend_warrior_silver.png", iconLabel: "15H", targetHours: 15, nextId: "wgold"),
+    UserBadge(id: "wgold", title: "Weekend Warrior", imagePath: "assets/images/weekend_warrior_gold.png", iconLabel: "24H", targetHours: 24, nextId: "wdiamond"),
+    UserBadge(id: "wdiamond", title: "Weekend Warrior", imagePath: "assets/images/weekend_warrior_diamond.png", iconLabel: "48H", targetHours: 48, nextId: null),
+  ];
+
+  static void generateUserBadges() {
+    userBadges.clear();
+    if (currentUser == null) return;
+    UserBadge? currentM; 
+    for (var badge in marathonerMilestones) {
+      if (currentUser!.totalHoursWatched >= badge.targetHours) currentM = badge; //currentUser cannot be null
+    }
+    if (currentM != null) userBadges.add(currentM);
+    UserBadge? currentO;
+    for (var badge in obsessionMilestones) {
+      if (currentUser!.maxConsecutiveHours >= badge.targetHours) currentO = badge;
+    }
+    if (currentO != null) userBadges.add(currentO);
+    UserBadge? currentW;
+    for (var badge in weekendMilestones) {
+      if (currentUser!.weekendHours >= badge.targetHours) currentW = badge;
+    }
+    if (currentW != null) userBadges.add(currentW);
+  }
+
+  static UserBadge getMarathonerTarget() {
+    double totalHours = getTotalWatchTimeHours();
+    UserBadge target = marathonerMilestones.first; //considering 24h as the first target
+    for (var badge in marathonerMilestones) {
+      //if the target is reached, change the target to the next one
+      if (totalHours >= badge.targetHours) {
+        if (badge.nextId != null) {
+          //take the first element of the list (.firstWhere) whith the corresponfing badge Id
+          target = marathonerMilestones.firstWhere((b) => b.id == badge.nextId);
+        } else {
+          target = badge;
+        }
       } else {
         target = badge;
+        break;
       }
-    } else {
-      target = badge;
-      break;
     }
+    return target;
   }
-  return target;
-}
-static UserBadge getObsessionTarget(double currentObsessionHours) {
-  UserBadge target = obsessionMilestones.first;
-  for (var badge in obsessionMilestones) {
-    if (currentObsessionHours >= badge.targetHours) {
-      if (badge.nextId != null) {
-        //orElse: () => badge indicates to take the "badge" if badge.nextId doesn't exist
-        target = obsessionMilestones.firstWhere((b) => b.id == badge.nextId, orElse: () => badge);
-      } else {
-        target = badge;
-      }
-    } else {
-      target = badge;
-      break;
-    }
-  }
-  return target;
-}
 
-static UserBadge getWeekendTarget(double currentWeekendHours) {
-  UserBadge target = weekendMilestones.first;
-  for (var badge in weekendMilestones) {
-    if (currentWeekendHours >= badge.targetHours) {
-      if (badge.nextId != null) {
-        target = weekendMilestones.firstWhere((b) => b.id == badge.nextId, orElse: () => badge);
+  static UserBadge getObsessionTarget(double currentObsessionHours) {
+    UserBadge target = obsessionMilestones.first;
+    for (var badge in obsessionMilestones) {
+      if (currentObsessionHours >= badge.targetHours) {
+        if (badge.nextId != null) {
+          //orElse: () => badge indicates to take the "badge" if badge.nextId doesn't exist
+          target = obsessionMilestones.firstWhere((b) => b.id == badge.nextId, orElse: () => badge);
+        } else {
+          target = badge;
+        }
       } else {
         target = badge;
+        break;
       }
-    } else {
-      target = badge;
-      break;
     }
+    return target;
   }
-  return target;
-}
+
+  static UserBadge getWeekendTarget(double currentWeekendHours) {
+    UserBadge target = weekendMilestones.first;
+    for (var badge in weekendMilestones) {
+      if (currentWeekendHours >= badge.targetHours) {
+        if (badge.nextId != null) {
+          target = weekendMilestones.firstWhere((b) => b.id == badge.nextId, orElse: () => badge);
+        } else {
+          target = badge;
+        }
+      } else {
+        target = badge;
+        break;
+      }
+    }
+    return target;
+  }
  /* static Future<void> initializeData() async {
     userSeries.clear();
     
@@ -207,398 +210,401 @@ currentUser = User(
         photoUrl: firebaseUser.photoURL,
       );
 
-final seriesSnap = await userDoc.collection('series').get();
-for (var doc in seriesSnap.docs) { //.docs transforms the result in a List
-  double realHours = await calculateSeriesTotalHours(doc.id);
-  
-  userSeries.add(Series(
-    name: doc.id,
-    imageUrl: doc['imageUrl'],
-    percentage: (doc['percentage'] ?? 0).toDouble(),
-    totalHours: realHours, 
-    episode: doc['episode'] ?? "",
-  ));
-}
+      final seriesSnap = await userDoc.collection('series').get();
+      for (var doc in seriesSnap.docs) { //.docs transforms the result in a List
+        double realHours = await calculateSeriesTotalHours(doc.id);
+        
+        userSeries.add(Series(
+          name: doc.id,
+          imageUrl: doc['imageUrl'],
+          percentage: (doc['percentage'] ?? 0).toDouble(),
+          totalHours: realHours, 
+          episode: doc['episode'] ?? "",
+        ));
+      }
     }
     generateUserBadges();
   }
 
-static Stream<DocumentSnapshot> userStream() {
-  final firebaseUser = auth.FirebaseAuth.instance.currentUser;
-  if (firebaseUser == null) return const Stream.empty();
-  
-  return _db.collection('users').doc(firebaseUser.uid).snapshots();
-  // differently from get(), the snapshot keep the data updated
-}
-
-static Stream<QuerySnapshot> seriesStream() {
-  final firebaseUser = auth.FirebaseAuth.instance.currentUser;
-  if (firebaseUser == null) return const Stream.empty();
-  
-  return _db.collection('users').doc(firebaseUser.uid).collection('series').snapshots();
-}
-
-static Future<void> _populateFirstTime(auth.User fbUser, DocumentReference docRef) async {
-  
-  await docRef.set({
-    'name': fbUser.displayName ?? "User",
-    'totalHoursWatched': 0.0,
-    'maxConsecutiveHours': 0.0,
-    'weekendHours': 0.0,
-    'notification': true,
-  }, SetOptions(merge: true));
-
-  final List<String> seriesToTrack = ["Peaky Blinders", "Breaking Bad", "The Bear"];
-
-  DateTime venerdi = DateTime(2025, 10, 24, 20, 0); 
-  DateTime sabato = DateTime(2025, 10, 25, 14, 0);  
-  DateTime lunedi = DateTime(2025, 10, 27, 09, 0);  
-
-  for (String name in seriesToTrack) {
-    final searchUrl = "https://api.themoviedb.org/3/search/tv?api_key=$tmdbApiKey&query=${Uri.encodeComponent(name)}";
-    final searchRes = await http.get(Uri.parse(searchUrl));
+  static Stream<DocumentSnapshot> userStream() {
+    final firebaseUser = auth.FirebaseAuth.instance.currentUser;
+    if (firebaseUser == null) return const Stream.empty();
     
-    if (searchRes.statusCode == 200) {
-      final searchData = json.decode(searchRes.body);
-      if (searchData['results'].isEmpty) continue;
-
-      final int seriesId = searchData['results'][0]['id'];
-      final String imageUrl = "https://image.tmdb.org/t/p/w500${searchData['results'][0]['poster_path']}";
-
-      final seriesDetailUrl = "https://api.themoviedb.org/3/tv/$seriesId?api_key=$tmdbApiKey&language=en-US";
-      final seriesDetailRes = await http.get(Uri.parse(seriesDetailUrl));
-      int avgRuntime = 45; // Default se il campo manca
-
-      if (seriesDetailRes.statusCode == 200) {
-        final seriesData = json.decode(seriesDetailRes.body);
-        if (seriesData['episode_run_time'] != null && (seriesData['episode_run_time'] as List).isNotEmpty) {
-          avgRuntime = seriesData['episode_run_time'][0];
-        }
-      }
-
-      final detailUrl = "https://api.themoviedb.org/3/tv/$seriesId/season/1?api_key=$tmdbApiKey&language=it-IT";
-      final detailRes = await http.get(Uri.parse(detailUrl));
-
-      if (detailRes.statusCode == 200) {
-        final seasonData = json.decode(detailRes.body);
-        final List episodesFromApi = seasonData['episodes'];
-
-        DocumentReference seriesRef = docRef.collection('series').doc(name);
-
-        await seriesRef.set({
-          'imageUrl': imageUrl,
-          'percentage': 0.0,
-          'totalHours': 0.0,
-          'episode': "S1 E1",
-        }, SetOptions(merge: true));
-
-        for (var ep in episodesFromApi) {
-          int seasonNum = ep['season_number'];
-          int episodeNum = ep['episode_number'];
-          
-          int runtime = (ep['runtime'] != null && ep['runtime'] > 0) 
-              ? ep['runtime'] 
-              : avgRuntime;
-          
-          bool isWatched = false;
-          DateTime? watchDate;
-
-          if (name == "Breaking Bad" && (seasonNum == 1 || seasonNum == 2)) {
-            isWatched = true;
-            watchDate = lunedi.add(Duration(minutes: (episodeNum - 1) * 50));
-          } 
-          else if (name == "Peaky Blinders" && seasonNum == 1) {
-            isWatched = episodeNum <= 4;
-            if (episodeNum <= 2) {
-              watchDate = venerdi.add(Duration(minutes: (episodeNum - 1) * 65));
-            } else {
-              watchDate = sabato.add(Duration(minutes: (episodeNum - 3) * 65));
-            }
-          }
-          else if (name == "The Bear") {
-            isWatched = (seasonNum == 1 && episodeNum == 1);
-            watchDate = DateTime.now().subtract(const Duration(days: 5));
-          }
-
-          DocumentReference seasonRef = seriesRef.collection('seasons').doc('Season $seasonNum');
-          await seasonRef.set({'season_number': seasonNum}, SetOptions(merge: true));
-
-          await seasonRef.collection('episodes').doc('Episode $episodeNum').set({
-            'episode_number': episodeNum,
-            'runtime': runtime,
-            'timestamp': watchDate != null ? Timestamp.fromDate(watchDate) : FieldValue.serverTimestamp(),
-            'watched': isWatched,
-          }, SetOptions(merge: true));
-        }
-        
-        await syncSeriesTotalHours(name);
-      }
-    }
-  }
-}
-static Future<String> fetchImageUrl(String name) async {
-  final String url = "https://api.themoviedb.org/3/search/tv?api_key=$tmdbApiKey&query=${Uri.encodeComponent(name)}&language=it-IT";
-
-  try {
-    final res = await http.get(
-      Uri.parse(url),
-      headers: {
-        'User-Agent': 'SeriesTimeApp/1.0',
-        'Accept': 'application/json',
-      },
-    );
-
-    if (res.statusCode == 200) {
-      final data = json.decode(res.body);
-      if (data['results'] != null && data['results'].isNotEmpty) {
-        String path = data['results'][0]['poster_path'] ?? "";
-        return "https://image.tmdb.org/t/p/w500$path";
-      }
-    }
-  } catch (e) {
-    debugPrint("Errore immagine TMDB per $name: $e");
-  }
-  return ''; 
-}
-
-static double getTotalWatchTimeHours() {
-  if (userSeries.isEmpty) return 0.0; 
-  double total = 0;
-  for (var series in userSeries) {
-    total += (series.totalHours);
-  }
-  final firebaseUser = auth.FirebaseAuth.instance.currentUser;
-  if (firebaseUser != null) {
-    _db.collection('users').doc(firebaseUser.uid).update({
-      'totalHoursWatched': total,
-    });
-  }
-  return total;
-}
-
-static Map<String, int> getTotalWatchTimeSplit() {
-  double totalHours = getTotalWatchTimeHours();
-  return {
-    "days": (totalHours / 24).floor(),
-    "hours": (totalHours % 24).floor(),
-    "minutes": ((totalHours - totalHours.floor()) * 60).round(),
-  };
-}
-
-static Future<double> calculateSeriesTotalHours(String seriesName) async {
-  final user = auth.FirebaseAuth.instance.currentUser;
-  if (user == null) return 0.0;
-
-  double totalMinutes = 0;
-
-  final seasonsSnapshot = await _db
-      .collection('users')
-      .doc(user.uid)
-      .collection('series')
-      .doc(seriesName)
-      .collection('seasons')
-      .get();
-
-  for (var seasonDoc in seasonsSnapshot.docs) {
-    final episodesSnapshot = await seasonDoc.reference
-        .collection('episodes')
-        .where('watched', isEqualTo: true)
-        .get();
-    for (var episodeDoc in episodesSnapshot.docs) {
-      totalMinutes += (episodeDoc.data()['runtime'] ?? 0);
-    }
+    return _db.collection('users').doc(firebaseUser.uid).snapshots();
+    // differently from get(), the snapshot keep the data updated
   }
 
-  return totalMinutes / 60.0;
-}
-
-static Future<void> syncSeriesTotalHours(String seriesName) async {
-  final user = auth.FirebaseAuth.instance.currentUser;
-  if (user == null) return;
-
-  final seriesRef = FirebaseFirestore.instance
-      .collection('users')
-      .doc(user.uid)
-      .collection('series')
-      .doc(seriesName);
-
-  double watchedMinutes = 0;
-
-  final seasonsSnap = await seriesRef.collection('seasons').get();
-  for (var seasonDoc in seasonsSnap.docs) {
-    final episodesSnap = await seasonDoc.reference
-        .collection('episodes')
-        .where('watched', isEqualTo: true)
-        .get();
-
-    for (var epDoc in episodesSnap.docs) {
-      watchedMinutes += (epDoc.data()['runtime'] ?? 0);
-    }
-  }
-
-  double watchedHours = watchedMinutes / 60.0;
-
-  double totalSeriesHours = await getSeriesTotalRuntimeFromApi(seriesName);
-
-  double newPercentage = watchedHours / totalSeriesHours;
-  if (newPercentage > 1.0) newPercentage = 1.0; 
-
-  await seriesRef.update({
-    'totalHours': watchedHours,
-    'percentage': newPercentage,
-  });
-  await calculatePureObsession(seriesName);
-  await calculateWeekendWarrior();
-}
-static Future<double> getSeriesTotalRuntimeFromApi(String seriesName) async {
-  try {
-    final searchUrl = "https://api.themoviedb.org/3/search/tv?api_key=$tmdbApiKey&query=${Uri.encodeComponent(seriesName)}";
-    final searchRes = await http.get(Uri.parse(searchUrl));
+  static Stream<QuerySnapshot> seriesStream() {
+    final firebaseUser = auth.FirebaseAuth.instance.currentUser;
+    if (firebaseUser == null) return const Stream.empty();
     
-    if (searchRes.statusCode == 200) {
-      final searchData = json.decode(searchRes.body);
-      if (searchData['results'].isNotEmpty) {
-        final int seriesId = searchData['results'][0]['id'];
-
-        final detailRes = await http.get(Uri.parse("https://api.themoviedb.org/3/tv/$seriesId?api_key=$tmdbApiKey&language=it-IT"));
-        final data = json.decode(detailRes.body);
-
-        int episodesCount = data['number_of_episodes'] ?? 0;
-        int runtime = 45; 
-
-        if (data['episode_run_time'] != null && (data['episode_run_time'] as List).isNotEmpty) {
-          runtime = data['episode_run_time'][0];
-        }
-
-        return (episodesCount * runtime) / 60.0; 
-      }
-    }
-  } catch (e) {
-    debugPrint("Errore calcolo runtime totale TMDB: $e");
-  }
-  return 1.0; 
-}
-static Future<void> calculatePureObsession(String seriesName) async {
-  final user = auth.FirebaseAuth.instance.currentUser;
-  if (user == null) return;
-
-  final seriesRef = _db.collection('users').doc(user.uid).collection('series').doc(seriesName);
-  
-  List<Map<String, dynamic>> watchedEpisodes = [];
-  final seasonsSnap = await seriesRef.collection('seasons').get();
-  
-  for (var season in seasonsSnap.docs) {
-    final epSnap = await season.reference.collection('episodes')
-        .where('watched', isEqualTo: true)
-        .get();
-    for (var doc in epSnap.docs) {
-      watchedEpisodes.add(doc.data());
-    }
+    return _db.collection('users').doc(firebaseUser.uid).collection('series').snapshots();
   }
 
-  if (watchedEpisodes.isEmpty) return;
-
-  watchedEpisodes.sort((a, b) {
-    final tA = a['timestamp'] as Timestamp?;
-    final tB = b['timestamp'] as Timestamp?;
-    if (tA == null || tB == null) return 0;
-    return tA.compareTo(tB);
-  });
-
-  double maxSessionHours = 0;
-  double currentSessionMinutes = 0;
-  
-  for (int i = 0; i < watchedEpisodes.length; i++) {
-    double runtime = (watchedEpisodes[i]['runtime'] ?? 0).toDouble();
+  static Future<void> _populateFirstTime(auth.User fbUser, DocumentReference docRef) async {
     
-    if (i == 0) {
-      currentSessionMinutes = runtime;
-    } else {
-      final currentTimestamp = watchedEpisodes[i]['timestamp'] as Timestamp?;
-      final previousTimestamp = watchedEpisodes[i-1]['timestamp'] as Timestamp?;
+    await docRef.set({
+      'name': fbUser.displayName ?? "User",
+      'totalHoursWatched': 0.0,
+      'maxConsecutiveHours': 0.0,
+      'weekendHours': 0.0,
+      'notification': true,
+    }, SetOptions(merge: true));
+
+    final List<String> seriesToTrack = ["Peaky Blinders", "Breaking Bad", "The Bear"];
+
+    DateTime venerdi = DateTime(2025, 10, 24, 20, 0); 
+    DateTime sabato = DateTime(2025, 10, 25, 14, 0);  
+    DateTime lunedi = DateTime(2025, 10, 27, 09, 0);  
+
+    for (String name in seriesToTrack) {
+      final searchUrl = "https://api.themoviedb.org/3/search/tv?api_key=$tmdbApiKey&query=${Uri.encodeComponent(name)}";
+      final searchRes = await http.get(Uri.parse(searchUrl));
       
-      if (currentTimestamp != null && previousTimestamp != null) {
-        DateTime currentTime = currentTimestamp.toDate();
-        DateTime previousTime = previousTimestamp.toDate();
-        double previousRuntime = (watchedEpisodes[i-1]['runtime'] ?? 0).toDouble();
+      if (searchRes.statusCode == 200) {
+        final searchData = json.decode(searchRes.body);
+        if (searchData['results'].isEmpty) continue;
 
-        int diffInMinutes = currentTime.difference(previousTime).inMinutes;
-        
-        if (diffInMinutes <= (previousRuntime + 10)) {
-          currentSessionMinutes += runtime;
-        } else {
-          if ((currentSessionMinutes / 60) > maxSessionHours) {
-            maxSessionHours = currentSessionMinutes / 60;
+        final int seriesId = searchData['results'][0]['id'];
+        final String imageUrl = "https://image.tmdb.org/t/p/w500${searchData['results'][0]['poster_path']}";
+
+        final seriesDetailUrl = "https://api.themoviedb.org/3/tv/$seriesId?api_key=$tmdbApiKey&language=en-US";
+        final seriesDetailRes = await http.get(Uri.parse(seriesDetailUrl));
+        int avgRuntime = 45; // Default se il campo manca
+
+        if (seriesDetailRes.statusCode == 200) {
+          final seriesData = json.decode(seriesDetailRes.body);
+          if (seriesData['episode_run_time'] != null && (seriesData['episode_run_time'] as List).isNotEmpty) {
+            avgRuntime = seriesData['episode_run_time'][0];
           }
-          currentSessionMinutes = runtime; 
+        }
+
+        final detailUrl = "https://api.themoviedb.org/3/tv/$seriesId/season/1?api_key=$tmdbApiKey&language=it-IT";
+        final detailRes = await http.get(Uri.parse(detailUrl));
+
+        if (detailRes.statusCode == 200) {
+          final seasonData = json.decode(detailRes.body);
+          final List episodesFromApi = seasonData['episodes'];
+
+          DocumentReference seriesRef = docRef.collection('series').doc(name);
+
+          await seriesRef.set({
+            'imageUrl': imageUrl,
+            'percentage': 0.0,
+            'totalHours': 0.0,
+            'episode': "S1 E1",
+          }, SetOptions(merge: true));
+
+          for (var ep in episodesFromApi) {
+            int seasonNum = ep['season_number'];
+            int episodeNum = ep['episode_number'];
+            
+            int runtime = (ep['runtime'] != null && ep['runtime'] > 0) 
+                ? ep['runtime'] 
+                : avgRuntime;
+            
+            bool isWatched = false;
+            DateTime? watchDate;
+
+            if (name == "Breaking Bad" && (seasonNum == 1 || seasonNum == 2)) {
+              isWatched = true;
+              watchDate = lunedi.add(Duration(minutes: (episodeNum - 1) * 50));
+            } 
+            else if (name == "Peaky Blinders" && seasonNum == 1) {
+              isWatched = episodeNum <= 4;
+              if (episodeNum <= 2) {
+                watchDate = venerdi.add(Duration(minutes: (episodeNum - 1) * 65));
+              } else {
+                watchDate = sabato.add(Duration(minutes: (episodeNum - 3) * 65));
+              }
+            }
+            else if (name == "The Bear") {
+              isWatched = (seasonNum == 1 && episodeNum == 1);
+              watchDate = DateTime.now().subtract(const Duration(days: 5));
+            }
+
+            DocumentReference seasonRef = seriesRef.collection('seasons').doc('Season $seasonNum');
+            await seasonRef.set({'season_number': seasonNum}, SetOptions(merge: true));
+
+            await seasonRef.collection('episodes').doc('Episode $episodeNum').set({
+              'episode_number': episodeNum,
+              'runtime': runtime,
+              'timestamp': watchDate != null ? Timestamp.fromDate(watchDate) : FieldValue.serverTimestamp(),
+              'watched': isWatched,
+            }, SetOptions(merge: true));
+          }
+          
+          await syncSeriesTotalHours(name);
         }
       }
     }
   }
-  
-  if ((currentSessionMinutes / 60) > maxSessionHours) {
-    maxSessionHours = currentSessionMinutes / 60;
+
+  static Future<String> fetchImageUrl(String name) async {
+    final String url = "https://api.themoviedb.org/3/search/tv?api_key=$tmdbApiKey&query=${Uri.encodeComponent(name)}&language=it-IT";
+
+    try {
+      final res = await http.get(
+        Uri.parse(url),
+        headers: {
+          'User-Agent': 'SeriesTimeApp/1.0',
+          'Accept': 'application/json',
+        },
+      );
+
+      if (res.statusCode == 200) {
+        final data = json.decode(res.body);
+        if (data['results'] != null && data['results'].isNotEmpty) {
+          String path = data['results'][0]['poster_path'] ?? "";
+          return "https://image.tmdb.org/t/p/w500$path";
+        }
+      }
+    } catch (e) {
+      debugPrint("Errore immagine TMDB per $name: $e");
+    }
+    return ''; 
   }
 
-  final userDoc = _db.collection('users').doc(user.uid);
-  final userSnap = await userDoc.get();
-  double actualRecord = (userSnap.data()?['maxConsecutiveHours'] ?? 0).toDouble();
-
-  if (maxSessionHours > actualRecord) {
-    await userDoc.update({'maxConsecutiveHours': maxSessionHours});
+  static double getTotalWatchTimeHours() {
+    if (userSeries.isEmpty) return 0.0; 
+    double total = 0;
+    for (var series in userSeries) {
+      total += (series.totalHours);
+    }
+    final firebaseUser = auth.FirebaseAuth.instance.currentUser;
+    if (firebaseUser != null) {
+      _db.collection('users').doc(firebaseUser.uid).update({
+        'totalHoursWatched': total,
+      });
+    }
+    return total;
   }
-}
-static Future<void> calculateWeekendWarrior() async {
-  final user = auth.FirebaseAuth.instance.currentUser;
-  if (user == null) return;
 
-  
-  Map<String, double> weekendGroups = {};
+  static Map<String, int> getTotalWatchTimeSplit() {
+    double totalHours = getTotalWatchTimeHours();
+    return {
+      "days": (totalHours / 24).floor(),
+      "hours": (totalHours % 24).floor(),
+      "minutes": ((totalHours - totalHours.floor()) * 60).round(),
+    };
+  }
 
-  final seriesSnap = await _db.collection('users').doc(user.uid).collection('series').get();
+  static Future<double> calculateSeriesTotalHours(String seriesName) async {
+    final user = auth.FirebaseAuth.instance.currentUser;
+    if (user == null) return 0.0;
 
-  for (var seriesDoc in seriesSnap.docs) {
-    final seasonsSnap = await seriesDoc.reference.collection('seasons').get();
+    double totalMinutes = 0;
+
+    final seasonsSnapshot = await _db
+        .collection('users')
+        .doc(user.uid)
+        .collection('series')
+        .doc(seriesName)
+        .collection('seasons')
+        .get();
+
+    for (var seasonDoc in seasonsSnapshot.docs) {
+      final episodesSnapshot = await seasonDoc.reference
+          .collection('episodes')
+          .where('watched', isEqualTo: true)
+          .get();
+      for (var episodeDoc in episodesSnapshot.docs) {
+        totalMinutes += (episodeDoc.data()['runtime'] ?? 0);
+      }
+    }
+
+    return totalMinutes / 60.0;
+  }
+
+  static Future<void> syncSeriesTotalHours(String seriesName) async {
+    final user = auth.FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final seriesRef = FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('series')
+        .doc(seriesName);
+
+    double watchedMinutes = 0;
+
+    final seasonsSnap = await seriesRef.collection('seasons').get();
     for (var seasonDoc in seasonsSnap.docs) {
-      final episodesSnap = await seasonDoc.reference.collection('episodes')
+      final episodesSnap = await seasonDoc.reference
+          .collection('episodes')
           .where('watched', isEqualTo: true)
           .get();
 
       for (var epDoc in episodesSnap.docs) {
-        final data = epDoc.data();
-        if (data['timestamp'] != null) {
-          DateTime date = (data['timestamp'] as Timestamp).toDate();
+        watchedMinutes += (epDoc.data()['runtime'] ?? 0);
+      }
+    }
+
+    double watchedHours = watchedMinutes / 60.0;
+
+    double totalSeriesHours = await getSeriesTotalRuntimeFromApi(seriesName);
+
+    double newPercentage = watchedHours / totalSeriesHours;
+    if (newPercentage > 1.0) newPercentage = 1.0; 
+
+    await seriesRef.update({
+      'totalHours': watchedHours,
+      'percentage': newPercentage,
+    });
+    await calculatePureObsession(seriesName);
+    await calculateWeekendWarrior();
+  }
+
+  static Future<double> getSeriesTotalRuntimeFromApi(String seriesName) async {
+    try {
+      final searchUrl = "https://api.themoviedb.org/3/search/tv?api_key=$tmdbApiKey&query=${Uri.encodeComponent(seriesName)}";
+      final searchRes = await http.get(Uri.parse(searchUrl));
+      
+      if (searchRes.statusCode == 200) {
+        final searchData = json.decode(searchRes.body);
+        if (searchData['results'].isNotEmpty) {
+          final int seriesId = searchData['results'][0]['id'];
+
+          final detailRes = await http.get(Uri.parse("https://api.themoviedb.org/3/tv/$seriesId?api_key=$tmdbApiKey&language=it-IT"));
+          final data = json.decode(detailRes.body);
+
+          int episodesCount = data['number_of_episodes'] ?? 0;
+          int runtime = 45; 
+
+          if (data['episode_run_time'] != null && (data['episode_run_time'] as List).isNotEmpty) {
+            runtime = data['episode_run_time'][0];
+          }
+
+          return (episodesCount * runtime) / 60.0; 
+        }
+      }
+    } catch (e) {
+      debugPrint("Errore calcolo runtime totale TMDB: $e");
+    }
+    return 1.0; 
+  }
+
+  static Future<void> calculatePureObsession(String seriesName) async {
+    final user = auth.FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final seriesRef = _db.collection('users').doc(user.uid).collection('series').doc(seriesName);
+    
+    List<Map<String, dynamic>> watchedEpisodes = [];
+    final seasonsSnap = await seriesRef.collection('seasons').get();
+    
+    for (var season in seasonsSnap.docs) {
+      final epSnap = await season.reference.collection('episodes')
+          .where('watched', isEqualTo: true)
+          .get();
+      for (var doc in epSnap.docs) {
+        watchedEpisodes.add(doc.data());
+      }
+    }
+
+    if (watchedEpisodes.isEmpty) return;
+
+    watchedEpisodes.sort((a, b) {
+      final tA = a['timestamp'] as Timestamp?;
+      final tB = b['timestamp'] as Timestamp?;
+      if (tA == null || tB == null) return 0;
+      return tA.compareTo(tB);
+    });
+
+    double maxSessionHours = 0;
+    double currentSessionMinutes = 0;
+    
+    for (int i = 0; i < watchedEpisodes.length; i++) {
+      double runtime = (watchedEpisodes[i]['runtime'] ?? 0).toDouble();
+      
+      if (i == 0) {
+        currentSessionMinutes = runtime;
+      } else {
+        final currentTimestamp = watchedEpisodes[i]['timestamp'] as Timestamp?;
+        final previousTimestamp = watchedEpisodes[i-1]['timestamp'] as Timestamp?;
+        
+        if (currentTimestamp != null && previousTimestamp != null) {
+          DateTime currentTime = currentTimestamp.toDate();
+          DateTime previousTime = previousTimestamp.toDate();
+          double previousRuntime = (watchedEpisodes[i-1]['runtime'] ?? 0).toDouble();
+
+          int diffInMinutes = currentTime.difference(previousTime).inMinutes;
           
-          if (date.weekday >= DateTime.friday && date.weekday <= DateTime.sunday) {
-          
-            String weekendId = "${date.year}-${_getIdWeekNumber(date)}"; // ex. 2023-43
-            
-            double runtime = (data['runtime'] ?? 0).toDouble();
-            weekendGroups[weekendId] = (weekendGroups[weekendId] ?? 0) + runtime;
+          if (diffInMinutes <= (previousRuntime + 10)) {
+            currentSessionMinutes += runtime;
+          } else {
+            if ((currentSessionMinutes / 60) > maxSessionHours) {
+              maxSessionHours = currentSessionMinutes / 60;
+            }
+            currentSessionMinutes = runtime; 
           }
         }
       }
     }
+    
+    if ((currentSessionMinutes / 60) > maxSessionHours) {
+      maxSessionHours = currentSessionMinutes / 60;
+    }
+
+    final userDoc = _db.collection('users').doc(user.uid);
+    final userSnap = await userDoc.get();
+    double actualRecord = (userSnap.data()?['maxConsecutiveHours'] ?? 0).toDouble();
+
+    if (maxSessionHours > actualRecord) {
+      await userDoc.update({'maxConsecutiveHours': maxSessionHours});
+    }
   }
-
-  double maxWeekendMinutes = 0;
-  if (weekendGroups.isNotEmpty) {
-    maxWeekendMinutes = weekendGroups.values.reduce((a, b) => a > b ? a : b);
-  }
-
-  double maxWeekendHours = maxWeekendMinutes / 60.0;
-
-  await _db.collection('users').doc(user.uid).set({
-    'weekendHours': maxWeekendHours,
-  }, SetOptions(merge: true));
   
-}
+  static Future<void> calculateWeekendWarrior() async {
+    final user = auth.FirebaseAuth.instance.currentUser;
+    if (user == null) return;
 
-static int _getIdWeekNumber(DateTime date) { // return the weekend number from 1 to 52
-  int daysSinceJan1 = date.difference(DateTime(date.year, 1, 1)).inDays;
-  return ((daysSinceJan1 + DateTime(date.year, 1, 1).weekday - 1) / 7).floor() + 1;
-  //dateTime(..).weekday returns the day of the week as monday, Tuesday etc..
-}
+    
+    Map<String, double> weekendGroups = {};
 
+    final seriesSnap = await _db.collection('users').doc(user.uid).collection('series').get();
+
+    for (var seriesDoc in seriesSnap.docs) {
+      final seasonsSnap = await seriesDoc.reference.collection('seasons').get();
+      for (var seasonDoc in seasonsSnap.docs) {
+        final episodesSnap = await seasonDoc.reference.collection('episodes')
+            .where('watched', isEqualTo: true)
+            .get();
+
+        for (var epDoc in episodesSnap.docs) {
+          final data = epDoc.data();
+          if (data['timestamp'] != null) {
+            DateTime date = (data['timestamp'] as Timestamp).toDate();
+            
+            if (date.weekday >= DateTime.friday && date.weekday <= DateTime.sunday) {
+            
+              String weekendId = "${date.year}-${_getIdWeekNumber(date)}"; // ex. 2023-43
+              
+              double runtime = (data['runtime'] ?? 0).toDouble();
+              weekendGroups[weekendId] = (weekendGroups[weekendId] ?? 0) + runtime;
+            }
+          }
+        }
+      }
+    }
+
+    double maxWeekendMinutes = 0;
+    if (weekendGroups.isNotEmpty) {
+      maxWeekendMinutes = weekendGroups.values.reduce((a, b) => a > b ? a : b);
+    }
+
+    double maxWeekendHours = maxWeekendMinutes / 60.0;
+
+    await _db.collection('users').doc(user.uid).set({
+      'weekendHours': maxWeekendHours,
+    }, SetOptions(merge: true));
+    
+  }
+
+  static int _getIdWeekNumber(DateTime date) { // return the weekend number from 1 to 52
+    int daysSinceJan1 = date.difference(DateTime(date.year, 1, 1)).inDays;
+    return ((daysSinceJan1 + DateTime(date.year, 1, 1).weekday - 1) / 7).floor() + 1;
+    //dateTime(..).weekday returns the day of the week as monday, Tuesday etc..
+  }
 
 }
