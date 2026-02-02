@@ -137,7 +137,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: Colors.grey.shade300), 
                   boxShadow: [
-                    BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2))
+                    BoxShadow(color: Colors.black.withAlpha(13), blurRadius: 4, offset: const Offset(0, 2))
                   ]
                 ),
                 child: TextField(
@@ -283,7 +283,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
           border: Border.all(color: borderColor, width: 2.0), // Bordo Accent come da richiesta
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withAlpha(26),
               blurRadius: 4,
               offset: const Offset(0, 4),
             ),
