@@ -6,7 +6,10 @@ import 'user.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as auth;
+
+
 class AppData {
+
   static final FirebaseFirestore _db = FirebaseFirestore.instance; 
   static const String tmdbApiKey = "1a4c56551c8917b157c4a6fdd2fca54d";
   static List<Series> userSeries = [];
@@ -220,6 +223,9 @@ currentUser = User(
           percentage: (doc['percentage'] ?? 0).toDouble(),
           totalHours: realHours, 
           episode: doc['episode'] ?? "",
+          // --- LEGGI DAL DB ---
+          seriesDuration: (doc['seriesDuration'] ?? 0).toDouble(),
+          // --------------------
         ));
       }
     }
@@ -450,6 +456,7 @@ currentUser = User(
     await seriesRef.update({
       'totalHours': watchedHours,
       'percentage': newPercentage,
+      'seriesDuration': totalSeriesHours, // <--- NUOVO
     });
     await calculatePureObsession(seriesName);
     await calculateWeekendWarrior();
@@ -607,4 +614,134 @@ currentUser = User(
     //dateTime(..).weekday returns the day of the week as monday, Tuesday etc..
   }
 
+  
+  // 1. Controlla se la serie è già tracciata
+  static Future<bool> isSeriesTracked(String seriesName) async {
+    final user = auth.FirebaseAuth.instance.currentUser;
+    if (user == null) return false;
+
+    try {
+      // Verifica l'esistenza del documento nella raccolta 'series'
+      // Nota: Uso 'series' perché è la raccolta che ProfileScreen ascolta.
+      // Se vuoi cambiarla in 'favorites_series', cambia la stringa qui sotto.
+      final doc = await _db
+          .collection('users')
+          .doc(user.uid)
+          .collection('series') 
+          .doc(seriesName)
+          .get();
+      return doc.exists;
+    } catch (e) {
+      debugPrint("Errore controllo serie: $e");
+      return false;
+    }
+  }
+
+  // 2. Aggiungi la serie (Recupera dati freschi da TMDB e calcola durata)
+  static Future<void> addSeriesToTrack(String seriesName, int seriesId) async {
+    final user = auth.FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      // --- RECUPERO DATI E CALCOLO (Logica isolata) ---
+      final Map<String, dynamic> apiData = await _fetchAndCalculateSeriesData(seriesId);
+      
+      final String finalImageUrl = apiData['imageUrl'];
+      final double calculatedDuration = apiData['seriesDuration'];
+
+      // --- SCRITTURA SU FIRESTORE ---
+      final seriesRef = _db
+          .collection('users')
+          .doc(user.uid)
+          .collection('series') // Raccolta di destinazione
+          .doc(seriesName);
+
+      await seriesRef.set({
+        'id': seriesId,
+        'imageUrl': finalImageUrl,     // Ricavato fresco dall'API
+        'seriesDuration': calculatedDuration, // Calcolato (Episodi * Runtime medio)
+        'addedDate': FieldValue.serverTimestamp(),
+        'episode': "S1 E1",           // Default
+        'percentage': 0.0,            // Inizializzato a 0
+        'totalHours': 0.0,            // Inizializzato a 0
+      }, SetOptions(merge: true));
+
+      // --- AGGIORNAMENTO LISTA LOCALE (Per la UI) ---
+      // Rimuoviamo se esiste già per evitare duplicati, poi aggiungiamo la versione aggiornata
+      userSeries.removeWhere((s) => s.name == seriesName);
+      
+      userSeries.add(Series(
+        name: seriesName,
+        imageUrl: finalImageUrl,
+        percentage: 0.0,
+        totalHours: 0.0,
+        seriesDuration: calculatedDuration,
+        episode: "S1 E1",
+      ));
+
+    } catch (e) {
+      debugPrint("Errore durante l'aggiunta della serie: $e");
+    }
+  }
+
+  // 3. Rimuovi la serie
+  static Future<void> removeSeriesFromTrack(String seriesName) async {
+    final user = auth.FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      await _db
+          .collection('users')
+          .doc(user.uid)
+          .collection('series')
+          .doc(seriesName)
+          .delete();
+      
+      userSeries.removeWhere((s) => s.name == seriesName);
+    } catch (e) {
+      debugPrint("Errore rimozione serie: $e");
+    }
+  }
+
+  // --- NUOVA FUNZIONE PRIVATA DI SUPPORTO (Logica API TMDB) ---
+  // Questa funzione è autonoma e non dipende da altri helper
+  static Future<Map<String, dynamic>> _fetchAndCalculateSeriesData(int seriesId) async {
+    final String url = "https://api.themoviedb.org/3/tv/$seriesId?api_key=$tmdbApiKey&language=en-US";
+    
+    double totalDurationHours = 0.0;
+    String posterUrl = "";
+
+    try {
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+
+        // 1. Recupero Immagine
+        if (data['poster_path'] != null) {
+          posterUrl = "https://image.tmdb.org/t/p/w500${data['poster_path']}";
+        }
+
+        // 2. Calcolo Durata (Media Runtime * Numero Episodi)
+        int numberOfEpisodes = data['number_of_episodes'] ?? 0;
+        int avgRuntime = 45; // Default standard se manca il dato
+
+        // 'episode_run_time' è una lista di durate (es. [42, 45, 60])
+        if (data['episode_run_time'] != null && (data['episode_run_time'] as List).isNotEmpty) {
+          // Prendiamo il primo valore o facciamo una media se preferisci
+          avgRuntime = data['episode_run_time'][0]; 
+        }
+
+        int totalMinutes = numberOfEpisodes * avgRuntime;
+        totalDurationHours = totalMinutes / 60.0;
+      }
+    } catch (e) {
+      debugPrint("Errore chiamata API TMDB interna: $e");
+    }
+
+    return {
+      'imageUrl': posterUrl,
+      'seriesDuration': totalDurationHours,
+    };
+  }
 }

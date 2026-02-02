@@ -23,6 +23,7 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> with SingleTick
   TvShowDetails? _details;
   bool _isLoading = true;
   late TabController _tabController;
+  bool _isFavorite = false;
 
   final ScrollController _scrollController = ScrollController();
   bool _showTitle = false;
@@ -32,6 +33,7 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> with SingleTick
     super.initState();
     _tabController = TabController(length: 2, vsync: this); // 2 Tabs: Info e Episodes
     _fetchSeriesDetails();
+    _checkTrackingStatus();
     _scrollController.addListener(() {
       // Quando superiamo una certa soglia (es. 200 pixel), mostriamo il titolo
       if (_scrollController.offset > 180 && !_showTitle) {
@@ -40,6 +42,60 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> with SingleTick
         setState(() => _showTitle = false);
       }
     });
+  }
+
+  Future<void> _checkTrackingStatus() async {
+    // Usiamo il nome della serie perché il tuo DB usa i nomi come ID dei documenti
+    bool status = await AppData.isSeriesTracked(widget.seriesName);
+    if (mounted) {
+      setState(() {
+        _isFavorite = status;
+      });
+    }
+  }
+
+
+  Future<void> _handleFavoriteToggle() async {
+    if (_details == null) return; // Sicurezza se i dettagli non sono caricati
+
+    setState(() {
+      _isFavorite = !_isFavorite;
+    });
+
+    if (_isFavorite) {
+      // AGGIUNGI: Crea il documento con foto e dati a zero
+      // Usiamo posterUrl se disponibile, altrimenti una stringa vuota
+      await AppData.addSeriesToTrack(widget.seriesName, widget.seriesId);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+            "Series added to your favoutires list!", 
+            style: TextStyle(color: AppData.whiteColor)
+            ), 
+            backgroundColor: AppData.accentColor, 
+            duration: Duration(seconds: 2),
+            )
+          );
+        }
+    } else {
+      // RIMUOVI: Cancella il documento
+      await AppData.removeSeriesFromTrack(widget.seriesName);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+            "Series removed from your favoutires list.", 
+            style: TextStyle(color: AppData.whiteColor)
+            ), 
+            backgroundColor: AppData.accentColor, 
+            duration: Duration(seconds: 2),
+          )
+        );
+      }
+    }
   }
 
   Future<void> _fetchSeriesDetails() async {
@@ -256,21 +312,29 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> with SingleTick
                     
                     // Bottone "Aggiungi ai Preferiti"
                     SizedBox(
-                      height: 36, // Bottone più compatto
+                      height: 36,
                       width: double.infinity,
                       child: ElevatedButton.icon(
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Coming soon: Add to Favorites!")));
-                        },
+                        onPressed: _handleFavoriteToggle, // Chiama la nostra funzione
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: accent,
-                          foregroundColor: Colors.white,
-                          padding: EdgeInsets.zero, // Rimuove padding extra
+                          // Se è preferito cambia colore (es. grigio o bianco), altrimenti usa Accent
+                          backgroundColor: _isFavorite ? AppData.accentColor : Colors.grey, 
+                          foregroundColor: AppData.whiteColor,
+                          padding: EdgeInsets.zero,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
                           elevation: 0,
                         ),
-                        icon: const Icon(Icons.star_border, size: 18),
-                        label: const Text("Add to Favorites", style: TextStyle(fontSize: 13)),
+                        // Cambia icona: Stella piena se preferito, Bordo se non lo è
+                        icon: Icon(
+                          _isFavorite ? Icons.star : Icons.star_border, 
+                          size: 18,
+                          color: _isFavorite ? Colors.amber : Colors.white, // Stella gialla se attivo
+                        ),
+                        // Cambia testo
+                        label: Text(
+                          _isFavorite ? "Favorited" : "Add to Favorites", 
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppData.whiteColor),
+                        ),
                       ),
                     ),
                   ],

@@ -54,11 +54,17 @@ class SeriesProgressScreen extends StatelessWidget {
         itemBuilder: (context, index) {
           final series = progressList[index];
 
-          double hoursSeen = series.totalHours ;
-          double totalSeriesDuration = series.percentage > 0 
-      ? hoursSeen / series.percentage 
-      : hoursSeen;
+          double hoursSeen = series.totalHours;
+
+          // --- CALCOLO NUOVO E CORRETTO ---
+          // Se seriesDuration è 0 (magari vecchi dati), usiamo hoursSeen per non rompere l'app
+          double totalSeriesDuration = series.seriesDuration > 0 
+              ? series.seriesDuration 
+              : (series.percentage > 0 ? hoursSeen / series.percentage : 0);
+
           double hoursLeft = totalSeriesDuration - hoursSeen;
+          if (hoursLeft < 0) hoursLeft = 0; // Evita numeri negativi
+          // --------------------------------
 
           String seenText = "${formatHours(hoursSeen)} seen";
           String leftText;
