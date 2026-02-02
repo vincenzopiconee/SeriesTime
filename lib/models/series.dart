@@ -4,9 +4,8 @@ class Series {
   final double percentage;
   double totalHours;
   final String episode;
-  // --- NUOVO CAMPO ---
   final double seriesDuration; 
-  // -------------------
+  bool isFavorite;
   final List<Map<String, dynamic>> watchedEpisodes;
 
   Series({
@@ -15,9 +14,8 @@ class Series {
     required this.percentage,
     required this.totalHours,
     required this.episode,
-    // --- AGGIUNGI AL COSTRUTTORE ---
     this.seriesDuration = 0.0, 
-    // -------------------------------
+    this.isFavorite = false,
     this.watchedEpisodes = const [],
   });
 

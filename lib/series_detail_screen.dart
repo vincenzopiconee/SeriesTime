@@ -45,8 +45,8 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> with SingleTick
   }
 
   Future<void> _checkTrackingStatus() async {
-    // Usiamo il nome della serie perché il tuo DB usa i nomi come ID dei documenti
-    bool status = await AppData.isSeriesTracked(widget.seriesName);
+    // Ora controlliamo se è PREFERITA, non solo se esiste
+    bool status = await AppData.isSeriesFavorite(widget.seriesName);
     if (mounted) {
       setState(() {
         _isFavorite = status;
@@ -54,48 +54,18 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> with SingleTick
     }
   }
 
-
   Future<void> _handleFavoriteToggle() async {
-    if (_details == null) return; // Sicurezza se i dettagli non sono caricati
+    if (_details == null) return;
 
+    // Aggiornamento ottimistico UI
     setState(() {
       _isFavorite = !_isFavorite;
     });
 
-    if (_isFavorite) {
-      // AGGIUNGI: Crea il documento con foto e dati a zero
-      // Usiamo posterUrl se disponibile, altrimenti una stringa vuota
-      await AppData.addSeriesToTrack(widget.seriesName, widget.seriesId);
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-            "Series added to your favoutires list!", 
-            style: TextStyle(color: AppData.whiteColor)
-            ), 
-            backgroundColor: AppData.accentColor, 
-            duration: Duration(seconds: 2),
-            )
-          );
-        }
-    } else {
-      // RIMUOVI: Cancella il documento
-      await AppData.removeSeriesFromTrack(widget.seriesName);
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-            "Series removed from your favoutires list.", 
-            style: TextStyle(color: AppData.whiteColor)
-            ), 
-            backgroundColor: AppData.accentColor, 
-            duration: Duration(seconds: 2),
-          )
-        );
-      }
-    }
+    // Chiamiamo la nuova funzione unica passando true o false
+    await AppData.setSeriesFavorite(widget.seriesName, widget.seriesId, _isFavorite);
+
+    
   }
 
   Future<void> _fetchSeriesDetails() async {
@@ -606,6 +576,7 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> with SingleTick
       itemBuilder: (context, index) {
         return SeasonTile(
           seriesId: widget.seriesId,
+          seriesName: _details!.name,
           season: _details!.seasons[index],
         );
       },

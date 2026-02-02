@@ -61,7 +61,7 @@ class _MainWrapperState extends State<MainWrapper> {
   final List<Widget> _pages = [
     const ProfileScreen(),
     const ExploreScreen(),
-    const Center(child: Text("Favourites")),
+    const Center(child: Text("MySeries")),
     const BingeModeScreen(),
   ];
 
@@ -94,7 +94,7 @@ class _MainWrapperState extends State<MainWrapper> {
         children: [
           _navItem(Icons.person_outline, "Profile", 0),
           _navItem(Icons.search, "Explore", 1),
-          _navItem(Icons.star_border, "Favourites", 2),
+          _navItem(Icons.subscriptions, "My Series", 2),
           _navItem(Icons.track_changes, "Binge Mode", 3),
         ],
       ),

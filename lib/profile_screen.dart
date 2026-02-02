@@ -43,6 +43,7 @@ class ProfileScreen extends StatelessWidget {
                 totalHours: (sData['totalHours'] ?? 0).toDouble(),
                 episode: sData['episode'] ?? "",
                 seriesDuration: (sData['seriesDuration'] ?? 0).toDouble(),
+                isFavorite: sData['isFavorite'] ?? false,
               );
             }).toList();
 

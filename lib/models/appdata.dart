@@ -192,39 +192,38 @@ currentUser = User(
 
   static Future<void> initializeData() async {
     userSeries.clear();
-
     final firebaseUser = auth.FirebaseAuth.instance.currentUser;
     if (firebaseUser == null) return;
 
     final userDoc = _db.collection('users').doc(firebaseUser.uid);
-    final snapshot = await userDoc.get(); //get() returns a future which contain a snapshot of the data in the Doc
+    final snapshot = await userDoc.get();
 
     if (!snapshot.exists) {
-      // if there's no data in the DB, let's populate
       await _populateFirstTime(firebaseUser, userDoc);
     } else {
       final data = snapshot.data()!; 
       currentUser = User(
-        name: data['name'] ?? firebaseUser.displayName ?? "User", //firebaseUser.displayName contains the google user name
+        name: data['name'] ?? firebaseUser.displayName ?? "User",
         totalHoursWatched: (data['totalHoursWatched'] ?? 0).toDouble(),
-        maxConsecutiveHours: data['maxConsecutiveHours'] ?? 0,
+        maxConsecutiveHours: (data['maxConsecutiveHours'] ?? 0).toDouble(), // Fix cast
         weekendHours:( data['weekendHours'] ?? 0).toDouble(),
         notification: data['notification'] ?? true,
         photoUrl: firebaseUser.photoURL,
       );
 
       final seriesSnap = await userDoc.collection('series').get();
-      for (var doc in seriesSnap.docs) { //.docs transforms the result in a List
-        double realHours = await calculateSeriesTotalHours(doc.id);
+      for (var doc in seriesSnap.docs) {
+        // AppData.syncSeriesTotalHours(doc.id); // Opzionale: sincronizza all'avvio
         
         userSeries.add(Series(
           name: doc.id,
           imageUrl: doc['imageUrl'],
           percentage: (doc['percentage'] ?? 0).toDouble(),
-          totalHours: realHours, 
+          totalHours: (doc['totalHours'] ?? 0).toDouble(),
           episode: doc['episode'] ?? "",
-          // --- LEGGI DAL DB ---
           seriesDuration: (doc['seriesDuration'] ?? 0).toDouble(),
+          // --- LEGGI DAL DB ---
+          isFavorite: doc['isFavorite'] ?? false, 
           // --------------------
         ));
       }
@@ -422,42 +421,67 @@ currentUser = User(
     return totalMinutes / 60.0;
   }
 
+  // --- FUNZIONE AGGIORNATA: Calcola totali e trova l'ultimo episodio visto ---
   static Future<void> syncSeriesTotalHours(String seriesName) async {
     final user = auth.FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
-    final seriesRef = FirebaseFirestore.instance
-        .collection('users')
-        .doc(user.uid)
-        .collection('series')
-        .doc(seriesName);
+    final seriesRef = _db.collection('users').doc(user.uid).collection('series').doc(seriesName);
 
     double watchedMinutes = 0;
+    String lastWatchedLabel = "S1 E1"; // Default
+    int maxSeason = -1;
+    int maxEpisode = -1;
 
+    // Recuperiamo tutte le stagioni salvate nel DB
     final seasonsSnap = await seriesRef.collection('seasons').get();
+    
     for (var seasonDoc in seasonsSnap.docs) {
       final episodesSnap = await seasonDoc.reference
           .collection('episodes')
-          .where('watched', isEqualTo: true)
+          .where('watched', isEqualTo: true) // Prendiamo solo quelli visti
           .get();
 
       for (var epDoc in episodesSnap.docs) {
-        watchedMinutes += (epDoc.data()['runtime'] ?? 0);
+        final data = epDoc.data();
+        watchedMinutes += (data['runtime'] ?? 0);
+
+        // Logica per trovare l'ultimo episodio (Max Stagione -> Max Episodio)
+        // Nota: seasonDoc.id è "Season 1", "Season 2".
+        // Per sicurezza usiamo i campi numerici se salvati, altrimenti parsiamo l'ID o usiamo dati episodio
+        int sNum = data['season_number'] ?? int.tryParse(seasonDoc.id.split(' ').last) ?? 0;
+        int eNum = data['episode_number'] ?? 0;
+
+        // Algoritmo "Re della collina" per trovare il più alto
+        if (sNum > maxSeason) {
+          maxSeason = sNum;
+          maxEpisode = eNum;
+        } else if (sNum == maxSeason && eNum > maxEpisode) {
+          maxEpisode = eNum;
+        }
       }
     }
 
-    double watchedHours = watchedMinutes / 60.0;
+    // Formattiamo l'etichetta dell'ultimo episodio
+    if (maxSeason > 0 && maxEpisode > 0) {
+      lastWatchedLabel = "S$maxSeason E$maxEpisode";
+    }
 
+    double watchedHours = watchedMinutes / 60.0;
     double totalSeriesHours = await getSeriesTotalRuntimeFromApi(seriesName);
 
-    double newPercentage = watchedHours / totalSeriesHours;
+    double newPercentage = totalSeriesHours > 0 ? watchedHours / totalSeriesHours : 0;
     if (newPercentage > 1.0) newPercentage = 1.0; 
 
+    // Aggiorniamo il documento principale della serie
     await seriesRef.update({
       'totalHours': watchedHours,
       'percentage': newPercentage,
-      'seriesDuration': totalSeriesHours, // <--- NUOVO
+      'episode': lastWatchedLabel, // Aggiorniamo l'etichetta (es. S4 E2)
+      'seriesDuration': totalSeriesHours,
     });
+    
+    // Ricalcoliamo i badge
     await calculatePureObsession(seriesName);
     await calculateWeekendWarrior();
   }
@@ -635,73 +659,7 @@ currentUser = User(
       debugPrint("Errore controllo serie: $e");
       return false;
     }
-  }
-
-  // 2. Aggiungi la serie (Recupera dati freschi da TMDB e calcola durata)
-  static Future<void> addSeriesToTrack(String seriesName, int seriesId) async {
-    final user = auth.FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
-    try {
-      // --- RECUPERO DATI E CALCOLO (Logica isolata) ---
-      final Map<String, dynamic> apiData = await _fetchAndCalculateSeriesData(seriesId);
-      
-      final String finalImageUrl = apiData['imageUrl'];
-      final double calculatedDuration = apiData['seriesDuration'];
-
-      // --- SCRITTURA SU FIRESTORE ---
-      final seriesRef = _db
-          .collection('users')
-          .doc(user.uid)
-          .collection('series') // Raccolta di destinazione
-          .doc(seriesName);
-
-      await seriesRef.set({
-        'id': seriesId,
-        'imageUrl': finalImageUrl,     // Ricavato fresco dall'API
-        'seriesDuration': calculatedDuration, // Calcolato (Episodi * Runtime medio)
-        'addedDate': FieldValue.serverTimestamp(),
-        'episode': "S1 E1",           // Default
-        'percentage': 0.0,            // Inizializzato a 0
-        'totalHours': 0.0,            // Inizializzato a 0
-      }, SetOptions(merge: true));
-
-      // --- AGGIORNAMENTO LISTA LOCALE (Per la UI) ---
-      // Rimuoviamo se esiste già per evitare duplicati, poi aggiungiamo la versione aggiornata
-      userSeries.removeWhere((s) => s.name == seriesName);
-      
-      userSeries.add(Series(
-        name: seriesName,
-        imageUrl: finalImageUrl,
-        percentage: 0.0,
-        totalHours: 0.0,
-        seriesDuration: calculatedDuration,
-        episode: "S1 E1",
-      ));
-
-    } catch (e) {
-      debugPrint("Errore durante l'aggiunta della serie: $e");
-    }
-  }
-
-  // 3. Rimuovi la serie
-  static Future<void> removeSeriesFromTrack(String seriesName) async {
-    final user = auth.FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
-    try {
-      await _db
-          .collection('users')
-          .doc(user.uid)
-          .collection('series')
-          .doc(seriesName)
-          .delete();
-      
-      userSeries.removeWhere((s) => s.name == seriesName);
-    } catch (e) {
-      debugPrint("Errore rimozione serie: $e");
-    }
-  }
+  }  
 
   // --- NUOVA FUNZIONE PRIVATA DI SUPPORTO (Logica API TMDB) ---
   // Questa funzione è autonoma e non dipende da altri helper
@@ -710,6 +668,7 @@ currentUser = User(
     
     double totalDurationHours = 0.0;
     String posterUrl = "";
+    int avgRuntime = 45; // Default
 
     try {
       final response = await http.get(Uri.parse(url));
@@ -717,18 +676,14 @@ currentUser = User(
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
 
-        // 1. Recupero Immagine
         if (data['poster_path'] != null) {
           posterUrl = "https://image.tmdb.org/t/p/w500${data['poster_path']}";
         }
 
-        // 2. Calcolo Durata (Media Runtime * Numero Episodi)
         int numberOfEpisodes = data['number_of_episodes'] ?? 0;
-        int avgRuntime = 45; // Default standard se manca il dato
-
-        // 'episode_run_time' è una lista di durate (es. [42, 45, 60])
+        
+        // Recuperiamo il tempo medio ufficiale della serie
         if (data['episode_run_time'] != null && (data['episode_run_time'] as List).isNotEmpty) {
-          // Prendiamo il primo valore o facciamo una media se preferisci
           avgRuntime = data['episode_run_time'][0]; 
         }
 
@@ -736,12 +691,151 @@ currentUser = User(
         totalDurationHours = totalMinutes / 60.0;
       }
     } catch (e) {
-      debugPrint("Errore chiamata API TMDB interna: $e");
+      debugPrint("Errore API TMDB: $e");
     }
 
     return {
       'imageUrl': posterUrl,
       'seriesDuration': totalDurationHours,
+      'averageRuntime': avgRuntime, // <--- NUOVO DATO
     };
+  }
+// --- NUOVA FUNZIONE: Segna/Deseleziona episodio come visto ---
+  static Future<void> toggleEpisodeWatched({
+    required String seriesName,
+    required int seriesId, // <--- Importante: Ora ci serve l'ID per crearla se non esiste
+    required int seasonNum,
+    required int episodeNum,
+    required bool isWatched,
+  }) async {
+    final user = auth.FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final seriesRef = _db.collection('users').doc(user.uid).collection('series').doc(seriesName);
+    
+    // 1. Check preliminare: Se la serie non esiste nel DB, dobbiamo crearla come "Non Preferita"
+    final seriesDoc = await seriesRef.get();
+    int runtimeToSave = 45;
+
+    if (!seriesDoc.exists) {
+      // CREAZIONE AUTOMATICA (Non preferita)
+      final apiData = await _fetchAndCalculateSeriesData(seriesId);
+      runtimeToSave = apiData['averageRuntime'];
+      
+      await seriesRef.set({
+        'id': seriesId,
+        'imageUrl': apiData['imageUrl'],
+        'seriesDuration': apiData['seriesDuration'],
+        'averageRuntime': runtimeToSave,
+        'addedDate': FieldValue.serverTimestamp(),
+        'episode': "S1 E1",
+        'percentage': 0.0,
+        'totalHours': 0.0,
+        'isFavorite': false, // <--- Ecco la logica richiesta: false perché aggiunta tramite episodio
+      }, SetOptions(merge: true));
+
+    } else {
+      // Se esiste, recuperiamo il runtime medio salvato
+      final data = seriesDoc.data();
+      if (data != null && data.containsKey('averageRuntime')) {
+        runtimeToSave = (data['averageRuntime'] as num).toInt();
+      } else {
+        // Fallback se manca il campo nel vecchio record
+         final apiData = await _fetchAndCalculateSeriesData(seriesId);
+         runtimeToSave = apiData['averageRuntime'];
+         await seriesRef.update({'averageRuntime': runtimeToSave});
+      }
+    }
+
+    // 2. Procediamo normalmente a salvare l'episodio
+    final seasonRef = seriesRef.collection('seasons').doc('Season $seasonNum');
+    final episodeRef = seasonRef.collection('episodes').doc('Episode $episodeNum');
+
+    if (isWatched) {
+      await seasonRef.set({'season_number': seasonNum}, SetOptions(merge: true));
+      await episodeRef.set({
+        'episode_number': episodeNum,
+        'runtime': runtimeToSave,
+        'timestamp': FieldValue.serverTimestamp(),
+        'watched': true,
+      }, SetOptions(merge: true));
+    } else {
+      await episodeRef.update({'watched': false});
+    }
+
+    await syncSeriesTotalHours(seriesName);
+  }
+
+  static Future<bool> isSeriesFavorite(String seriesName) async {
+    final user = auth.FirebaseAuth.instance.currentUser;
+    if (user == null) return false;
+
+    try {
+      final doc = await _db
+          .collection('users')
+          .doc(user.uid)
+          .collection('series') 
+          .doc(seriesName)
+          .get();
+      
+      // Se esiste, ritorniamo il valore del campo isFavorite, altrimenti false
+      if (doc.exists) {
+        return doc.data()?['isFavorite'] ?? false;
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  static Future<void> setSeriesFavorite(String seriesName, int seriesId, bool isFavorite) async {
+    final user = auth.FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final seriesRef = _db.collection('users').doc(user.uid).collection('series').doc(seriesName);
+
+    // Controlliamo se la serie esiste già
+    final docSnapshot = await seriesRef.get();
+
+    if (!docSnapshot.exists) {
+      // CASO A: La serie non esiste -> La creiamo
+      try {
+        final Map<String, dynamic> apiData = await _fetchAndCalculateSeriesData(seriesId);
+        
+        await seriesRef.set({
+          'id': seriesId,
+          'imageUrl': apiData['imageUrl'],
+          'seriesDuration': apiData['seriesDuration'],
+          'averageRuntime': apiData['averageRuntime'],
+          'addedDate': FieldValue.serverTimestamp(),
+          'episode': "S1 E1",
+          'percentage': 0.0,
+          'totalHours': 0.0,
+          'isFavorite': isFavorite, // Impostiamo il valore richiesto (solitamente true qui)
+        }, SetOptions(merge: true));
+
+        // Aggiorniamo lista locale
+        userSeries.add(Series(
+          name: seriesName,
+          imageUrl: apiData['imageUrl'],
+          percentage: 0.0,
+          totalHours: 0.0,
+          seriesDuration: apiData['seriesDuration'],
+          episode: "S1 E1",
+          isFavorite: isFavorite,
+        ));
+      } catch (e) {
+        debugPrint("Errore creazione serie preferita: $e");
+      }
+    } else {
+      // CASO B: La serie esiste -> Aggiorniamo solo il flag isFavorite
+      await seriesRef.update({'isFavorite': isFavorite});
+      
+      // Aggiorniamo lista locale
+      final index = userSeries.indexWhere((s) => s.name == seriesName);
+      if (index != -1) {
+        userSeries[index].isFavorite = isFavorite;
+      }
+    }
   }
 }
