@@ -2,6 +2,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:seriestime/firebase_options.dart';
+import 'package:seriestime/my_series_screen.dart';
 import 'profile_screen.dart';
 import 'login_screen.dart';
 import 'models/appdata.dart';
@@ -61,7 +62,7 @@ class _MainWrapperState extends State<MainWrapper> {
   final List<Widget> _pages = [
     const ProfileScreen(),
     const ExploreScreen(),
-    const Center(child: Text("MySeries")),
+    const MySeriesScreen(),
     const BingeModeScreen(),
   ];
 

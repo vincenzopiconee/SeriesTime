@@ -37,6 +37,7 @@ class ProfileScreen extends StatelessWidget {
               AppData.syncSeriesTotalHours(doc.id);
 
               return Series(
+                id: sData['id'] ?? 0,
                 name: doc.id,
                 imageUrl: sData['imageUrl'] ?? "",
                 percentage: (sData['percentage'] ?? 0).toDouble(),

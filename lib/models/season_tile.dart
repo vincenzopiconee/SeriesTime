@@ -197,6 +197,7 @@ class _SeasonTileState extends State<SeasonTile> {
                     seriesId: widget.seriesId,
                     seasonNum: widget.season.seasonNumber,
                     episodeNum: episode.episodeNumber,
+                    episodeTitle: episode.name,
                     isWatched: !isWatched, // Passiamo il valore opposto a quello attuale
                   );
                 },
