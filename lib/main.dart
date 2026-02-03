@@ -111,7 +111,6 @@ class _MainWrapperState extends State<MainWrapper> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Usiamo un Container con dimensioni fisse o padding uguale per entrambi gli stati
           Container(
             padding: const EdgeInsets.all(6), // Stesso padding per tutti
             decoration: BoxDecoration(
