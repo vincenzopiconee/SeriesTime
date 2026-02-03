@@ -5,7 +5,8 @@ class User {
   final double weekendHours;
   bool notification;
   final String? photoUrl;
-
+  int seriesStreak;
+  DateTime? lastViewDate;
   User({
     required this.name,
     required this.totalHoursWatched,
@@ -13,5 +14,7 @@ class User {
     required this.weekendHours,
     required this.notification,
     this.photoUrl,
+    this.seriesStreak = 0,
+    this.lastViewDate,
   });
 }

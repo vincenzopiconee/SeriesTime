@@ -36,6 +36,7 @@ class BingeModeScreen extends StatelessWidget {
               maxConsecutiveHours: (userData['maxConsecutiveHours'] ?? 0)
                   .toDouble(),
               weekendHours: (userData['weekendHours'] ?? 0).toDouble(),
+              seriesStreak: userData['seriesStreak'] ?? 0,
               notification: userData['notification'] ?? true,
             );
 
@@ -75,7 +76,23 @@ class BingeModeScreen extends StatelessWidget {
                 user.weekendHours / targetWeekend.targetHours;
             if (progressWeekend > 1.0) progressWeekend = 1.0;
             bool isWeekendFinished = user.weekendHours >= 48;
+            final UserBadge targetStreak = AppData.getStreakTarget(
+              user.seriesStreak.toDouble(),
+            );
+            double progressStreak =
+                user.seriesStreak / targetStreak.targetHours;
+            if (progressStreak > 1.0) progressStreak = 1.0;
+            bool isStreakFinished = user.seriesStreak >= 365;
 
+            int completedCount = AppData.userSeries
+                .where((s) => s.percentage >= 1.0)
+                .length;
+            final UserBadge targetComp = AppData.getCompletionistTarget(
+              completedCount.toDouble(),
+            );
+            double progressComp = completedCount / targetComp.targetHours;
+            if (progressComp > 1.0) progressComp = 1.0;
+            bool isCompFinished = completedCount >= 50;
             return Scaffold(
               backgroundColor: AppData.backgroundColor,
               appBar: AppBar(
@@ -136,6 +153,33 @@ class BingeModeScreen extends StatelessWidget {
                           : "${user.weekendHours.toStringAsFixed(1)}h / ${targetWeekend.iconLabel}",
                       progressValue: progressWeekend,
                       badge: targetWeekend,
+                    ),
+                    const SizedBox(height: 20),
+                    // CARD STREAK
+                    _buildAchievementCard(
+                      title: "Daily Fan",
+                      description: isStreakFinished
+                          ? "Incredible consistency! You have reached the maximum level."
+                          : "Watch at least one episode for ${targetStreak.targetHours.toInt()} consecutive days.",
+                      progressText: isStreakFinished
+                          ? "COMPLETED"
+                          : "${user.seriesStreak} / ${targetStreak.iconLabel}",
+                      progressValue: progressStreak,
+                      badge: targetStreak,
+                    ),
+                    const SizedBox(height: 20),
+
+                    // CARD COMPLETIONIST
+                    _buildAchievementCard(
+                      title: "The Perfectionist",
+                      description: isCompFinished
+                          ? "You have completed everything possible! Legendary."
+                          : "Complete a total of ${targetComp.targetHours.toInt()} TV series to 100%.",
+                      progressText: isCompFinished
+                          ? "COMPLETED"
+                          : "$completedCount / ${targetComp.iconLabel.replaceAll('S', '')} series",
+                      progressValue: progressComp,
+                      badge: targetComp,
                     ),
                   ],
                 ),
