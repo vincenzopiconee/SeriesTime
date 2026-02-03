@@ -735,7 +735,10 @@ class AppData {
     final docSnapshot = await seriesRef.get();
 
     if (!docSnapshot.exists) {
-      // CASO A: La serie non esiste -> La creiamo
+      // CASO A: La serie non esiste
+      // Se stiamo cercando di rimuovere dai preferiti una serie che non esiste, non facciamo nulla.
+      if (!isFavorite) return;
+
       try {
         final Map<String, dynamic> apiData = await _fetchAndCalculateSeriesData(seriesId);
         
@@ -767,13 +770,26 @@ class AppData {
         debugPrint("Errore creazione serie preferita: $e");
       }
     } else {
-      // CASO B: La serie esiste -> Aggiorniamo solo il flag isFavorite
-      await seriesRef.update({'isFavorite': isFavorite});
-      
-      // Aggiorniamo lista locale
-      final index = userSeries.indexWhere((s) => s.name == seriesName);
-      if (index != -1) {
-        userSeries[index].isFavorite = isFavorite;
+      // CASO B: La serie esiste già nel DB
+      final data = docSnapshot.data();
+      double currentTotalHours = (data?['totalHours'] ?? 0).toDouble();
+
+      // --- NUOVA LOGICA DI CANCELLAZIONE ---
+      if (isFavorite == false && currentTotalHours == 0) {
+        // Se rimuovo dai preferiti E non ho mai guardato nulla -> CANCELLO LA SERIE
+        await seriesRef.delete();
+        
+        // Rimuovo dalla lista locale per aggiornare la UI istantaneamente
+        userSeries.removeWhere((s) => s.name == seriesName);
+      } else {
+        // Altrimenti aggiorno solo lo stato (es. ho visto episodi, quindi rimane nel DB ma non è preferita)
+        await seriesRef.update({'isFavorite': isFavorite});
+        
+        // Aggiorniamo lista locale
+        final index = userSeries.indexWhere((s) => s.name == seriesName);
+        if (index != -1) {
+          userSeries[index].isFavorite = isFavorite;
+        }
       }
     }
   }

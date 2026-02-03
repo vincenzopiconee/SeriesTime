@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'models/appdata.dart';
-import 'models/series.dart';
+import '../models/appdata.dart';
+import '../models/series.dart';
 
 class SeriesProgressScreen extends StatelessWidget {
   const SeriesProgressScreen({super.key});
@@ -14,12 +14,14 @@ class SeriesProgressScreen extends StatelessWidget {
       );
     }
 
-    final List<Series> progressList = List.from(AppData.userSeries);
+    final List<Series> progressList = AppData.userSeries
+      .where((s) => s.percentage > 0.0)
+      .toList();
     progressList.sort(
       (a, b) => b.percentage.compareTo(a.percentage),
     ); //List sorted by percentage
 
-     return GestureDetector(
+    return GestureDetector(
     onHorizontalDragUpdate: (details) {
       if (details.delta.dx > 18) { 
         Navigator.pop(context);
@@ -68,12 +70,7 @@ class SeriesProgressScreen extends StatelessWidget {
           // --------------------------------
 
           String seenText = "${formatHours(hoursSeen)} seen";
-          String leftText;
-          if (series.percentage >= 1.0) {
-            leftText = "Finished";
-          } else {
-            leftText = "${formatHours(hoursLeft)} left";
-          }
+          String leftText = "${formatHours(hoursLeft)} left";
 
           return Padding(
             padding: const EdgeInsets.only(bottom: 15),

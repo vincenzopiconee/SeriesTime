@@ -1,5 +1,3 @@
-// --- DATA MODEL ---
-
 class TvShow {
   final int id;
   final String name;

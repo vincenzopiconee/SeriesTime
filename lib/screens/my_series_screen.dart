@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:seriestime/models/next_episode_info.dart';
 import 'package:seriestime/models/series.dart';
-import 'models/appdata.dart';
+import '../models/appdata.dart';
 import 'series_detail_screen.dart'; 
 
 class MySeriesScreen extends StatefulWidget {
@@ -480,7 +480,7 @@ class _WatchingEpisodeCardState extends State<WatchingEpisodeCard> {
                   ),
                   const Text(
                     "days", 
-                    style: TextStyle(fontSize: 11, color: Colors.grey),
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                 ],
               ),
@@ -488,9 +488,9 @@ class _WatchingEpisodeCardState extends State<WatchingEpisodeCard> {
           else if (!widget.isUpcoming)
             if (widget.onCheckTap == null) 
                 // Se la funzione è null (significa episodio futuro in Watching Tab), nascondi tutto o metti un'icona di attesa
-                const Padding(
-                  padding: EdgeInsets.only(right: 24), // Spazio vuoto o icona
-                  child: Icon(Icons.access_time, color: Colors.grey, size: 20),
+                Padding(
+                  padding: EdgeInsets.only(right: 17), // Spazio vuoto o icona
+                  child: Icon(Icons.schedule, color: Colors.grey[400], size: 36),
                 )
             else
               Padding(

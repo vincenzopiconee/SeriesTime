@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:seriestime/models/tv_show_details.dart';
-import 'models/appdata.dart';
+import '../models/appdata.dart';
 
 class AllCastScreen extends StatefulWidget {
   final List<Actor> fullCast;

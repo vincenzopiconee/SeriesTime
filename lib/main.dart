@@ -2,13 +2,13 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:seriestime/firebase_options.dart';
-import 'package:seriestime/my_series_screen.dart';
-import 'profile_screen.dart';
-import 'login_screen.dart';
+import 'package:seriestime/models/auth_gate.dart';
+import 'package:seriestime/screens/my_series_screen.dart';
+import 'screens/profile_screen.dart';
 import 'models/appdata.dart';
-import 'binge_mode_screen.dart';
+import 'screens/binge_mode_screen.dart';
 import 'package:flutter/services.dart';
-import 'explore_screen.dart';
+import 'screens/explore_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -44,7 +44,7 @@ class MyApp extends StatelessWidget {
           child: child!,
         );
       },
-      home: const LoginScreen(),
+      home: const AuthGate(),
     );
   }
 }
@@ -79,6 +79,7 @@ class _MainWrapperState extends State<MainWrapper> {
     return Container(
       height: 85,
       margin: const EdgeInsets.only(bottom: 0, left: 0, right: 0),
+      padding: const EdgeInsets.only(bottom: 26),
       decoration: BoxDecoration(
         color: AppData.primaryColor,
         //borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
@@ -104,27 +105,32 @@ class _MainWrapperState extends State<MainWrapper> {
 
   Widget _navItem(IconData icon, String label, int index) {
     bool isSelected = _selectedIndex == index;
+    
     return GestureDetector(
       onTap: () => setState(() => _selectedIndex = index),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (isSelected)
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: const BoxDecoration(
-                color: AppData.accentColor,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, color: Colors.white, size: 24),
-            )
-          else
-            Icon(icon, color: Colors.white70, size: 26),
-          const SizedBox(height: 4),
+          // Usiamo un Container con dimensioni fisse o padding uguale per entrambi gli stati
+          Container(
+            padding: const EdgeInsets.all(6), // Stesso padding per tutti
+            decoration: BoxDecoration(
+              // Selezionato: Colore Accent. Non selezionato: Trasparente.
+              color: isSelected ? AppData.accentColor : Colors.transparent,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              icon, 
+              // Selezionato: Bianco. Non selezionato: Bianco opaco (white70).
+              color: isSelected ? Colors.white : Colors.white70, 
+              size: 27
+            ),
+          ),
+                    
           Text(
             label,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: isSelected ? Colors.white : Colors.white70, 
               fontSize: 10,
               fontWeight: FontWeight.bold,
             ),

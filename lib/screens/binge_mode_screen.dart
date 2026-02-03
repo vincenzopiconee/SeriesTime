@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'models/appdata.dart';
-import 'models/userbadge.dart';
-import 'models/user.dart';
-import 'models/series.dart';
+import '../models/appdata.dart';
+import '../models/userbadge.dart';
+import '../models/user.dart';
+import '../models/series.dart';
 
 class BingeModeScreen extends StatelessWidget {
   const BingeModeScreen({super.key});
