@@ -46,6 +46,22 @@ class AppData {
     UserBadge(id: "wdiamond", title: "Weekend Warrior", imagePath: "assets/images/weekend_warrior_diamond.png", iconLabel: "48H", targetHours: 48, nextId: null),
   ];
 
+  static final List<UserBadge> streakMilestones = [
+  UserBadge(id: "sbase", title: "Streak", imagePath: "assets/images/streak_base.png", iconLabel: "7G", targetHours: 7, nextId: "sbronze"),
+  UserBadge(id: "sbronze", title: "Streak", imagePath: "assets/images/streak_bronze.png", iconLabel: "10G", targetHours: 10, nextId: "ssilver"),
+  UserBadge(id: "ssilver", title: "Streak", imagePath: "assets/images/streak_silver.png", iconLabel: "20G", targetHours: 20, nextId: "sgold"),
+  UserBadge(id: "sgold", title: "Streak", imagePath: "assets/images/streak_gold.png", iconLabel: "50G", targetHours: 50, nextId: "sdiamond"),
+  UserBadge(id: "sdiamond", title: "Streak", imagePath: "assets/images/streak_diamond.png", iconLabel: "100G", targetHours: 100, nextId: null),
+  ];
+
+  static final List<UserBadge> completionistMilestones = [
+    UserBadge(id: "tpbase", title: "The Perfectionist", imagePath: "assets/images/the_completionist_base.png", iconLabel: "1S", targetHours: 1, nextId: "tpbronze"),
+    UserBadge(id: "tpbronze", title: "The Perfectionist", imagePath: "assets/images/the_completionis_bronze.png", iconLabel: "3S", targetHours: 3, nextId: "tpsilver"),
+    UserBadge(id: "tpsilver", title: "The Perfectionist", imagePath: "assets/images/the_completionis_silver.png", iconLabel: "10S", targetHours: 10, nextId: "tpgold"),
+    UserBadge(id: "tpgold", title: "The Perfectionist", imagePath: "assets/images/the_completionis_gold.png", iconLabel: "20S", targetHours: 20, nextId: "tpdiamond"),
+    UserBadge(id: "tpdiamond", title: "The Perfectionist", imagePath: "assets/images/the_completionis_diamond.png", iconLabel: "50S", targetHours: 50, nextId: null),
+  ];
+
   static void generateUserBadges() {
     userBadges.clear();
     if (currentUser == null) return;
@@ -64,6 +80,19 @@ class AppData {
       if (currentUser!.weekendHours >= badge.targetHours) currentW = badge;
     }
     if (currentW != null) userBadges.add(currentW);
+
+     UserBadge? currentS;
+    for (var badge in streakMilestones) {
+      if (currentUser!.seriesStreak >= badge.targetHours) currentS = badge;
+    }
+    if (currentS != null) userBadges.add(currentS);
+
+    UserBadge? currentC;
+    int completedCount = userSeries.where((s) => s.percentage >= 1.0).length;
+    for (var badge in completionistMilestones) {
+      if (completedCount >= badge.targetHours) currentC = badge;
+    }
+    if (currentC != null) userBadges.add(currentC);
   }
 
   static UserBadge getMarathonerTarget() {
@@ -418,6 +447,7 @@ class AppData {
     
     await calculatePureObsession(seriesName);
     await calculateWeekendWarrior();
+    await updateSeriesStreak();
   }
 
   static Future<double> getSeriesTotalRuntimeFromApi(String seriesName) async {
@@ -570,6 +600,72 @@ class AppData {
     int daysSinceJan1 = date.difference(DateTime(date.year, 1, 1)).inDays;
     return ((daysSinceJan1 + DateTime(date.year, 1, 1).weekday - 1) / 7).floor() + 1;
     //dateTime(..).weekday returns the day of the week as monday, Tuesday etc..
+  }
+
+  static Future<void> updateSeriesStreak() async {
+    if (currentUser == null) return;
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    
+    if (currentUser!.lastViewDate != null) {
+      final last = currentUser!.lastViewDate!;
+      final lastView = DateTime(last.year, last.month, last.day);
+      final diff = today.difference(lastView).inDays;
+
+      if (diff == 1) {
+        //if the user have seen something yesterday --> +1
+        currentUser!.seriesStreak += 1;
+      } else if (diff > 1) {
+        currentUser!.seriesStreak = 1;
+      }
+      
+    } else {
+    
+      currentUser!.seriesStreak = 1;
+    }
+
+    currentUser!.lastViewDate = now;
+
+    // Update on Firestore
+    await _db.collection('users').doc(auth.FirebaseAuth.instance.currentUser!.uid).update({
+      'seriesStreak': currentUser!.seriesStreak,
+      'lastViewDate': Timestamp.fromDate(now),
+    });
+  }
+
+  static UserBadge getStreakTarget(double currentStreak) {
+    UserBadge target = streakMilestones.first;
+    for (var badge in streakMilestones) {
+      if (currentStreak >= badge.targetHours) {
+        if (badge.nextId != null) {
+          target = streakMilestones.firstWhere((b) => b.id == badge.nextId, orElse: () => badge);
+        } else {
+          target = badge;
+        }
+      } else {
+        target = badge;
+        break;
+      }
+    }
+    return target;
+  }
+
+  static UserBadge getCompletionistTarget(double currentCompleted) {
+    UserBadge target = completionistMilestones.first;
+    for (var badge in completionistMilestones) {
+      if (currentCompleted >= badge.targetHours) {
+        if (badge.nextId != null) {
+          target = completionistMilestones.firstWhere((b) => b.id == badge.nextId, orElse: () => badge);
+        } else {
+          target = badge;
+        }
+      } else {
+        target = badge;
+        break;
+      }
+    }
+    return target;
   }
 
   
