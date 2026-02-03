@@ -3,12 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:seriestime/firebase_options.dart';
 import 'package:seriestime/models/auth_gate.dart';
-import 'package:seriestime/my_series_screen.dart';
-import 'profile_screen.dart';
+import 'package:seriestime/screens/my_series_screen.dart';
+import 'screens/profile_screen.dart';
 import 'models/appdata.dart';
-import 'binge_mode_screen.dart';
+import 'screens/binge_mode_screen.dart';
 import 'package:flutter/services.dart';
-import 'explore_screen.dart';
+import 'screens/explore_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

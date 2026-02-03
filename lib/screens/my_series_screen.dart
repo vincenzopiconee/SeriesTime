@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:seriestime/models/next_episode_info.dart';
 import 'package:seriestime/models/series.dart';
-import 'models/appdata.dart';
+import '../models/appdata.dart';
 import 'series_detail_screen.dart'; 
 
 class MySeriesScreen extends StatefulWidget {

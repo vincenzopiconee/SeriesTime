@@ -1,6 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:seriestime/login_screen.dart';
+import 'package:seriestime/screens/login_screen.dart';
 import 'package:seriestime/main.dart';
 import 'package:seriestime/models/appdata.dart';
 

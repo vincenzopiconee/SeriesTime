@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'models/appdata.dart';
-import 'models/series.dart';
+import '../models/appdata.dart';
+import '../models/series.dart';
 
 class SeriesProgressScreen extends StatelessWidget {
   const SeriesProgressScreen({super.key});

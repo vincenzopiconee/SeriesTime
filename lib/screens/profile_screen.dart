@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 
 import 'settings_screen.dart';
 import 'series_progress_screen.dart';
-import 'models/appdata.dart';
-import 'models/series.dart';
-import 'models/userbadge.dart';
+import '../models/appdata.dart';
+import '../models/series.dart';
+import '../models/userbadge.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as auth; 
-import 'models/user.dart';
+import '../models/user.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
