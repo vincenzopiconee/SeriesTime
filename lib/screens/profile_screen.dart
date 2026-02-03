@@ -55,6 +55,7 @@ class ProfileScreen extends StatelessWidget {
               maxConsecutiveHours: (userData['maxConsecutiveHours'] ?? 0)
                   .toDouble(),
               weekendHours: (userData['weekendHours'] ?? 0).toDouble(),
+              seriesStreak: userData['seriesStreak'] ?? 0,
               notification: userData['notification'] ?? true,
               photoUrl: userData['photoUrl'] ?? auth.FirebaseAuth.instance.currentUser?.photoURL,
             );
@@ -109,14 +110,18 @@ class ProfileScreen extends StatelessWidget {
                 child: Column(
                   children: [
                    CircleAvatar(
-                   radius: 43,
-                   backgroundColor: AppData.avatarColor,
-                   backgroundImage: currentUser.photoUrl != null 
-                   ? NetworkImage(currentUser.photoUrl!) 
-                   : null,
-                   child: currentUser.photoUrl == null 
-                   ? const Icon(Icons.person, size: 55, color: Colors.white) 
-                    : null,
+                      radius: 45,
+                      backgroundColor: AppData.avatarColor,
+                      backgroundImage: currentUser.photoUrl != null
+                          ? NetworkImage(currentUser.photoUrl!)
+                          : null,
+                      child: currentUser.photoUrl == null
+                          ? const Icon(
+                              Icons.person,
+                              size: 55,
+                              color: Colors.white,
+                            )
+                          : null,
                     ),
                     const SizedBox(height: 12),
                     Text(
@@ -553,12 +558,12 @@ class ProfileScreen extends StatelessWidget {
     );
   }
   String formatHours(double totalHours) {
-  if (totalHours <= 0) return "0m";
-  int h = totalHours.toInt();
-  int m = ((totalHours - h) * 60).round();
-  
-  if (h == 0) return "${m}m";
-  if (m == 0) return "${h}h";
-  return "${h}h ${m}m";
-}
+    if (totalHours <= 0) return "0m";
+    int h = totalHours.toInt();
+    int m = ((totalHours - h) * 60).round();
+
+    if (h == 0) return "${m}m";
+    if (m == 0) return "${h}h";
+    return "${h}h ${m}m";
+  }
 }
