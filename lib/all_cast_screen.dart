@@ -33,7 +33,7 @@ class _AllCastScreenState extends State<AllCastScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          "Cast: ${widget.seriesName}",
+          "Series Cast",
           style: const TextStyle(
             color: AppData.whiteColor, 
             fontWeight: FontWeight.bold

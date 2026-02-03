@@ -1,3 +1,4 @@
+import 'next_episode_info.dart';
 import 'series.dart';
 import 'dart:convert'; 
 import 'package:http/http.dart' as http;
@@ -6,7 +7,10 @@ import 'user.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as auth;
+
+
 class AppData {
+
   static final FirebaseFirestore _db = FirebaseFirestore.instance; 
   static const String tmdbApiKey = "1a4c56551c8917b157c4a6fdd2fca54d";
   static List<Series> userSeries = [];
@@ -116,110 +120,54 @@ class AppData {
     }
     return target;
   }
- /* static Future<void> initializeData() async {
-    userSeries.clear();
-    
-final List<Map<String, dynamic>> localData = [
-  {"name": "Peaky Blinders", "perc": 1.0, "time": 36, "ep": "Finished"},
-  {"name": "Lost", "perc": 0.15, "time": 14, "ep": "S1 E5"},
-  {"name": "Squid Game", "perc": 1.0, "time": 24, "ep": "Finished"},
-  {"name": "Breaking Bad", "perc": 0.95, "time": 57, "ep": "S5 E12"},
-  {"name": "Stranger Things", "perc": 0.88, "time": 42, "ep": "S4 E7"},
-  {"name": "The Boys", "perc": 0.75, "time": 24, "ep": "S3 E4"},
-  {"name": "Dark", "perc": 0.92, "time": 26, "ep": "S3 E6"},
-  {"name": "The Crown", "perc": 0.40, "time": 50, "ep": "S4 E2"},
-  {"name": "The Bear", "perc": 0.98, "time": 12, "ep": "S2 E10"},
-  {"name": "Succession", "perc": 0.65, "time": 38, "ep": "S3 E5"},
-  {"name": "Severance", "perc": 0.20, "time": 9, "ep": "S1 E2"},
-  {"name": "The Last of Us", "perc": 0.94, "time": 10, "ep": "S1 E9"},
-  {"name": "Better Call Saul", "perc": 0.80, "time": 60, "ep": "S6 E3"},
-  {"name": "Friends", "perc": 1.0, "time": 85, "ep": "Finished"},
-  {"name": "The Office US", "perc": 0.55, "time": 72, "ep": "S6 E14"}, 
-  {"name": "Black Mirror", "perc": 0.30, "time": 22, "ep": "S4 E1"},
-  {"name": "Narcos", "perc": 0.85, "time": 25, "ep": "S3 E2"},
-  {"name": "Wednesday", "perc": 0.90, "time": 8, "ep": "S1 E7"},
-  {"name": "La Casa de Papel", "perc": 0.99, "time": 46, "ep": "S5 E10"}, 
-  {"name": "True Detective", "perc": 0.45, "time": 24, "ep": "S2 E1"},
-  {"name": "Sherlock", "perc": 0.70, "time": 18, "ep": "S3 E2"},
-  {"name": "Mindhunter", "perc": 0.50, "time": 19, "ep": "S2 E5"},
-  {"name": "The Mandalorian", "perc": 0.60, "time": 16, "ep": "S2 E8"},
-  {"name": "Vikings", "perc": 0.35, "time": 70, "ep": "S4 E12"},
-  {"name": "Cobra Kai", "perc": 0.82, "time": 30, "ep": "S5 E1"},
-  {"name": "Arcane", "perc": 0.96, "time": 6, "ep": "S1 E8"},
-  {"name": "Ted Lasso", "perc": 0.10, "time": 22, "ep": "S1 E3"},
-  {"name": "The Witcher", "perc": 0.25, "time": 24, "ep": "S2 E2"},
-  {"name": "House of the Dragon", "perc": 0.89, "time": 10, "ep": "S1 E9"},
-  {"name": "Euphoria", "perc": 0.48, "time": 16, "ep": "S2 E4"},
-  {"name": "Fargo", "perc": 0.15, "time": 40, "ep": "S1 E6"},
-];
-// localData.map((item) to map the list in future Data
-//await means that the application stop and wait for the information
-int counter = 0;
-    await Future.wait(localData.map((item) async {
-      final myIndex = counter++;
-      await Future.delayed(Duration(milliseconds: myIndex * 100)); //waiting delay for the image
-      final url = await fetchImageUrl(item['name']);
-      userSeries.add(Series(
-        name: item['name'],
-        imageUrl: url,
-        percentage: item['perc'],
-        totalHours: item['time'], 
-        episode: item['ep'],
-      ));
-    }));
-
-    
-    userBadges = [];
-  double totalHours = getTotalWatchTimeHours();
-
-
-currentUser = User(
-    name: "Francesco\n Lo Monaco", 
-    totalHoursWatched: totalHours,   
-    maxConsecutiveHours: 3,     
-    weekendHours: 40,  
-    notification: true,        
-  );
-  generateUserBadges();
-  }*/
-
-  //doc.id returns the name of the document
-  //doc.data() returns a map Map<String, dynamic> with all the data in the document
-  //doc.reference is the path of the document
 
   static Future<void> initializeData() async {
     userSeries.clear();
-
     final firebaseUser = auth.FirebaseAuth.instance.currentUser;
     if (firebaseUser == null) return;
 
     final userDoc = _db.collection('users').doc(firebaseUser.uid);
-    final snapshot = await userDoc.get(); //get() returns a future which contain a snapshot of the data in the Doc
+    final snapshot = await userDoc.get();
 
     if (!snapshot.exists) {
-      // if there's no data in the DB, let's populate
       await _populateFirstTime(firebaseUser, userDoc);
     } else {
       final data = snapshot.data()!; 
+
+      String? originalPhotoUrl = data['photoUrl'] ?? firebaseUser.photoURL;
+      String? highResPhotoUrl = originalPhotoUrl;
+
+      // Se l'URL proviene da Google, aumentiamo la risoluzione
+      if (originalPhotoUrl != null && originalPhotoUrl.contains('googleusercontent.com')) {
+        // Sostituisce la dimensione s96-c (o simili) con s400-c (400px)
+        highResPhotoUrl = originalPhotoUrl.replaceFirst('s96-c', 's400-c');
+      }
+      
       currentUser = User(
-        name: data['name'] ?? firebaseUser.displayName ?? "User", //firebaseUser.displayName contains the google user name
+        name: data['name'] ?? firebaseUser.displayName ?? "User",
         totalHoursWatched: (data['totalHoursWatched'] ?? 0).toDouble(),
-        maxConsecutiveHours: data['maxConsecutiveHours'] ?? 0,
+        maxConsecutiveHours: (data['maxConsecutiveHours'] ?? 0).toDouble(), // Fix cast
         weekendHours:( data['weekendHours'] ?? 0).toDouble(),
         notification: data['notification'] ?? true,
-        photoUrl: firebaseUser.photoURL,
+        photoUrl: highResPhotoUrl,
       );
 
       final seriesSnap = await userDoc.collection('series').get();
-      for (var doc in seriesSnap.docs) { //.docs transforms the result in a List
-        double realHours = await calculateSeriesTotalHours(doc.id);
+      for (var doc in seriesSnap.docs) {
+        final sData = doc.data();
         
         userSeries.add(Series(
+          id: sData['id'] ?? 0,
           name: doc.id,
           imageUrl: doc['imageUrl'],
           percentage: (doc['percentage'] ?? 0).toDouble(),
-          totalHours: realHours, 
+          totalHours: (doc['totalHours'] ?? 0).toDouble(),
           episode: doc['episode'] ?? "",
+          lastEpisodeTitle: sData['lastEpisodeTitle'] ?? "",
+          nextEpisodeAirDate: sData['nextEpisodeAirDate'],
+          seriesDuration: (doc['seriesDuration'] ?? 0).toDouble(),
+          isFavorite: doc['isFavorite'] ?? false, 
+          completed: sData['completed'] ?? false,
         ));
       }
     }
@@ -251,93 +199,6 @@ currentUser = User(
       'notification': true,
     }, SetOptions(merge: true));
 
-    final List<String> seriesToTrack = ["Peaky Blinders", "Breaking Bad", "The Bear"];
-
-    DateTime venerdi = DateTime(2025, 10, 24, 20, 0); 
-    DateTime sabato = DateTime(2025, 10, 25, 14, 0);  
-    DateTime lunedi = DateTime(2025, 10, 27, 09, 0);  
-
-    for (String name in seriesToTrack) {
-      final searchUrl = "https://api.themoviedb.org/3/search/tv?api_key=$tmdbApiKey&query=${Uri.encodeComponent(name)}";
-      final searchRes = await http.get(Uri.parse(searchUrl));
-      
-      if (searchRes.statusCode == 200) {
-        final searchData = json.decode(searchRes.body);
-        if (searchData['results'].isEmpty) continue;
-
-        final int seriesId = searchData['results'][0]['id'];
-        final String imageUrl = "https://image.tmdb.org/t/p/w500${searchData['results'][0]['poster_path']}";
-
-        final seriesDetailUrl = "https://api.themoviedb.org/3/tv/$seriesId?api_key=$tmdbApiKey&language=en-US";
-        final seriesDetailRes = await http.get(Uri.parse(seriesDetailUrl));
-        int avgRuntime = 45; // Default se il campo manca
-
-        if (seriesDetailRes.statusCode == 200) {
-          final seriesData = json.decode(seriesDetailRes.body);
-          if (seriesData['episode_run_time'] != null && (seriesData['episode_run_time'] as List).isNotEmpty) {
-            avgRuntime = seriesData['episode_run_time'][0];
-          }
-        }
-
-        final detailUrl = "https://api.themoviedb.org/3/tv/$seriesId/season/1?api_key=$tmdbApiKey&language=it-IT";
-        final detailRes = await http.get(Uri.parse(detailUrl));
-
-        if (detailRes.statusCode == 200) {
-          final seasonData = json.decode(detailRes.body);
-          final List episodesFromApi = seasonData['episodes'];
-
-          DocumentReference seriesRef = docRef.collection('series').doc(name);
-
-          await seriesRef.set({
-            'imageUrl': imageUrl,
-            'percentage': 0.0,
-            'totalHours': 0.0,
-            'episode': "S1 E1",
-          }, SetOptions(merge: true));
-
-          for (var ep in episodesFromApi) {
-            int seasonNum = ep['season_number'];
-            int episodeNum = ep['episode_number'];
-            
-            int runtime = (ep['runtime'] != null && ep['runtime'] > 0) 
-                ? ep['runtime'] 
-                : avgRuntime;
-            
-            bool isWatched = false;
-            DateTime? watchDate;
-
-            if (name == "Breaking Bad" && (seasonNum == 1 || seasonNum == 2)) {
-              isWatched = true;
-              watchDate = lunedi.add(Duration(minutes: (episodeNum - 1) * 50));
-            } 
-            else if (name == "Peaky Blinders" && seasonNum == 1) {
-              isWatched = episodeNum <= 4;
-              if (episodeNum <= 2) {
-                watchDate = venerdi.add(Duration(minutes: (episodeNum - 1) * 65));
-              } else {
-                watchDate = sabato.add(Duration(minutes: (episodeNum - 3) * 65));
-              }
-            }
-            else if (name == "The Bear") {
-              isWatched = (seasonNum == 1 && episodeNum == 1);
-              watchDate = DateTime.now().subtract(const Duration(days: 5));
-            }
-
-            DocumentReference seasonRef = seriesRef.collection('seasons').doc('Season $seasonNum');
-            await seasonRef.set({'season_number': seasonNum}, SetOptions(merge: true));
-
-            await seasonRef.collection('episodes').doc('Episode $episodeNum').set({
-              'episode_number': episodeNum,
-              'runtime': runtime,
-              'timestamp': watchDate != null ? Timestamp.fromDate(watchDate) : FieldValue.serverTimestamp(),
-              'watched': isWatched,
-            }, SetOptions(merge: true));
-          }
-          
-          await syncSeriesTotalHours(name);
-        }
-      }
-    }
   }
 
   static Future<String> fetchImageUrl(String name) async {
@@ -416,41 +277,145 @@ currentUser = User(
     return totalMinutes / 60.0;
   }
 
+  // --- FUNZIONE AGGIORNATA: Calcola totali, PROSSIMO episodio e STATO COMPLETATO ---
   static Future<void> syncSeriesTotalHours(String seriesName) async {
     final user = auth.FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
-    final seriesRef = FirebaseFirestore.instance
-        .collection('users')
-        .doc(user.uid)
-        .collection('series')
-        .doc(seriesName);
+    final seriesRef = _db.collection('users').doc(user.uid).collection('series').doc(seriesName);
 
     double watchedMinutes = 0;
+    
+    // Variabili per l'ultimo visto (Local DB)
+    int maxSeason = -1;
+    int maxEpisode = -1;
+    
+    // Variabili per il prossimo da vedere (Output finale)
+    String displayLabel = "S1 E1"; 
+    String displayTitle = ""; 
+    String? displayAirDate;
+    
+    bool isSeriesCompleted = false; 
+
+    // 1. Recuperiamo ID Serie e Statistiche Viste
+    final seriesDoc = await seriesRef.get();
+    int seriesId = 0;
+    if (seriesDoc.exists) {
+      seriesId = seriesDoc.data()?['id'] ?? 0;
+    }
 
     final seasonsSnap = await seriesRef.collection('seasons').get();
+    
     for (var seasonDoc in seasonsSnap.docs) {
       final episodesSnap = await seasonDoc.reference
           .collection('episodes')
-          .where('watched', isEqualTo: true)
+          .where('watched', isEqualTo: true) 
           .get();
 
       for (var epDoc in episodesSnap.docs) {
-        watchedMinutes += (epDoc.data()['runtime'] ?? 0);
+        final data = epDoc.data();
+        watchedMinutes += (data['runtime'] ?? 0);
+
+        int sNum = data['season_number'] ?? int.tryParse(seasonDoc.id.split(' ').last) ?? 0;
+        int eNum = data['episode_number'] ?? 0;
+
+        if (sNum > maxSeason) {
+          maxSeason = sNum;
+          maxEpisode = eNum;
+        } else if (sNum == maxSeason && eNum > maxEpisode) {
+          maxEpisode = eNum;
+        }
       }
     }
 
-    double watchedHours = watchedMinutes / 60.0;
+    // 2. LOGICA PROSSIMO EPISODIO: Interroghiamo TMDB
+    if (seriesId != 0) {
+      try {
+        int targetSeason = maxSeason < 1 ? 1 : maxSeason;
+        int lastWatchedEpInSeason = maxEpisode < 1 ? 0 : maxEpisode;
 
+        // Chiamata API per ottenere i dettagli della stagione corrente (o target)
+        final urlSeason = "https://api.themoviedb.org/3/tv/$seriesId/season/$targetSeason?api_key=$tmdbApiKey&language=en-US";
+        final resSeason = await http.get(Uri.parse(urlSeason));
+
+        if (resSeason.statusCode == 200) {
+          final sData = json.decode(resSeason.body);
+          final List episodes = sData['episodes'] ?? [];
+
+          // Cerchiamo l'episodio successivo nella lista
+          var nextEp = episodes.firstWhere(
+            (e) => e['episode_number'] == lastWatchedEpInSeason + 1, 
+            orElse: () => null
+          );
+
+          if (nextEp != null) {
+            // Caso A: C'è un episodio successivo in questa stagione
+            displayLabel = "S${nextEp['season_number']} E${nextEp['episode_number']}";
+            displayTitle = nextEp['name'] ?? "";
+            displayAirDate = nextEp['air_date'];
+            isSeriesCompleted = false; // C'è ancora da vedere
+          } else {
+            // Caso B: Stagione finita? Proviamo la stagione successiva, Episodio 1
+            final urlNextSeason = "https://api.themoviedb.org/3/tv/$seriesId/season/${targetSeason + 1}?api_key=$tmdbApiKey&language=en-US";
+            final resNextSeason = await http.get(Uri.parse(urlNextSeason));
+            
+            if (resNextSeason.statusCode == 200) {
+              final nextSData = json.decode(resNextSeason.body);
+              final List nextEpisodes = nextSData['episodes'] ?? [];
+              if (nextEpisodes.isNotEmpty) {
+                 final firstEp = nextEpisodes[0]; // Episodio 1
+                 displayLabel = "S${firstEp['season_number']} E${firstEp['episode_number']}";
+                 displayTitle = firstEp['name'] ?? "";
+                 displayAirDate = firstEp['air_date'];
+                 isSeriesCompleted = false; // C'è una nuova stagione
+              } else {
+                 // Stagione successiva esiste ma è vuota (raro, ma possibile) -> Completata
+                 if (maxSeason > 0) isSeriesCompleted = true;
+              }
+            } else {
+              // Caso C: Serie finita (Nessuna stagione successiva trovata API 404)
+              if (maxSeason > 0) {
+                 // Manteniamo l'etichetta dell'ultimo visto perché non c'è un "prossimo"
+                 displayLabel = "S$maxSeason E$maxEpisode";
+                 
+                 // --- SETTIAMO A TRUE ---
+                 isSeriesCompleted = true; 
+                 // -----------------------
+              }
+            }
+          }
+        }
+      } catch (e) {
+        debugPrint("Errore calcolo prossimo episodio: $e");
+        if (maxSeason > 0) displayLabel = "S$maxSeason E$maxEpisode";
+      }
+    } else {
+       if (maxSeason > 0) displayLabel = "S$maxSeason E$maxEpisode";
+    }
+
+    double watchedHours = watchedMinutes / 60.0;
     double totalSeriesHours = await getSeriesTotalRuntimeFromApi(seriesName);
 
-    double newPercentage = watchedHours / totalSeriesHours;
+    double newPercentage = totalSeriesHours > 0 ? watchedHours / totalSeriesHours : 0;
+    
+    // Logica extra di sicurezza: se la percentuale è > 0.99, probabilmente è finita anche se l'API ha fallito
+    if (newPercentage >= 0.99) {
+      newPercentage = 1.0;
+      // Opzionale: puoi forzare isSeriesCompleted = true qui se ti fidi più della percentuale
+    }
     if (newPercentage > 1.0) newPercentage = 1.0; 
 
-    await seriesRef.update({
+    // Aggiorniamo il documento principale della serie
+    await seriesRef.set({
       'totalHours': watchedHours,
       'percentage': newPercentage,
-    });
+      'episode': displayLabel,
+      'seriesDuration': totalSeriesHours,
+      'lastEpisodeTitle': displayTitle,
+      'completed': isSeriesCompleted,
+      'nextEpisodeAirDate': displayAirDate,
+    }, SetOptions(merge: true));
+    
     await calculatePureObsession(seriesName);
     await calculateWeekendWarrior();
   }
@@ -607,4 +572,253 @@ currentUser = User(
     //dateTime(..).weekday returns the day of the week as monday, Tuesday etc..
   }
 
+  
+  // 1. Controlla se la serie è già tracciata
+  static Future<bool> isSeriesTracked(String seriesName) async {
+    final user = auth.FirebaseAuth.instance.currentUser;
+    if (user == null) return false;
+
+    try {
+      // Verifica l'esistenza del documento nella raccolta 'series'
+      // Nota: Uso 'series' perché è la raccolta che ProfileScreen ascolta.
+      // Se vuoi cambiarla in 'favorites_series', cambia la stringa qui sotto.
+      final doc = await _db
+          .collection('users')
+          .doc(user.uid)
+          .collection('series') 
+          .doc(seriesName)
+          .get();
+      return doc.exists;
+    } catch (e) {
+      debugPrint("Errore controllo serie: $e");
+      return false;
+    }
+  }  
+
+  // --- NUOVA FUNZIONE PRIVATA DI SUPPORTO (Logica API TMDB) ---
+  // Questa funzione è autonoma e non dipende da altri helper
+  static Future<Map<String, dynamic>> _fetchAndCalculateSeriesData(int seriesId) async {
+    final String url = "https://api.themoviedb.org/3/tv/$seriesId?api_key=$tmdbApiKey&language=en-US";
+    
+    double totalDurationHours = 0.0;
+    String posterUrl = "";
+    int avgRuntime = 45; // Default
+
+    try {
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+
+        if (data['poster_path'] != null) {
+          posterUrl = "https://image.tmdb.org/t/p/w500${data['poster_path']}";
+        }
+
+        int numberOfEpisodes = data['number_of_episodes'] ?? 0;
+        
+        // Recuperiamo il tempo medio ufficiale della serie
+        if (data['episode_run_time'] != null && (data['episode_run_time'] as List).isNotEmpty) {
+          avgRuntime = data['episode_run_time'][0]; 
+        }
+
+        int totalMinutes = numberOfEpisodes * avgRuntime;
+        totalDurationHours = totalMinutes / 60.0;
+      }
+    } catch (e) {
+      debugPrint("Errore API TMDB: $e");
+    }
+
+    return {
+      'imageUrl': posterUrl,
+      'seriesDuration': totalDurationHours,
+      'averageRuntime': avgRuntime, // <--- NUOVO DATO
+    };
+  }
+// --- NUOVA FUNZIONE: Segna/Deseleziona episodio come visto ---
+  static Future<void> toggleEpisodeWatched({
+    required String seriesName,
+    required int seriesId, // <--- Importante: Ora ci serve l'ID per crearla se non esiste
+    required int seasonNum,
+    required int episodeNum,
+    required String episodeTitle,
+    required bool isWatched,
+  }) async {
+    final user = auth.FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final seriesRef = _db.collection('users').doc(user.uid).collection('series').doc(seriesName);
+    
+    // 1. Check preliminare: Se la serie non esiste nel DB, dobbiamo crearla come "Non Preferita"
+    final seriesDoc = await seriesRef.get();
+    int runtimeToSave = 45;
+
+    if (!seriesDoc.exists) {
+      // CREAZIONE AUTOMATICA (Non preferita)
+      final apiData = await _fetchAndCalculateSeriesData(seriesId);
+      runtimeToSave = apiData['averageRuntime'];
+      
+      await seriesRef.set({
+        'id': seriesId,
+        'imageUrl': apiData['imageUrl'],
+        'seriesDuration': apiData['seriesDuration'],
+        'averageRuntime': runtimeToSave,
+        'addedDate': FieldValue.serverTimestamp(),
+        'episode': "S1 E1",
+        'percentage': 0.0,
+        'totalHours': 0.0,
+        'isFavorite': false, 
+        'completed': false,
+      }, SetOptions(merge: true));
+
+    } else {
+      // Se esiste, recuperiamo il runtime medio salvato
+      final data = seriesDoc.data();
+      if (data != null && data.containsKey('averageRuntime')) {
+        runtimeToSave = (data['averageRuntime'] as num).toInt();
+      } else {
+        // Fallback se manca il campo nel vecchio record
+         final apiData = await _fetchAndCalculateSeriesData(seriesId);
+         runtimeToSave = apiData['averageRuntime'];
+         await seriesRef.update({'averageRuntime': runtimeToSave});
+      }
+    }
+
+    // 2. Procediamo normalmente a salvare l'episodio
+    final seasonRef = seriesRef.collection('seasons').doc('Season $seasonNum');
+    final episodeRef = seasonRef.collection('episodes').doc('Episode $episodeNum');
+
+    if (isWatched) {
+      await seasonRef.set({'season_number': seasonNum}, SetOptions(merge: true));
+      await episodeRef.set({
+        'episode_number': episodeNum,
+        'runtime': runtimeToSave,
+        'timestamp': FieldValue.serverTimestamp(),
+        'watched': true,
+        'episode_title': episodeTitle,
+      }, SetOptions(merge: true));
+    } else {
+      await episodeRef.update({'watched': false});
+    }
+
+    await syncSeriesTotalHours(seriesName);
+  }
+
+  static Future<bool> isSeriesFavorite(String seriesName) async {
+    final user = auth.FirebaseAuth.instance.currentUser;
+    if (user == null) return false;
+
+    try {
+      final doc = await _db
+          .collection('users')
+          .doc(user.uid)
+          .collection('series') 
+          .doc(seriesName)
+          .get();
+      
+      // Se esiste, ritorniamo il valore del campo isFavorite, altrimenti false
+      if (doc.exists) {
+        return doc.data()?['isFavorite'] ?? false;
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  static Future<void> setSeriesFavorite(String seriesName, int seriesId, bool isFavorite) async {
+    final user = auth.FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final seriesRef = _db.collection('users').doc(user.uid).collection('series').doc(seriesName);
+
+    // Controlliamo se la serie esiste già
+    final docSnapshot = await seriesRef.get();
+
+    if (!docSnapshot.exists) {
+      // CASO A: La serie non esiste -> La creiamo
+      try {
+        final Map<String, dynamic> apiData = await _fetchAndCalculateSeriesData(seriesId);
+        
+        await seriesRef.set({
+          'id': seriesId,
+          'imageUrl': apiData['imageUrl'],
+          'seriesDuration': apiData['seriesDuration'],
+          'averageRuntime': apiData['averageRuntime'],
+          'addedDate': FieldValue.serverTimestamp(),
+          'episode': "S1 E1",
+          'percentage': 0.0,
+          'totalHours': 0.0,
+          'isFavorite': isFavorite, 
+          'completed': false,
+        }, SetOptions(merge: true));
+
+        // Aggiorniamo lista locale
+        userSeries.add(Series(
+          id: seriesId,
+          name: seriesName,
+          imageUrl: apiData['imageUrl'],
+          percentage: 0.0,
+          totalHours: 0.0,
+          seriesDuration: apiData['seriesDuration'],
+          episode: "S1 E1",
+          isFavorite: isFavorite,
+        ));
+      } catch (e) {
+        debugPrint("Errore creazione serie preferita: $e");
+      }
+    } else {
+      // CASO B: La serie esiste -> Aggiorniamo solo il flag isFavorite
+      await seriesRef.update({'isFavorite': isFavorite});
+      
+      // Aggiorniamo lista locale
+      final index = userSeries.indexWhere((s) => s.name == seriesName);
+      if (index != -1) {
+        userSeries[index].isFavorite = isFavorite;
+      }
+    }
+  }
+
+  static Future<NextEpisodeInfo?> fetchNextEpisode(int seriesId) async {
+    // 1. Usiamo l'endpoint dei dettagli generali, NON un endpoint specifico che non esiste
+    final String url = "https://api.themoviedb.org/3/tv/$seriesId?api_key=$tmdbApiKey&language=en-US";
+    
+    try {
+      final response = await http.get(Uri.parse(url));
+      
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        
+        // 2. Cerchiamo il campo specifico 'next_episode_to_air'
+        final nextEpData = data['next_episode_to_air'];
+
+        // Se è null, la serie è finita o non ha date annunciate
+        if (nextEpData == null) return null;
+
+        final String? airDateStr = nextEpData['air_date'];
+        if (airDateStr == null) return null;
+
+        final airDate = DateTime.parse(airDateStr);
+        final now = DateTime.now();
+        
+        // Controllo opzionale: mostriamo solo se è da oggi in poi
+        // (DateTime(now.year...) serve per azzerare l'ora e confrontare solo i giorni)
+        if (airDate.isBefore(DateTime(now.year, now.month, now.day))) {
+           return null;
+        }
+
+        return NextEpisodeInfo(
+          name: nextEpData['name'] ?? "TBA",
+          episodeLabel: "S${nextEpData['season_number']} E${nextEpData['episode_number']}",
+          airDate: airDate,
+          stillUrl: nextEpData['still_path'] != null 
+              ? "https://image.tmdb.org/t/p/w500${nextEpData['still_path']}" 
+              : null,
+        );
+      }
+    } catch (e) {
+      debugPrint("Errore fetchNextEpisode per ID $seriesId: $e");
+    }
+    return null;
+  }
+  
 }

@@ -2,6 +2,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:seriestime/firebase_options.dart';
+import 'package:seriestime/my_series_screen.dart';
 import 'profile_screen.dart';
 import 'login_screen.dart';
 import 'models/appdata.dart';
@@ -59,10 +60,10 @@ class _MainWrapperState extends State<MainWrapper> {
   int _selectedIndex = 0;
 
   final List<Widget> _pages = [
-    const ProfileScreen(),
     const ExploreScreen(),
-    const Center(child: Text("Favourites")),
+    const MySeriesScreen(),
     const BingeModeScreen(),
+    const ProfileScreen(),
   ];
 
   @override
@@ -92,10 +93,10 @@ class _MainWrapperState extends State<MainWrapper> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _navItem(Icons.person_outline, "Profile", 0),
-          _navItem(Icons.search, "Explore", 1),
-          _navItem(Icons.star_border, "Favourites", 2),
-          _navItem(Icons.track_changes, "Binge Mode", 3),
+          _navItem(Icons.search, "Explore", 0),
+          _navItem(Icons.subscriptions, "My Series", 1),
+          _navItem(Icons.track_changes, "Binge Mode", 2),
+          _navItem(Icons.person_outline, "Profile", 3),
         ],
       ),
     );

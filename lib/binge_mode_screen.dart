@@ -42,6 +42,7 @@ class BingeModeScreen extends StatelessWidget {
             AppData.userSeries = seriesSnapshot.data!.docs.map((doc) {
               final sData = doc.data() as Map<String, dynamic>;
               return Series(
+                id: sData['id'] ?? 0,
                 name: doc.id,
                 imageUrl: sData['imageUrl'] ?? "",
                 percentage: (sData['percentage'] ?? 0).toDouble(),

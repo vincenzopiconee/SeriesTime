@@ -37,11 +37,14 @@ class ProfileScreen extends StatelessWidget {
               AppData.syncSeriesTotalHours(doc.id);
 
               return Series(
+                id: sData['id'] ?? 0,
                 name: doc.id,
                 imageUrl: sData['imageUrl'] ?? "",
                 percentage: (sData['percentage'] ?? 0).toDouble(),
                 totalHours: (sData['totalHours'] ?? 0).toDouble(),
                 episode: sData['episode'] ?? "",
+                seriesDuration: (sData['seriesDuration'] ?? 0).toDouble(),
+                isFavorite: sData['isFavorite'] ?? false,
               );
             }).toList();
 
@@ -73,12 +76,20 @@ class ProfileScreen extends StatelessWidget {
 
             return Scaffold(
               appBar: AppBar(
-                backgroundColor: Colors.transparent,
+                backgroundColor: AppData.primaryColor,
                 elevation: 0,
                 scrolledUnderElevation: 0,
+                title: Text(
+                "Profile",
+                style: TextStyle(
+                  fontSize: 24, 
+                  fontWeight: FontWeight.w600, 
+                  color: AppData.whiteColor
+                ),
+              ),
                 actions: [
                   IconButton(
-                    icon: const Icon(Icons.settings, color: Colors.black87),
+                    icon: const Icon(Icons.settings, color: AppData.whiteColor),
                     onPressed: () {
                       Navigator.push(
                         context,
@@ -93,12 +104,12 @@ class ProfileScreen extends StatelessWidget {
               body: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 25,
-                  vertical: 10,
+                  vertical: 20,
                 ),
                 child: Column(
                   children: [
                    CircleAvatar(
-                   radius: 45,
+                   radius: 43,
                    backgroundColor: AppData.avatarColor,
                    backgroundImage: currentUser.photoUrl != null 
                    ? NetworkImage(currentUser.photoUrl!) 
@@ -109,13 +120,12 @@ class ProfileScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      currentUser.name.toUpperCase(),
+                      currentUser.name,
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
                         color: AppData.primaryColor,
-                        letterSpacing: 1.2,
                       ),
                     ),
                     const SizedBox(height: 25),
@@ -124,6 +134,7 @@ class ProfileScreen extends StatelessWidget {
                       width: double.infinity,
                       padding: const EdgeInsets.all(15),
                       decoration: BoxDecoration(
+                        color: AppData.whiteColor,
                         border: Border.all(
                           color: AppData.accentColor,
                           width: 2,
@@ -133,10 +144,10 @@ class ProfileScreen extends StatelessWidget {
                       child: Column(
                         children: [
                           const Text(
-                            "STATISTICS",
+                            "Statistics Overview",
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
-                              fontSize: 16,
+                              fontSize: 20,
                             ),
                           ),
                           const SizedBox(height: 15),
@@ -152,10 +163,10 @@ class ProfileScreen extends StatelessWidget {
                     const Align(
                       alignment: Alignment.centerLeft,
                       child: Text(
-                        "MY BADGES",
+                        "My Badges",
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                          fontSize: 20,
                         ),
                       ),
                     ),
@@ -181,36 +192,39 @@ class ProfileScreen extends StatelessWidget {
                     const Align(
                       alignment: Alignment.centerLeft,
                       child: Text(
-                        "SERIES WATCH TIME",
+                        "Series Progress",
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                          fontSize: 20,
                         ),
                       ),
                     ),
                     const SizedBox(height: 15),
 
-                    displaySeries.isEmpty
-                        ? const Text("All series completed! Well done.")
-                        : GridView.builder(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: displaySeries.length,
-                            gridDelegate:
-                                const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 2,
-                                  crossAxisSpacing: 15,
-                                  mainAxisSpacing: 15,
-                                  childAspectRatio: 1.3,
-                                ),
-                            itemBuilder: (context, index) {
-                              return _buildSeriesCard(displaySeries[index]);
-                            },
-                          ),
+                    displaySeries.isEmpty 
+                    ? const Text("No series in progress.") 
+                    : GridView.builder(
+                        padding: EdgeInsets.zero,
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: displaySeries.length,
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              crossAxisSpacing: 15,
+                              mainAxisSpacing: 15,
+                              childAspectRatio: 1.3,
+                            ),
+                        itemBuilder: (context, index) {
+                          return _buildSeriesCard(displaySeries[index]);
+                        },
+                      ),
 
                     const SizedBox(height: 15),
 
-                    ElevatedButton(
+                    displaySeries.isEmpty 
+                    ? const SizedBox(height: 1)
+                    : ElevatedButton(
                       onPressed: () {
                         Navigator.push(
                           context,
@@ -235,7 +249,7 @@ class ProfileScreen extends StatelessWidget {
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ),
-                    const SizedBox(height: 120),
+                    const SizedBox(height: 80),
                   ],
                 ),
               ),
@@ -250,7 +264,6 @@ class ProfileScreen extends StatelessWidget {
     return Center(
       child: Text(
         "Keep watching to unlock badges!",
-        style: TextStyle(color: Colors.grey[600], fontStyle: FontStyle.italic),
       ),
     );
   }
@@ -260,22 +273,22 @@ class ProfileScreen extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 25),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withAlpha(13), blurRadius: 10),
-        ],
+        color: AppData.whiteColor,
+        border: Border.all(
+          color: AppData.accentColor,
+          width: 2,
+        ),
+        borderRadius: BorderRadius.circular(25),
       ),
       child: Column(
         children: [
           const Text(
-            "TOTAL WATCH TIME:",
+            "Total Watch Time",
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
               color: AppData.primaryColor,
-              letterSpacing: 1.2,
             ),
           ),
           const SizedBox(height: 10),
@@ -308,7 +321,7 @@ class ProfileScreen extends StatelessWidget {
           Expanded(
             flex: 5,
             child: Container(
-              margin: const EdgeInsets.all(8),
+              margin: const EdgeInsets.all(4),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(15),
                 border: Border.all(color: AppData.accentColor, width: 1.5),
@@ -419,21 +432,21 @@ class ProfileScreen extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withAlpha(13), blurRadius: 10),
-        ],
+        border: Border.all(
+          color: AppData.accentColor,
+          width: 2,
+        ),
+        borderRadius: BorderRadius.circular(25),
       ),
       child: Column(
         children: [
           const Text(
-            "WATCH TIME ACTIVITY\nTHROUGH TIME",
+            "Whatch Time Activity",
             textAlign: TextAlign.center,
             style: TextStyle(
               color: Color(0xFF8B261A),
               fontSize: 14,
               fontWeight: FontWeight.bold,
-              letterSpacing: 1.2,
             ),
           ),
           const SizedBox(height: 25),
@@ -470,7 +483,7 @@ class ProfileScreen extends StatelessWidget {
                         ),
                       ),
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 5),
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           crossAxisAlignment: CrossAxisAlignment.end,
@@ -522,10 +535,6 @@ class ProfileScreen extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          /*Text(
-            badge.iconLabel,
-            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
-          ),*/
           const SizedBox(height: 4),
           Image.asset(
             badge.imagePath,
@@ -535,8 +544,8 @@ class ProfileScreen extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            badge.title.toUpperCase(),
-            style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold),
+            badge.title,
+            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
             textAlign: TextAlign.center,
           ),
         ],

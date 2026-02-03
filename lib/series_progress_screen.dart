@@ -28,21 +28,22 @@ class SeriesProgressScreen extends StatelessWidget {
     child: Scaffold(
       backgroundColor: AppData.backgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: AppData.primaryColor,
         elevation: 0,
+        scrolledUnderElevation: 0,
         leading: IconButton(
           icon: const Icon(
             Icons.arrow_back_ios_new,
-            color: AppData.accentColor,
+            color: AppData.whiteColor,
           ),
           onPressed: () => Navigator.pop(context),
         ),
         centerTitle: true,
         title: const Text(
-          "MY PROGRESS",
+          "Series Progress",
           textAlign: TextAlign.center,
           style: TextStyle(
-            color: Colors.black,
+            color: AppData.whiteColor,
             fontWeight: FontWeight.bold,
             fontSize: 27,
           ),
@@ -54,11 +55,17 @@ class SeriesProgressScreen extends StatelessWidget {
         itemBuilder: (context, index) {
           final series = progressList[index];
 
-          double hoursSeen = series.totalHours ;
-          double totalSeriesDuration = series.percentage > 0 
-      ? hoursSeen / series.percentage 
-      : hoursSeen;
+          double hoursSeen = series.totalHours;
+
+          // --- CALCOLO NUOVO E CORRETTO ---
+          // Se seriesDuration è 0 (magari vecchi dati), usiamo hoursSeen per non rompere l'app
+          double totalSeriesDuration = series.seriesDuration > 0 
+              ? series.seriesDuration 
+              : (series.percentage > 0 ? hoursSeen / series.percentage : 0);
+
           double hoursLeft = totalSeriesDuration - hoursSeen;
+          if (hoursLeft < 0) hoursLeft = 0; // Evita numeri negativi
+          // --------------------------------
 
           String seenText = "${formatHours(hoursSeen)} seen";
           String leftText;
@@ -132,7 +139,7 @@ class SeriesProgressScreen extends StatelessWidget {
 
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.only(right: 12, top: 7, bottom: 10, left: 6),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [

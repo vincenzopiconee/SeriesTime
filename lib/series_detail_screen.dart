@@ -23,6 +23,7 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> with SingleTick
   TvShowDetails? _details;
   bool _isLoading = true;
   late TabController _tabController;
+  bool _isFavorite = false;
 
   final ScrollController _scrollController = ScrollController();
   bool _showTitle = false;
@@ -32,6 +33,7 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> with SingleTick
     super.initState();
     _tabController = TabController(length: 2, vsync: this); // 2 Tabs: Info e Episodes
     _fetchSeriesDetails();
+    _checkTrackingStatus();
     _scrollController.addListener(() {
       // Quando superiamo una certa soglia (es. 200 pixel), mostriamo il titolo
       if (_scrollController.offset > 180 && !_showTitle) {
@@ -40,6 +42,30 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> with SingleTick
         setState(() => _showTitle = false);
       }
     });
+  }
+
+  Future<void> _checkTrackingStatus() async {
+    // Ora controlliamo se è PREFERITA, non solo se esiste
+    bool status = await AppData.isSeriesFavorite(widget.seriesName);
+    if (mounted) {
+      setState(() {
+        _isFavorite = status;
+      });
+    }
+  }
+
+  Future<void> _handleFavoriteToggle() async {
+    if (_details == null) return;
+
+    // Aggiornamento ottimistico UI
+    setState(() {
+      _isFavorite = !_isFavorite;
+    });
+
+    // Chiamiamo la nuova funzione unica passando true o false
+    await AppData.setSeriesFavorite(widget.seriesName, widget.seriesId, _isFavorite);
+
+    
   }
 
   Future<void> _fetchSeriesDetails() async {
@@ -256,21 +282,29 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> with SingleTick
                     
                     // Bottone "Aggiungi ai Preferiti"
                     SizedBox(
-                      height: 36, // Bottone più compatto
+                      height: 36,
                       width: double.infinity,
                       child: ElevatedButton.icon(
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Coming soon: Add to Favorites!")));
-                        },
+                        onPressed: _handleFavoriteToggle, // Chiama la nostra funzione
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: accent,
-                          foregroundColor: Colors.white,
-                          padding: EdgeInsets.zero, // Rimuove padding extra
+                          // Se è preferito cambia colore (es. grigio o bianco), altrimenti usa Accent
+                          backgroundColor: _isFavorite ? AppData.accentColor : Colors.grey, 
+                          foregroundColor: AppData.whiteColor,
+                          padding: EdgeInsets.zero,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
                           elevation: 0,
                         ),
-                        icon: const Icon(Icons.star_border, size: 18),
-                        label: const Text("Add to Favorites", style: TextStyle(fontSize: 13)),
+                        // Cambia icona: Stella piena se preferito, Bordo se non lo è
+                        icon: Icon(
+                          _isFavorite ? Icons.star : Icons.star_border, 
+                          size: 18,
+                          color: _isFavorite ? Colors.amber : Colors.white, // Stella gialla se attivo
+                        ),
+                        // Cambia testo
+                        label: Text(
+                          _isFavorite ? "Favorited" : "Add to Favorites", 
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppData.whiteColor),
+                        ),
                       ),
                     ),
                   ],
@@ -542,6 +576,7 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> with SingleTick
       itemBuilder: (context, index) {
         return SeasonTile(
           seriesId: widget.seriesId,
+          seriesName: _details!.name,
           season: _details!.seasons[index],
         );
       },

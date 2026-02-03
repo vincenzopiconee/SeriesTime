@@ -145,8 +145,9 @@ class Episode {
   final String? stillUrl;
   final String overview;
   final String? airDate;
+  final int runtime;
 
-  Episode({required this.id, required this.name, required this.episodeNumber, this.stillUrl, required this.overview, this.airDate});
+  Episode({required this.id, required this.name, required this.episodeNumber, this.stillUrl, required this.overview, this.airDate, required this.runtime});
 
   factory Episode.fromJson(Map<String, dynamic> json) {
     return Episode(
@@ -156,6 +157,7 @@ class Episode {
       overview: json['overview'] ?? "",
       stillUrl: json['still_path'] != null ? 'https://image.tmdb.org/t/p/w300${json['still_path']}' : null,
       airDate: json['air_date'],
+      runtime: json['runtime'] ?? 0,
     );
   }
 }
