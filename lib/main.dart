@@ -2,9 +2,9 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:seriestime/firebase_options.dart';
+import 'package:seriestime/models/auth_gate.dart';
 import 'package:seriestime/my_series_screen.dart';
 import 'profile_screen.dart';
-import 'login_screen.dart';
 import 'models/appdata.dart';
 import 'binge_mode_screen.dart';
 import 'package:flutter/services.dart';
@@ -44,7 +44,7 @@ class MyApp extends StatelessWidget {
           child: child!,
         );
       },
-      home: const LoginScreen(),
+      home: const AuthGate(),
     );
   }
 }

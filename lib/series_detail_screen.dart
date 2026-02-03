@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:seriestime/models/season_tile.dart';
+import 'package:seriestime/season_tile.dart';
 import 'package:seriestime/models/tv_show_details.dart';
 import 'models/appdata.dart'; // Assicurati che il percorso sia corretto
 import 'all_cast_screen.dart';
