@@ -67,7 +67,7 @@ class ProfileScreen extends StatelessWidget {
             AppData.generateUserBadges(); 
 
             final List<Series> filteredSeries = AppData.userSeries
-                .where((s) => s.percentage < 1.0)
+                .where((s) => s.percentage < 1.0 && s.percentage > 0.0)
                 .toList();
             filteredSeries.sort((a, b) => b.percentage.compareTo(a.percentage));
             final List<Series> displaySeries = filteredSeries.take(6).toList();
