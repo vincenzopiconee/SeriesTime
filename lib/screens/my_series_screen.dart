@@ -480,7 +480,7 @@ class _WatchingEpisodeCardState extends State<WatchingEpisodeCard> {
                   ),
                   const Text(
                     "days", 
-                    style: TextStyle(fontSize: 11, color: Colors.grey),
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                 ],
               ),
@@ -488,9 +488,9 @@ class _WatchingEpisodeCardState extends State<WatchingEpisodeCard> {
           else if (!widget.isUpcoming)
             if (widget.onCheckTap == null) 
                 // Se la funzione è null (significa episodio futuro in Watching Tab), nascondi tutto o metti un'icona di attesa
-                const Padding(
-                  padding: EdgeInsets.only(right: 24), // Spazio vuoto o icona
-                  child: Icon(Icons.access_time, color: Colors.grey, size: 20),
+                Padding(
+                  padding: EdgeInsets.only(right: 17), // Spazio vuoto o icona
+                  child: Icon(Icons.schedule, color: Colors.grey[400], size: 36),
                 )
             else
               Padding(
