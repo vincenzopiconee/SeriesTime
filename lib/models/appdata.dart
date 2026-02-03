@@ -133,13 +133,23 @@ class AppData {
       await _populateFirstTime(firebaseUser, userDoc);
     } else {
       final data = snapshot.data()!; 
+
+      String? originalPhotoUrl = data['photoUrl'] ?? firebaseUser.photoURL;
+      String? highResPhotoUrl = originalPhotoUrl;
+
+      // Se l'URL proviene da Google, aumentiamo la risoluzione
+      if (originalPhotoUrl != null && originalPhotoUrl.contains('googleusercontent.com')) {
+        // Sostituisce la dimensione s96-c (o simili) con s400-c (400px)
+        highResPhotoUrl = originalPhotoUrl.replaceFirst('s96-c', 's400-c');
+      }
+      
       currentUser = User(
         name: data['name'] ?? firebaseUser.displayName ?? "User",
         totalHoursWatched: (data['totalHoursWatched'] ?? 0).toDouble(),
         maxConsecutiveHours: (data['maxConsecutiveHours'] ?? 0).toDouble(), // Fix cast
         weekendHours:( data['weekendHours'] ?? 0).toDouble(),
         notification: data['notification'] ?? true,
-        photoUrl: firebaseUser.photoURL,
+        photoUrl: highResPhotoUrl,
       );
 
       final seriesSnap = await userDoc.collection('series').get();

@@ -444,7 +444,7 @@ class _WatchingEpisodeCardState extends State<WatchingEpisodeCard> {
                     Text(
                       widget.episodeLabel, 
                       style: const TextStyle(
-                        fontSize: 12, 
+                        fontSize: 13, 
                         fontWeight: FontWeight.w600, 
                         color: AppData.accentColor
                       ),
@@ -455,7 +455,7 @@ class _WatchingEpisodeCardState extends State<WatchingEpisodeCard> {
                       const SizedBox(width: 6),
                       Text(
                         widget.extraInfo!, 
-                        style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.bold),
+                        style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold),
                       ),
                     ]
                   ],
@@ -480,7 +480,7 @@ class _WatchingEpisodeCardState extends State<WatchingEpisodeCard> {
                   ),
                   const Text(
                     "days", 
-                    style: TextStyle(fontSize: 10, color: Colors.grey),
+                    style: TextStyle(fontSize: 11, color: Colors.grey),
                   ),
                 ],
               ),
@@ -506,17 +506,16 @@ class _WatchingEpisodeCardState extends State<WatchingEpisodeCard> {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       // Se _isChecking è true (cliccato) -> Accent, altrimenti -> Grigio chiaro (come richiesto)
-                      color: _isChecking ? AppData.accentColor : Colors.grey[300], 
+                      color: _isChecking ? AppData.accentColor : Colors.grey[200], 
                       border: Border.all(
                         // Bordo cambia colore o rimane grigio? Qui li metto coerenti con lo sfondo
-                        color: _isChecking ? AppData.accentColor : Colors.grey, 
-                        width: 2
+                        color: _isChecking ? AppData.accentColor : Colors.grey.shade400, 
                       )
                     ),
                     child: Icon(
                       Icons.check, 
                       // Icona diventa bianca su sfondo colorato
-                      color: _isChecking ? Colors.white : Colors.grey, 
+                      color: _isChecking ? Colors.white : Colors.grey[500], 
                       size: 20
                     ),
                   ),

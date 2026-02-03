@@ -238,7 +238,7 @@ class _SeasonTileState extends State<SeasonTile> {
                     child: Icon(
                       Icons.check,
                       size: 18,
-                      color: isWatched ? Colors.white : Colors.grey[400],
+                      color: isWatched ? Colors.white : Colors.grey[500],
                     ),
                   ),
                 ),

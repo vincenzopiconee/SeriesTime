@@ -60,10 +60,10 @@ class _MainWrapperState extends State<MainWrapper> {
   int _selectedIndex = 0;
 
   final List<Widget> _pages = [
-    const ProfileScreen(),
     const ExploreScreen(),
     const MySeriesScreen(),
     const BingeModeScreen(),
+    const ProfileScreen(),
   ];
 
   @override
@@ -93,10 +93,10 @@ class _MainWrapperState extends State<MainWrapper> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _navItem(Icons.person_outline, "Profile", 0),
-          _navItem(Icons.search, "Explore", 1),
-          _navItem(Icons.subscriptions, "My Series", 2),
-          _navItem(Icons.track_changes, "Binge Mode", 3),
+          _navItem(Icons.search, "Explore", 0),
+          _navItem(Icons.subscriptions, "My Series", 1),
+          _navItem(Icons.track_changes, "Binge Mode", 2),
+          _navItem(Icons.person_outline, "Profile", 3),
         ],
       ),
     );
