@@ -6,8 +6,10 @@ class Series {
   double totalHours;
   final String episode;
   final String lastEpisodeTitle;
+  final String? nextEpisodeAirDate;
   final double seriesDuration; 
   bool isFavorite;
+  final bool completed;
   final List<Map<String, dynamic>> watchedEpisodes;
 
   Series({
@@ -18,8 +20,10 @@ class Series {
     required this.totalHours,
     required this.episode,
     this.lastEpisodeTitle = "",
+    this.nextEpisodeAirDate,
     this.seriesDuration = 0.0, 
     this.isFavorite = false,
+    this.completed = false,
     this.watchedEpisodes = const [],
   });
 

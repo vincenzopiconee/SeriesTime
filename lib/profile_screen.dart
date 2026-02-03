@@ -194,7 +194,7 @@ class ProfileScreen extends StatelessWidget {
                     const SizedBox(height: 15),
 
                     displaySeries.isEmpty
-                        ? const Text("All series completed! Well done.")
+                        ? const Text("No series in progress.")
                         : GridView.builder(
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
@@ -211,7 +211,7 @@ class ProfileScreen extends StatelessWidget {
                             },
                           ),
 
-                    const SizedBox(height: 15),
+                    //const SizedBox(height: 15),
 
                     ElevatedButton(
                       onPressed: () {
@@ -238,7 +238,7 @@ class ProfileScreen extends StatelessWidget {
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ),
-                    const SizedBox(height: 120),
+                    const SizedBox(height: 100),
                   ],
                 ),
               ),

@@ -154,8 +154,10 @@ class AppData {
           totalHours: (doc['totalHours'] ?? 0).toDouble(),
           episode: doc['episode'] ?? "",
           lastEpisodeTitle: sData['lastEpisodeTitle'] ?? "",
+          nextEpisodeAirDate: sData['nextEpisodeAirDate'],
           seriesDuration: (doc['seriesDuration'] ?? 0).toDouble(),
           isFavorite: doc['isFavorite'] ?? false, 
+          completed: sData['completed'] ?? false,
         ));
       }
     }
@@ -265,8 +267,7 @@ class AppData {
     return totalMinutes / 60.0;
   }
 
-  // --- FUNZIONE AGGIORNATA: Calcola totali e trova l'ultimo episodio visto ---
-  // --- FUNZIONE CORRETTA: Usa set con merge per evitare crash ---
+  // --- FUNZIONE AGGIORNATA: Calcola totali, PROSSIMO episodio e STATO COMPLETATO ---
   static Future<void> syncSeriesTotalHours(String seriesName) async {
     final user = auth.FirebaseAuth.instance.currentUser;
     if (user == null) return;
@@ -274,13 +275,25 @@ class AppData {
     final seriesRef = _db.collection('users').doc(user.uid).collection('series').doc(seriesName);
 
     double watchedMinutes = 0;
-    String lastWatchedLabel = "S1 E1"; // Default
-    String lastWatchedTitle = "";
+    
+    // Variabili per l'ultimo visto (Local DB)
     int maxSeason = -1;
     int maxEpisode = -1;
+    
+    // Variabili per il prossimo da vedere (Output finale)
+    String displayLabel = "S1 E1"; 
+    String displayTitle = ""; 
+    String? displayAirDate;
+    
+    bool isSeriesCompleted = false; 
 
-    // Recuperiamo tutte le stagioni salvate nel DB
-    // Nota: Se la serie non esiste, questa collezione sarà vuota e il loop non partirà (nessun errore)
+    // 1. Recuperiamo ID Serie e Statistiche Viste
+    final seriesDoc = await seriesRef.get();
+    int seriesId = 0;
+    if (seriesDoc.exists) {
+      seriesId = seriesDoc.data()?['id'] ?? 0;
+    }
+
     final seasonsSnap = await seriesRef.collection('seasons').get();
     
     for (var seasonDoc in seasonsSnap.docs) {
@@ -295,38 +308,103 @@ class AppData {
 
         int sNum = data['season_number'] ?? int.tryParse(seasonDoc.id.split(' ').last) ?? 0;
         int eNum = data['episode_number'] ?? 0;
-        String eTitle = data['episode_title'] ?? "";
 
         if (sNum > maxSeason) {
           maxSeason = sNum;
           maxEpisode = eNum;
-          lastWatchedTitle = eTitle;
         } else if (sNum == maxSeason && eNum > maxEpisode) {
           maxEpisode = eNum;
-          lastWatchedTitle = eTitle;
         }
       }
     }
 
-    if (maxSeason > 0 && maxEpisode > 0) {
-      lastWatchedLabel = "S$maxSeason E$maxEpisode";
+    // 2. LOGICA PROSSIMO EPISODIO: Interroghiamo TMDB
+    if (seriesId != 0) {
+      try {
+        int targetSeason = maxSeason < 1 ? 1 : maxSeason;
+        int lastWatchedEpInSeason = maxEpisode < 1 ? 0 : maxEpisode;
+
+        // Chiamata API per ottenere i dettagli della stagione corrente (o target)
+        final urlSeason = "https://api.themoviedb.org/3/tv/$seriesId/season/$targetSeason?api_key=$tmdbApiKey&language=en-US";
+        final resSeason = await http.get(Uri.parse(urlSeason));
+
+        if (resSeason.statusCode == 200) {
+          final sData = json.decode(resSeason.body);
+          final List episodes = sData['episodes'] ?? [];
+
+          // Cerchiamo l'episodio successivo nella lista
+          var nextEp = episodes.firstWhere(
+            (e) => e['episode_number'] == lastWatchedEpInSeason + 1, 
+            orElse: () => null
+          );
+
+          if (nextEp != null) {
+            // Caso A: C'è un episodio successivo in questa stagione
+            displayLabel = "S${nextEp['season_number']} E${nextEp['episode_number']}";
+            displayTitle = nextEp['name'] ?? "";
+            displayAirDate = nextEp['air_date'];
+            isSeriesCompleted = false; // C'è ancora da vedere
+          } else {
+            // Caso B: Stagione finita? Proviamo la stagione successiva, Episodio 1
+            final urlNextSeason = "https://api.themoviedb.org/3/tv/$seriesId/season/${targetSeason + 1}?api_key=$tmdbApiKey&language=en-US";
+            final resNextSeason = await http.get(Uri.parse(urlNextSeason));
+            
+            if (resNextSeason.statusCode == 200) {
+              final nextSData = json.decode(resNextSeason.body);
+              final List nextEpisodes = nextSData['episodes'] ?? [];
+              if (nextEpisodes.isNotEmpty) {
+                 final firstEp = nextEpisodes[0]; // Episodio 1
+                 displayLabel = "S${firstEp['season_number']} E${firstEp['episode_number']}";
+                 displayTitle = firstEp['name'] ?? "";
+                 displayAirDate = firstEp['air_date'];
+                 isSeriesCompleted = false; // C'è una nuova stagione
+              } else {
+                 // Stagione successiva esiste ma è vuota (raro, ma possibile) -> Completata
+                 if (maxSeason > 0) isSeriesCompleted = true;
+              }
+            } else {
+              // Caso C: Serie finita (Nessuna stagione successiva trovata API 404)
+              if (maxSeason > 0) {
+                 // Manteniamo l'etichetta dell'ultimo visto perché non c'è un "prossimo"
+                 displayLabel = "S$maxSeason E$maxEpisode";
+                 
+                 // --- SETTIAMO A TRUE ---
+                 isSeriesCompleted = true; 
+                 // -----------------------
+              }
+            }
+          }
+        }
+      } catch (e) {
+        debugPrint("Errore calcolo prossimo episodio: $e");
+        if (maxSeason > 0) displayLabel = "S$maxSeason E$maxEpisode";
+      }
+    } else {
+       if (maxSeason > 0) displayLabel = "S$maxSeason E$maxEpisode";
     }
 
     double watchedHours = watchedMinutes / 60.0;
     double totalSeriesHours = await getSeriesTotalRuntimeFromApi(seriesName);
 
     double newPercentage = totalSeriesHours > 0 ? watchedHours / totalSeriesHours : 0;
+    
+    // Logica extra di sicurezza: se la percentuale è > 0.99, probabilmente è finita anche se l'API ha fallito
+    if (newPercentage >= 0.99) {
+      newPercentage = 1.0;
+      // Opzionale: puoi forzare isSeriesCompleted = true qui se ti fidi più della percentuale
+    }
     if (newPercentage > 1.0) newPercentage = 1.0; 
 
-    // --- MODIFICA QUI: Usa set + merge invece di update ---
+    // Aggiorniamo il documento principale della serie
     await seriesRef.set({
       'totalHours': watchedHours,
       'percentage': newPercentage,
-      'episode': lastWatchedLabel, 
+      'episode': displayLabel,
       'seriesDuration': totalSeriesHours,
-      'lastEpisodeTitle': lastWatchedTitle,
-    }, SetOptions(merge: true)); 
-    // ------------------------------------------------------
+      'lastEpisodeTitle': displayTitle,
+      'completed': isSeriesCompleted,
+      'nextEpisodeAirDate': displayAirDate,
+    }, SetOptions(merge: true));
     
     await calculatePureObsession(seriesName);
     await calculateWeekendWarrior();
@@ -578,7 +656,8 @@ class AppData {
         'episode': "S1 E1",
         'percentage': 0.0,
         'totalHours': 0.0,
-        'isFavorite': false, // <--- Ecco la logica richiesta: false perché aggiunta tramite episodio
+        'isFavorite': false, 
+        'completed': false,
       }, SetOptions(merge: true));
 
     } else {
@@ -659,7 +738,8 @@ class AppData {
           'episode': "S1 E1",
           'percentage': 0.0,
           'totalHours': 0.0,
-          'isFavorite': isFavorite, // Impostiamo il valore richiesto (solitamente true qui)
+          'isFavorite': isFavorite, 
+          'completed': false,
         }, SetOptions(merge: true));
 
         // Aggiorniamo lista locale

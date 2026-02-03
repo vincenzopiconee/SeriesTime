@@ -28,21 +28,22 @@ class SeriesProgressScreen extends StatelessWidget {
     child: Scaffold(
       backgroundColor: AppData.backgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: AppData.primaryColor,
         elevation: 0,
+        scrolledUnderElevation: 0,
         leading: IconButton(
           icon: const Icon(
             Icons.arrow_back_ios_new,
-            color: AppData.accentColor,
+            color: AppData.whiteColor,
           ),
           onPressed: () => Navigator.pop(context),
         ),
         centerTitle: true,
         title: const Text(
-          "MY PROGRESS",
+          "Series Progress",
           textAlign: TextAlign.center,
           style: TextStyle(
-            color: Colors.black,
+            color: AppData.whiteColor,
             fontWeight: FontWeight.bold,
             fontSize: 27,
           ),
@@ -138,7 +139,7 @@ class SeriesProgressScreen extends StatelessWidget {
 
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.only(right: 12, top: 7, bottom: 10, left: 6),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [

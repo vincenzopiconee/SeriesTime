@@ -119,8 +119,23 @@ class _SeasonTileState extends State<SeasonTile> {
 
   Widget _buildEpisodeCard(Episode episode) {
     String dateLabel = "";
-    if (episode.airDate != null && episode.airDate!.length >= 4) {
+    bool isFuture = false;
+
+    if (episode.airDate != null && episode.airDate!.isNotEmpty) {
       dateLabel = " • ${episode.airDate}";
+      try {
+        DateTime airDate = DateTime.parse(episode.airDate!);
+        DateTime now = DateTime.now();
+        // Normalizziamo 'oggi' a mezzanotte per confrontare solo i giorni
+        DateTime today = DateTime(now.year, now.month, now.day);
+        
+        // Se la data è DOPO oggi, è nel futuro.
+        if (airDate.isAfter(today)) {
+          isFuture = true;
+        }
+      } catch (e) {
+        debugPrint("Date parsing error: $e");
+      }
     }
 
     // Avvolgiamo tutto nello StreamBuilder per ascoltare Firestore
@@ -189,36 +204,44 @@ class _SeasonTileState extends State<SeasonTile> {
               
               const SizedBox(width: 8),
 
-              // 3. Checkbox Logica collegata al DB
-              InkWell(
-                onTap: () {                  
-                  AppData.toggleEpisodeWatched(
-                    seriesName: widget.seriesName,
-                    seriesId: widget.seriesId,
-                    seasonNum: widget.season.seasonNumber,
-                    episodeNum: episode.episodeNumber,
-                    episodeTitle: episode.name,
-                    isWatched: !isWatched, // Passiamo il valore opposto a quello attuale
-                  );
-                },
-                borderRadius: BorderRadius.circular(30),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: isWatched ? AppData.accentColor : Colors.grey[200],
-                    border: Border.all(
-                      color: isWatched ? AppData.accentColor : Colors.grey.shade400,
-                    )
-                  ),
-                  child: Icon(
-                    Icons.check,
-                    size: 18,
-                    color: isWatched ? Colors.white : Colors.grey[400],
+              // 3. LOGICA TOGGLE
+              if (isFuture) 
+                // CASO A: EPISODIO FUTURO -> Nessun bottone o icona lucchetto/orologio
+                const Padding(
+                  padding: EdgeInsets.only(right: 8.0),
+                  child: Icon(Icons.access_time, size: 20, color: Colors.grey),
+                )
+              else
+              // CASO B: EPISODIO USCITO -> Bottone funzionante
+                InkWell(
+                  onTap: () {                  
+                    AppData.toggleEpisodeWatched(
+                      seriesName: widget.seriesName,
+                      seriesId: widget.seriesId,
+                      seasonNum: widget.season.seasonNumber,
+                      episodeNum: episode.episodeNumber,
+                      episodeTitle: episode.name,
+                      isWatched: !isWatched, // Passiamo il valore opposto a quello attuale
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(30),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: isWatched ? AppData.accentColor : Colors.grey[200],
+                      border: Border.all(
+                        color: isWatched ? AppData.accentColor : Colors.grey.shade400,
+                      )
+                    ),
+                    child: Icon(
+                      Icons.check,
+                      size: 18,
+                      color: isWatched ? Colors.white : Colors.grey[400],
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
         );

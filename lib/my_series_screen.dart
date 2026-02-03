@@ -1,8 +1,9 @@
-import 'package:cloud_firestore/cloud_firestore.dart'; // Import necessario
+import 'package:cloud_firestore/cloud_firestore.dart'; 
 import 'package:flutter/material.dart';
 import 'package:seriestime/models/next_episode_info.dart';
 import 'package:seriestime/models/series.dart';
 import 'models/appdata.dart';
+import 'series_detail_screen.dart'; 
 
 class MySeriesScreen extends StatefulWidget {
   const MySeriesScreen({super.key});
@@ -12,22 +13,18 @@ class MySeriesScreen extends StatefulWidget {
 }
 
 class _MySeriesScreenState extends State<MySeriesScreen> {
-  // Future per caricare i dati "Upcoming"
   late Future<Map<String, NextEpisodeInfo>> _upcomingEpisodesFuture;
 
   @override
   void initState() {
     super.initState();
-    // Inizializziamo il future, ma verrà ricaricato quando lo stream aggiorna i dati
     _upcomingEpisodesFuture = _loadUpcomingEpisodes();
   }
 
-  // Funzione che itera su tutte le serie utente e cerca i prossimi episodi
   Future<Map<String, NextEpisodeInfo>> _loadUpcomingEpisodes() async {
     final Map<String, NextEpisodeInfo> upcomingMap = {};
     final List<Future<void>> tasks = [];
 
-    // Usiamo una copia locale per evitare errori di concorrenza
     final List<Series> currentList = AppData.userSeries.where((s) {
       bool isWatching = s.percentage > 0.0 && s.percentage < 1.0;
       return s.isFavorite || isWatching;
@@ -46,12 +43,10 @@ class _MySeriesScreenState extends State<MySeriesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // StreamBuilder per aggiornamento Real-Time
     return StreamBuilder<QuerySnapshot>(
       stream: AppData.seriesStream(),
       builder: (context, snapshot) {
         
-        // 1. Gestione Caricamento Iniziale
         if (!snapshot.hasData) {
           return const Scaffold(
             backgroundColor: AppData.backgroundColor,
@@ -59,7 +54,6 @@ class _MySeriesScreenState extends State<MySeriesScreen> {
           );
         }
 
-        // 2. AGGIORNAMENTO DATI: Popoliamo la lista statica con i dati freschi dal DB
         AppData.userSeries = snapshot.data!.docs.map((doc) {
           final sData = doc.data() as Map<String, dynamic>;
           
@@ -73,13 +67,14 @@ class _MySeriesScreenState extends State<MySeriesScreen> {
             lastEpisodeTitle: sData['lastEpisodeTitle'] ?? "",
             seriesDuration: (sData['seriesDuration'] ?? 0).toDouble(),
             isFavorite: sData['isFavorite'] ?? false, 
+            completed: sData['completed'] ?? false,
+            nextEpisodeAirDate: sData['nextEpisodeAirDate'],
           );
         }).toList();
 
-        // 3. Filtriamo le liste per le Tab
         final favoriteSeries = AppData.userSeries.where((s) => s.isFavorite).toList();
         final watchingSeries = AppData.userSeries
-            .where((s) => s.percentage > 0.0 && s.percentage < 1.0) 
+            .where((s) => s.percentage > 0.0 && s.percentage < 1.0 && !s.completed) 
             .toList();
         
         return DefaultTabController(
@@ -127,7 +122,6 @@ class _MySeriesScreenState extends State<MySeriesScreen> {
     );
   }
 
-  // --- BUILDER TAB PREFERITI (MODIFICATO: GRID VIEW) ---
   Widget _buildFavoritesTab(List<Series> favoriteSeries) {
     if (favoriteSeries.isEmpty) {
       return _buildEmptyState("No favorites yet.\nAdd series from Explore!");
@@ -136,8 +130,8 @@ class _MySeriesScreenState extends State<MySeriesScreen> {
       padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 100),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3, 
-        childAspectRatio: 0.68, // <--- MODIFICA QUI (Era 0.55). 0.68 è ideale per soli poster.
-        crossAxisSpacing: 12,   // Leggermente aumentato per spaziare meglio
+        childAspectRatio: 0.68, 
+        crossAxisSpacing: 12,  
         mainAxisSpacing: 12,
       ),
       itemCount: favoriteSeries.length,
@@ -157,13 +151,51 @@ class _MySeriesScreenState extends State<MySeriesScreen> {
       separatorBuilder: (ctx, i) => const SizedBox(height: 12),
       itemBuilder: (ctx, index) {
         final series = watchingSeries[index];
+        
+        // --- LOGICA PARSING EPISODIO ---
+        int sNum = 1;
+        int eNum = 1;
+        try {
+          final parts = series.episode.split(' '); 
+          if (parts.length >= 2) {
+            String sStr = parts[0].replaceAll(RegExp(r'[^0-9]'), ''); 
+            String eStr = parts[1].replaceAll(RegExp(r'[^0-9]'), '');
+            sNum = int.tryParse(sStr) ?? 1;
+            eNum = int.tryParse(eStr) ?? 1;
+          }
+        } catch (e) {
+          debugPrint("Errore parsing episodio: $e");
+        }
+
+        bool isFuture = false;
+        if (series.nextEpisodeAirDate != null) {
+          try {
+            DateTime airDate = DateTime.parse(series.nextEpisodeAirDate!);
+            DateTime now = DateTime.now();
+            DateTime today = DateTime(now.year, now.month, now.day);
+            if (airDate.isAfter(today)) {
+              isFuture = true;
+            }
+          } catch(e) { /* ignore */ }
+        }
+
         return WatchingEpisodeCard(
+          key: ValueKey(series.episode), // Importante: forza il rebuild se cambia episodio
           imageUrl: series.imageUrl,
-          // SCAMBIAMO: Titolo episodio diventa il principale, Nome serie il secondario
           mainText: series.lastEpisodeTitle.isNotEmpty ? series.lastEpisodeTitle : series.name,
           subText: series.name, 
           episodeLabel: series.episode, 
           isUpcoming: false,
+          onCheckTap: isFuture ? null : () { // Se futuro -> null, altrimenti funzione
+            AppData.toggleEpisodeWatched(
+              seriesName: series.name,
+              seriesId: series.id,
+              seasonNum: sNum,
+              episodeNum: eNum,
+              episodeTitle: series.lastEpisodeTitle, 
+              isWatched: true, 
+            );
+          },
         );
       },
     );
@@ -226,11 +258,9 @@ class _MySeriesScreenState extends State<MySeriesScreen> {
 
               return WatchingEpisodeCard(
                 imageUrl: imageUrl,
-                // SCAMBIAMO: Titolo episodio principale
                 mainText: info.name,
                 subText: seriesName,
                 episodeLabel: info.episodeLabel,
-                // Passiamo la data extra
                 extraInfo: dateFormatted, 
                 isUpcoming: true,
                 daysLeft: info.daysLeft,
@@ -257,32 +287,42 @@ class _MySeriesScreenState extends State<MySeriesScreen> {
 // --- WIDGETS UI ---
 // -----------------------------------------------------------------------------
 
-// MODIFICATA: Card Verticale per Favorites
-// MODIFICA: Card SOLO POSTER per Favorites
 class SeriesListCard extends StatelessWidget {
   final Series series;
   const SeriesListCard({super.key, required this.series});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.black, // Sfondo scuro nel caso l'immagine non carichi
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppData.accentColor, width: 2), // Bordo Accent
-        boxShadow: [
-           BoxShadow(color: Colors.black.withAlpha(20), blurRadius: 6, offset: const Offset(0, 3))
-        ]
-      ),
-      // ClipRRect ora arrotonda TUTTI gli angoli, non solo quelli in alto
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(10), // Radius interno (12 - 2 di bordo)
-        child: Image.network(
-          series.imageUrl,
-          fit: BoxFit.cover, // L'immagine riempie tutto lo spazio
-          errorBuilder: (c, e, s) => Container(
-            color: Colors.grey[800], 
-            child: const Center(child: Icon(Icons.movie, color: Colors.white54))
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => SeriesDetailScreen(
+              seriesId: series.id,
+              seriesName: series.name,
+            ),
+          ),
+        );
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.black, 
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppData.accentColor, width: 2), 
+          boxShadow: [
+             BoxShadow(color: Colors.black.withAlpha(20), blurRadius: 6, offset: const Offset(0, 3))
+          ]
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(10), 
+          child: Image.network(
+            series.imageUrl,
+            fit: BoxFit.cover, 
+            errorBuilder: (c, e, s) => Container(
+              color: Colors.grey[800], 
+              child: const Center(child: Icon(Icons.movie, color: Colors.white54))
+            ),
           ),
         ),
       ),
@@ -290,26 +330,62 @@ class SeriesListCard extends StatelessWidget {
   }
 }
 
-// MODIFICATA: Card Orizzontale per Watching e Upcoming
-class WatchingEpisodeCard extends StatelessWidget {
+// --- MODIFICA: Ora è STATEFUL per gestire l'animazione del check ---
+class WatchingEpisodeCard extends StatefulWidget {
   final String imageUrl;
-  final String mainText; // Ora generico (Episode Title)
-  final String subText;  // Ora generico (Series Name)
+  final String mainText; 
+  final String subText;  
   final String episodeLabel;
   final String? extraInfo;
   final bool isUpcoming;
   final int? daysLeft;
+  final VoidCallback? onCheckTap; 
 
   const WatchingEpisodeCard({
     super.key,
     required this.imageUrl,
-    required this.mainText, // Updated param name
-    required this.subText,  // Updated param name
+    required this.mainText, 
+    required this.subText,  
     required this.episodeLabel,
     this.extraInfo,
     this.isUpcoming = false,
     this.daysLeft,
+    this.onCheckTap,
   });
+
+  @override
+  State<WatchingEpisodeCard> createState() => _WatchingEpisodeCardState();
+}
+
+class _WatchingEpisodeCardState extends State<WatchingEpisodeCard> {
+  // Stato locale per l'animazione
+  bool _isChecking = false;
+
+  void _handleCheck() async {
+    // 1. Evita doppi click
+    if (_isChecking) return;
+
+    // 2. Avvia animazione (cambia colore)
+    setState(() {
+      _isChecking = true;
+    });
+
+    // 3. Esegui la logica del database (passata dal parent)
+    if (widget.onCheckTap != null) {
+      widget.onCheckTap!();
+    }
+    
+    // 4. Aspetta 1 secondo
+    await Future.delayed(const Duration(seconds: 1));
+    
+    // 5. Reset opzionale se il widget viene riutilizzato, 
+    // anche se solitamente la lista si ricostruisce con nuovi dati.
+    if (mounted) {
+      setState(() {
+        _isChecking = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -325,11 +401,10 @@ class WatchingEpisodeCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // 1. Immagine
           ClipRRect(
             borderRadius: const BorderRadius.horizontal(left: Radius.circular(10)),
             child: Image.network(
-              imageUrl,
+              widget.imageUrl,
               width: 70, 
               height: double.infinity,
               fit: BoxFit.cover,
@@ -338,55 +413,48 @@ class WatchingEpisodeCard extends StatelessWidget {
           ),
           const SizedBox(width: 12),
 
-          // 2. Info Testuali RIORGANIZZATE
           Expanded(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // TITOLO EPISODIO (Principale)
                 Text(
-                  mainText, 
+                  widget.mainText, 
                   maxLines: 2, 
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     fontSize: 15, 
                     fontWeight: FontWeight.bold, 
-                    color: AppData.primaryColor, // Colore Primario
+                    color: AppData.primaryColor, 
                   ),
                 ),
-                
-                // NOME SERIE (Secondario)
                 Text(
-                  subText,
+                  widget.subText,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     fontSize: 13, 
                     fontWeight: FontWeight.w500, 
-                    color: Colors.black87 // Nero/Grigio scuro
+                    color: Colors.black87 
                   ),
                 ),
-                
                 const SizedBox(height: 4),
-                
-                // RIGA INFO (Stagione/Episodio + Data)
                 Row(
                   children: [
                     Text(
-                      episodeLabel, // "S1 E5"
+                      widget.episodeLabel, 
                       style: const TextStyle(
                         fontSize: 12, 
                         fontWeight: FontWeight.w600, 
                         color: AppData.accentColor
                       ),
                     ),
-                    if (extraInfo != null) ...[
+                    if (widget.extraInfo != null) ...[
                       const SizedBox(width: 6),
                       const Icon(Icons.circle, size: 4, color: Colors.grey),
                       const SizedBox(width: 6),
                       Text(
-                        extraInfo!, // Data (es. 12/10/2025)
+                        widget.extraInfo!, 
                         style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.bold),
                       ),
                     ]
@@ -396,15 +464,14 @@ class WatchingEpisodeCard extends StatelessWidget {
             ),
           ),
 
-          // 3. Conto alla rovescia o Icona Play
-          if (isUpcoming && daysLeft != null)
+          if (widget.isUpcoming && widget.daysLeft != null)
             Padding(
               padding: const EdgeInsets.only(right: 16, left: 8),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    "$daysLeft",
+                    "${widget.daysLeft}",
                     style: const TextStyle(
                       fontSize: 20, 
                       fontWeight: FontWeight.bold, 
@@ -412,21 +479,49 @@ class WatchingEpisodeCard extends StatelessWidget {
                     ),
                   ),
                   const Text(
-                    "days", // Semplificato per spazio
+                    "days", 
                     style: TextStyle(fontSize: 10, color: Colors.grey),
                   ),
                 ],
               ),
             )
-          else if (!isUpcoming)
-            Padding(
-              padding: const EdgeInsets.only(right: 16),
-              child: Icon(
-                Icons.play_circle_fill, 
-                color: AppData.accentColor.withAlpha(200),
-                size: 32
-              ),
-            )
+          else if (!widget.isUpcoming)
+            if (widget.onCheckTap == null) 
+                // Se la funzione è null (significa episodio futuro in Watching Tab), nascondi tutto o metti un'icona di attesa
+                const Padding(
+                  padding: EdgeInsets.only(right: 24), // Spazio vuoto o icona
+                  child: Icon(Icons.access_time, color: Colors.grey, size: 20),
+                )
+            else
+              Padding(
+                padding: const EdgeInsets.only(right: 16),
+                child: InkWell(
+                  onTap: _handleCheck, // Chiama la nostra funzione locale
+                  borderRadius: BorderRadius.circular(30),
+                  // Usiamo AnimatedContainer per un cambio colore fluido
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    width: 36, 
+                    height: 36,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      // Se _isChecking è true (cliccato) -> Accent, altrimenti -> Grigio chiaro (come richiesto)
+                      color: _isChecking ? AppData.accentColor : Colors.grey[300], 
+                      border: Border.all(
+                        // Bordo cambia colore o rimane grigio? Qui li metto coerenti con lo sfondo
+                        color: _isChecking ? AppData.accentColor : Colors.grey, 
+                        width: 2
+                      )
+                    ),
+                    child: Icon(
+                      Icons.check, 
+                      // Icona diventa bianca su sfondo colorato
+                      color: _isChecking ? Colors.white : Colors.grey, 
+                      size: 20
+                    ),
+                  ),
+                ),
+              )
         ],
       ),
     );
