@@ -6,12 +6,11 @@ import '../models/appdata.dart';
 import '../models/series.dart';
 import '../models/userbadge.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart' as auth; 
+import 'package:firebase_auth/firebase_auth.dart' as auth;
 import '../models/user.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
-
 
   @override
   Widget build(BuildContext context) {
@@ -55,9 +54,13 @@ class ProfileScreen extends StatelessWidget {
               maxConsecutiveHours: (userData['maxConsecutiveHours'] ?? 0)
                   .toDouble(),
               weekendHours: (userData['weekendHours'] ?? 0).toDouble(),
+              nightOwlHours: (userData['nightOwlHours'] ?? 0).toDouble(),
+              uniqueGenresCount: (userData['uniqueGenresCount'] ?? 0).toInt(),
               seriesStreak: userData['seriesStreak'] ?? 0,
               notification: userData['notification'] ?? true,
-              photoUrl: userData['photoUrl'] ?? auth.FirebaseAuth.instance.currentUser?.photoURL,
+              photoUrl:
+                  userData['photoUrl'] ??
+                  auth.FirebaseAuth.instance.currentUser?.photoURL,
             );
 
             final timeData = AppData.getTotalWatchTimeSplit();
@@ -65,7 +68,7 @@ class ProfileScreen extends StatelessWidget {
             final int remainingHours = timeData["hours"]!;
             final int minutes = timeData["minutes"]!;
 
-            AppData.generateUserBadges(); 
+            AppData.generateUserBadges();
 
             final List<Series> filteredSeries = AppData.userSeries
                 .where((s) => s.percentage < 1.0 && s.percentage > 0.0)
@@ -81,13 +84,13 @@ class ProfileScreen extends StatelessWidget {
                 elevation: 0,
                 scrolledUnderElevation: 0,
                 title: Text(
-                "Profile",
-                style: TextStyle(
-                  fontSize: 24, 
-                  fontWeight: FontWeight.w600, 
-                  color: AppData.whiteColor
+                  "Profile",
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w600,
+                    color: AppData.whiteColor,
+                  ),
                 ),
-              ),
                 actions: [
                   IconButton(
                     icon: const Icon(Icons.settings, color: AppData.whiteColor),
@@ -109,7 +112,7 @@ class ProfileScreen extends StatelessWidget {
                 ),
                 child: Column(
                   children: [
-                   CircleAvatar(
+                    CircleAvatar(
                       radius: 45,
                       backgroundColor: AppData.avatarColor,
                       backgroundImage: currentUser.photoUrl != null
@@ -206,54 +209,55 @@ class ProfileScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 15),
 
-                    displaySeries.isEmpty 
-                    ? const Text("No series in progress.") 
-                    : GridView.builder(
-                        padding: EdgeInsets.zero,
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: displaySeries.length,
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              crossAxisSpacing: 15,
-                              mainAxisSpacing: 15,
-                              childAspectRatio: 1.3,
-                            ),
-                        itemBuilder: (context, index) {
-                          return _buildSeriesCard(displaySeries[index]);
-                        },
-                      ),
+                    displaySeries.isEmpty
+                        ? const Text("No series in progress.")
+                        : GridView.builder(
+                            padding: EdgeInsets.zero,
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: displaySeries.length,
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 2,
+                                  crossAxisSpacing: 15,
+                                  mainAxisSpacing: 15,
+                                  childAspectRatio: 1.3,
+                                ),
+                            itemBuilder: (context, index) {
+                              return _buildSeriesCard(displaySeries[index]);
+                            },
+                          ),
 
                     const SizedBox(height: 15),
 
-                    displaySeries.isEmpty 
-                    ? const SizedBox(height: 1)
-                    : ElevatedButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const SeriesProgressScreen(),
+                    displaySeries.isEmpty
+                        ? const SizedBox(height: 1)
+                        : ElevatedButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const SeriesProgressScreen(),
+                                ),
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppData.accentColor,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 30,
+                                vertical: 12,
+                              ),
+                            ),
+                            child: const Text(
+                              "View More",
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
                           ),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppData.accentColor,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 30,
-                          vertical: 12,
-                        ),
-                      ),
-                      child: const Text(
-                        "View More",
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ),
                     const SizedBox(height: 80),
                   ],
                 ),
@@ -266,11 +270,7 @@ class ProfileScreen extends StatelessWidget {
   }
 
   Widget _buildEmptyBadgesMessage() {
-    return Center(
-      child: Text(
-        "Keep watching to unlock badges!",
-      ),
-    );
+    return Center(child: Text("Keep watching to unlock badges!"));
   }
 
   Widget _buildWatchTimeCard(int d, int h, int m) {
@@ -279,10 +279,7 @@ class ProfileScreen extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 25),
       decoration: BoxDecoration(
         color: AppData.whiteColor,
-        border: Border.all(
-          color: AppData.accentColor,
-          width: 2,
-        ),
+        border: Border.all(color: AppData.accentColor, width: 2),
         borderRadius: BorderRadius.circular(25),
       ),
       child: Column(
@@ -437,10 +434,7 @@ class ProfileScreen extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        border: Border.all(
-          color: AppData.accentColor,
-          width: 2,
-        ),
+        border: Border.all(color: AppData.accentColor, width: 2),
         borderRadius: BorderRadius.circular(25),
       ),
       child: Column(
@@ -557,6 +551,7 @@ class ProfileScreen extends StatelessWidget {
       ),
     );
   }
+
   String formatHours(double totalHours) {
     if (totalHours <= 0) return "0m";
     int h = totalHours.toInt();

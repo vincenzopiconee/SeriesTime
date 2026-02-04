@@ -36,6 +36,8 @@ class BingeModeScreen extends StatelessWidget {
               maxConsecutiveHours: (userData['maxConsecutiveHours'] ?? 0)
                   .toDouble(),
               weekendHours: (userData['weekendHours'] ?? 0).toDouble(),
+              nightOwlHours: (userData['nightOwlHours'] ?? 0).toDouble(),
+              uniqueGenresCount: (userData['uniqueGenresCount'] ?? 0).toInt(),
               seriesStreak: userData['seriesStreak'] ?? 0,
               notification: userData['notification'] ?? true,
             );
@@ -95,16 +97,29 @@ class BingeModeScreen extends StatelessWidget {
             if (progressComp > 1.0) progressComp = 1.0;
             bool isCompFinished = completedCount >= 50;
 
+            final UserBadge targetNightOwl = AppData.getNightOwlTarget(
+              user.nightOwlHours,
+            );
+            double progressNightOwl =
+                user.nightOwlHours / targetNightOwl.targetHours;
+            if (progressNightOwl > 1.0) progressNightOwl = 1.0;
+            bool isNightOwlFinished = user.nightOwlHours >= 50;
+            final UserBadge targetGenre = AppData.getGenreTarget(
+              user.uniqueGenresCount,
+            );
+            double progressGenre =
+                user.uniqueGenresCount / targetGenre.targetHours;
+            if (progressGenre > 1.0) progressGenre = 1.0;
             return Scaffold(
               backgroundColor: AppData.backgroundColor,
               appBar: AppBar(
-                backgroundColor: Colors.transparent,
+                backgroundColor: AppData.primaryColor,
                 elevation: 0,
                 centerTitle: true,
                 title: const Text(
-                  "BINGE MODE",
+                  "Binge Mode",
                   style: TextStyle(
-                    color: Colors.black,
+                    color: Colors.white,
                     fontWeight: FontWeight.bold,
                     fontSize: 27,
                     letterSpacing: 1.2,
@@ -182,6 +197,30 @@ class BingeModeScreen extends StatelessWidget {
                           : "$completedCount / ${targetComp.iconLabel.replaceAll('S', '')} series",
                       progressValue: progressComp,
                       badge: targetComp,
+                    ),
+                    const SizedBox(height: 20),
+                    _buildAchievementCard(
+                      title: targetNightOwl.title,
+                      description: isNightOwlFinished
+                          ? "Night is your kingdom. Max level reached."
+                          : "Watch ${targetNightOwl.targetHours.toInt()} hours between midnight and 4:00 AM.",
+                      progressText: isNightOwlFinished
+                          ? "COMPLETED"
+                          : "${user.nightOwlHours.toStringAsFixed(1)}h / ${targetNightOwl.iconLabel}",
+                      progressValue: progressNightOwl,
+                      badge: targetNightOwl,
+                    ),
+                    const SizedBox(height: 20),
+                    _buildAchievementCard(
+                      title: targetGenre.title,
+                      description: user.uniqueGenresCount >= 10
+                          ? "You've seen everything! Master of all genres."
+                          : "Watch series from ${targetGenre.targetHours.toInt()} different genres.",
+                      progressText: user.uniqueGenresCount >= 10
+                          ? "COMPLETED"
+                          : "${user.uniqueGenresCount} / ${targetGenre.iconLabel}",
+                      progressValue: progressGenre,
+                      badge: targetGenre,
                     ),
                   ],
                 ),

@@ -3,7 +3,9 @@ class User {
   final double totalHoursWatched;
   final double maxConsecutiveHours;
   final double weekendHours;
-   bool notification;
+  final double nightOwlHours;
+  final int uniqueGenresCount;
+  bool notification;
   final String? photoUrl;
   int seriesStreak;
   DateTime? lastViewDate;
@@ -13,6 +15,8 @@ class User {
     required this.totalHoursWatched,
     required this.maxConsecutiveHours,
     required this.weekendHours,
+    required this.nightOwlHours,
+    required this.uniqueGenresCount,
     required this.notification,
     this.photoUrl,
     this.seriesStreak = 0,
