@@ -47,10 +47,24 @@ class _MySeriesScreenState extends State<MySeriesScreen> {
       stream: AppData.seriesStream(),
       builder: (context, snapshot) {
         
+        //
         if (!snapshot.hasData) {
-          return const Scaffold(
+          return Scaffold(
             backgroundColor: AppData.backgroundColor,
-            body: Center(child: CircularProgressIndicator(color: AppData.primaryColor)),
+            // AGGIUNTO: AppBar statica per evitare il flash
+            appBar: AppBar(
+              backgroundColor: AppData.primaryColor,
+              elevation: 0,
+              title: Text(
+                "My Series",
+                style: TextStyle(
+                  fontSize: 24, 
+                  fontWeight: FontWeight.w600, 
+                  color: AppData.whiteColor
+                ),
+              ),
+            ),
+            body: const Center(child: CircularProgressIndicator(color: AppData.primaryColor)),
           );
         }
 
@@ -93,7 +107,7 @@ class _MySeriesScreenState extends State<MySeriesScreen> {
                 ),
               ),
               bottom: PreferredSize(
-                preferredSize: const Size.fromHeight(50.0), 
+                preferredSize: const Size.fromHeight(48.0), 
                 child: Container(
                   color: AppData.whiteColor, 
                   child: TabBar(

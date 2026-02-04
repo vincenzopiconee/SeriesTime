@@ -184,7 +184,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                       decoration: BoxDecoration(
                         // Accent color per le chips (Primary se selezionato per stacco visivo)
-                        color: isSelected ? AppData.accentColor: AppData.primaryColor , 
+                        color: isSelected ? AppData.accentColor: Colors.grey[400], 
                         borderRadius: BorderRadius.circular(20),
                         //border: isSelected ? Border.all(color: AppData.primaryColor, width: 2) : null,
                       ),

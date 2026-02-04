@@ -22,8 +22,21 @@ class ProfileScreen extends StatelessWidget {
           stream: AppData.seriesStream(),
           builder: (context, seriesSnapshot) {
             if (!userSnapshot.hasData || !seriesSnapshot.hasData) {
-              return const Scaffold(
-                body: Center(child: CircularProgressIndicator()),
+              return Scaffold(
+                // AGGIUNTO: Mostriamo la AppBar anche durante il caricamento
+                appBar: AppBar(
+                  backgroundColor: AppData.primaryColor,
+                  elevation: 0,
+                  title: Text(
+                    "Profile",
+                    style: TextStyle(
+                      fontSize: 24, 
+                      fontWeight: FontWeight.w600, 
+                      color: AppData.whiteColor
+                    ),
+                  ),
+                ),
+                body: const Center(child: CircularProgressIndicator(color: AppData.primaryColor)),
               );
             }
 
@@ -82,12 +95,12 @@ class ProfileScreen extends StatelessWidget {
                 scrolledUnderElevation: 0,
                 title: Text(
                 "Profile",
-                style: TextStyle(
-                  fontSize: 24, 
-                  fontWeight: FontWeight.w600, 
-                  color: AppData.whiteColor
+                  style: TextStyle(
+                    fontSize: 24, 
+                    fontWeight: FontWeight.w600, 
+                    color: AppData.whiteColor
+                  ),
                 ),
-              ),
                 actions: [
                   IconButton(
                     icon: const Icon(Icons.settings, color: AppData.whiteColor),
