@@ -38,6 +38,9 @@ class BingeModeScreen extends StatelessWidget {
               weekendHours: (userData['weekendHours'] ?? 0).toDouble(),
               nightOwlHours: (userData['nightOwlHours'] ?? 0).toDouble(),
               uniqueGenresCount: (userData['uniqueGenresCount'] ?? 0).toInt(),
+              claimedBadgeIds: List<String>.from(
+                userData['claimedBadgeIds'] ?? [],
+              ),
               seriesStreak: userData['seriesStreak'] ?? 0,
               notification: userData['notification'] ?? true,
             );
@@ -164,50 +167,48 @@ class BingeModeScreen extends StatelessWidget {
   }
 
   Widget _buildCompletedTab(User user, double totalHours, int completedCount) {
-    final List<UserBadge> allCompleted = [
-      ...AppData.marathonerMilestones.where((b) => totalHours >= b.targetHours),
-      ...AppData.obsessionMilestones.where(
-        (b) => user.maxConsecutiveHours >= b.targetHours,
-      ),
-      ...AppData.weekendMilestones.where(
-        (b) => user.weekendHours >= b.targetHours,
-      ),
-      ...AppData.streakMilestones.where(
-        (b) => user.seriesStreak >= b.targetHours,
-      ),
-      ...AppData.completionistMilestones.where(
-        (b) => completedCount >= b.targetHours,
-      ),
-      ...AppData.nightOwlMilestones.where(
-        (b) => user.nightOwlHours >= b.targetHours,
-      ),
-      ...AppData.genreMilestones.where(
-        (b) => user.uniqueGenresCount >= b.targetHours,
-      ),
+    // Creiamo una lista globale di tutti i badge possibili esistenti nell'app
+    final allPossibleBadges = [
+      ...AppData.marathonerMilestones,
+      ...AppData.obsessionMilestones,
+      ...AppData.weekendMilestones,
+      ...AppData.streakMilestones,
+      ...AppData.completionistMilestones,
+      ...AppData.nightOwlMilestones,
+      ...AppData.genreMilestones,
     ];
 
-    if (allCompleted.isEmpty) {
+    // Filtriamo: tieni solo quelli il cui ID è nella lista 'claimedBadgeIds' del database
+    final List<UserBadge> allClaimed = allPossibleBadges
+        .where((badge) => user.claimedBadgeIds.contains(badge.id))
+        .toList();
+
+    if (allClaimed.isEmpty) {
       return const Center(
         child: Text(
-          "No badges earned yet. Keep watching!",
-          style: TextStyle(color: Colors.grey),
+          "No badges claimed yet. Complete a quest and click CLAIM!",
+          textAlign: TextAlign.center,
+          style: TextStyle(color: Colors.grey, fontSize: 16),
         ),
       );
     }
 
+    allClaimed.sort((a, b) => a.title.compareTo(b.title));
+
     return ListView.builder(
       padding: const EdgeInsets.only(left: 20, right: 20, top: 20, bottom: 100),
-      itemCount: allCompleted.length,
+      itemCount: allClaimed.length,
       itemBuilder: (context, index) {
-        final badge = allCompleted[index];
+        final badge = allClaimed[index];
         return Padding(
           padding: const EdgeInsets.only(bottom: 15),
           child: _buildAchievementCard(
             title: badge.title,
             description: "Level Completed!",
-            progressText: "Completed",
+            progressText: "CLAIMED",
             progressValue: 1.0,
             badge: badge,
+            canClaim: false,
           ),
         );
       },
@@ -220,109 +221,110 @@ class BingeModeScreen extends StatelessWidget {
     Map<String, int> timeData,
     int completedCount,
   ) {
-    final UserBadge targetMarathoner = AppData.getMarathonerTarget();
-    final UserBadge targetObsession = AppData.getObsessionTarget(
+    // Funzione interna per trovare il primo badge NON riscattato in una lista
+    UserBadge _findCurrentTarget(
+      List<UserBadge> milestones,
+      double currentVal,
+    ) {
+      return milestones.firstWhere(
+        (b) => !user.claimedBadgeIds.contains(b.id),
+        orElse: () => milestones
+            .last, // Se tutti riscattati, mostra l'ultimo (sarà filtrato dopo)
+      );
+    }
+
+    final targetM = _findCurrentTarget(
+      AppData.marathonerMilestones,
+      realTotalHours,
+    );
+    final targetO = _findCurrentTarget(
+      AppData.obsessionMilestones,
       user.maxConsecutiveHours,
     );
-    final UserBadge targetWeekend = AppData.getWeekendTarget(user.weekendHours);
-    final UserBadge targetStreak = AppData.getStreakTarget(
+    final targetW = _findCurrentTarget(
+      AppData.weekendMilestones,
+      user.weekendHours,
+    );
+    final targetS = _findCurrentTarget(
+      AppData.streakMilestones,
       user.seriesStreak.toDouble(),
     );
-    final UserBadge targetComp = AppData.getCompletionistTarget(
+    final targetC = _findCurrentTarget(
+      AppData.completionistMilestones,
       completedCount.toDouble(),
     );
-    final UserBadge targetNightOwl = AppData.getNightOwlTarget(
+    final targetNO = _findCurrentTarget(
+      AppData.nightOwlMilestones,
       user.nightOwlHours,
     );
-    final UserBadge targetGenre = AppData.getGenreTarget(
-      user.uniqueGenresCount,
+    final targetG = _findCurrentTarget(
+      AppData.genreMilestones,
+      user.uniqueGenresCount.toDouble(),
     );
+
+    Widget _questItem(
+      UserBadge target,
+      double currentProgress,
+      String progressText,
+    ) {
+      // Se l'ID è già stato riscattato, questa categoria di missioni è FINITA
+      if (user.claimedBadgeIds.contains(target.id))
+        return const SizedBox.shrink();
+
+      bool canClaim = currentProgress >= target.targetHours;
+
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 15),
+        child: _buildAchievementCard(
+          title: target.title,
+          description: "Reach ${target.iconLabel} to complete this level.",
+          progressText: canClaim ? "READY TO CLAIM" : progressText,
+          progressValue: (currentProgress / target.targetHours).clamp(0.0, 1.0),
+          badge: target,
+          canClaim: canClaim,
+          onClaim: () => AppData.claimBadge(target.id),
+        ),
+      );
+    }
 
     return SingleChildScrollView(
       padding: const EdgeInsets.only(left: 20, right: 20, top: 20, bottom: 100),
       child: Column(
         children: [
-          _buildAchievementCard(
-            title: targetMarathoner.title,
-            description:
-                "Reach ${targetMarathoner.iconLabel} of total watch time.",
-            progressText:
-                "${timeData["days"]}d ${timeData["hours"]}h / ${targetMarathoner.iconLabel.replaceAll('G', 'd')}",
-            progressValue: (realTotalHours / targetMarathoner.targetHours)
-                .clamp(0.0, 1.0),
-            badge: targetMarathoner,
+          _questItem(
+            targetM,
+            realTotalHours,
+            "${timeData["days"]}d ${timeData["hours"]}h / ${targetM.iconLabel.replaceAll('G', 'd')}",
           ),
-          const SizedBox(height: 15),
-          _buildAchievementCard(
-            title: targetObsession.title,
-            description:
-                "Watch for ${targetObsession.targetHours.toInt()} consecutive hours.",
-            progressText:
-                "${user.maxConsecutiveHours.toStringAsFixed(1)}h / ${targetObsession.iconLabel}",
-            progressValue:
-                (user.maxConsecutiveHours / targetObsession.targetHours).clamp(
-                  0.0,
-                  1.0,
-                ),
-            badge: targetObsession,
+          _questItem(
+            targetO,
+            user.maxConsecutiveHours,
+            "${user.maxConsecutiveHours.toStringAsFixed(1)}h / ${targetO.iconLabel}",
           ),
-          const SizedBox(height: 15),
-          _buildAchievementCard(
-            title: targetWeekend.title,
-            description:
-                "Watch ${targetWeekend.targetHours.toInt()}h during the weekend.",
-            progressText:
-                "${user.weekendHours.toStringAsFixed(1)}h / ${targetWeekend.iconLabel}",
-            progressValue: (user.weekendHours / targetWeekend.targetHours)
-                .clamp(0.0, 1.0),
-            badge: targetWeekend,
+          _questItem(
+            targetW,
+            user.weekendHours,
+            "${user.weekendHours.toStringAsFixed(1)}h / ${targetW.iconLabel}",
           ),
-          const SizedBox(height: 15),
-          _buildAchievementCard(
-            title: "Daily Fan",
-            description:
-                "Watch at least one episode for ${targetStreak.targetHours.toInt()} days.",
-            progressText: "${user.seriesStreak} / ${targetStreak.iconLabel}",
-            progressValue: (user.seriesStreak / targetStreak.targetHours).clamp(
-              0.0,
-              1.0,
-            ),
-            badge: targetStreak,
+          _questItem(
+            targetS,
+            user.seriesStreak.toDouble(),
+            "${user.seriesStreak} / ${targetS.iconLabel}",
           ),
-          const SizedBox(height: 15),
-          _buildAchievementCard(
-            title: "The Perfectionist",
-            description:
-                "Complete ${targetComp.targetHours.toInt()} series to 100%.",
-            progressText:
-                "$completedCount / ${targetComp.iconLabel.replaceAll('S', '')}",
-            progressValue: (completedCount / targetComp.targetHours).clamp(
-              0.0,
-              1.0,
-            ),
-            badge: targetComp,
+          _questItem(
+            targetC,
+            completedCount.toDouble(),
+            "$completedCount / ${targetC.iconLabel.replaceAll('S', '')}",
           ),
-          const SizedBox(height: 15),
-          _buildAchievementCard(
-            title: targetNightOwl.title,
-            description:
-                "Watch ${targetNightOwl.targetHours.toInt()}h between 00:00 and 04:00.",
-            progressText:
-                "${user.nightOwlHours.toStringAsFixed(1)}h / ${targetNightOwl.iconLabel}",
-            progressValue: (user.nightOwlHours / targetNightOwl.targetHours)
-                .clamp(0.0, 1.0),
-            badge: targetNightOwl,
+          _questItem(
+            targetNO,
+            user.nightOwlHours,
+            "${user.nightOwlHours.toStringAsFixed(1)}h / ${targetNO.iconLabel}",
           ),
-          const SizedBox(height: 15),
-          _buildAchievementCard(
-            title: targetGenre.title,
-            description:
-                "Explore ${targetGenre.targetHours.toInt()} different genres.",
-            progressText:
-                "${user.uniqueGenresCount} / ${targetGenre.iconLabel}",
-            progressValue: (user.uniqueGenresCount / targetGenre.targetHours)
-                .clamp(0.0, 1.0),
-            badge: targetGenre,
+          _questItem(
+            targetG,
+            user.uniqueGenresCount.toDouble(),
+            "${user.uniqueGenresCount} / ${targetG.iconLabel}",
           ),
         ],
       ),
@@ -335,6 +337,8 @@ class BingeModeScreen extends StatelessWidget {
     required String progressText,
     required double progressValue,
     required UserBadge badge,
+    bool canClaim = false,
+    VoidCallback? onClaim,
   }) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -350,84 +354,109 @@ class BingeModeScreen extends StatelessWidget {
           ),
         ],
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Column(
+        // Cambiato in Column per ospitare il tasto sotto
         children: [
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              color: AppData.backgroundColor,
-              borderRadius: BorderRadius.circular(15),
-              border: Border.all(color: AppData.accentColor, width: 1.5),
-            ),
-            child: Center(
-              child: Image.asset(
-                badge.imagePath,
-                height: 60,
-                width: 60,
-                fit: BoxFit.contain,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: AppData.backgroundColor,
+                  borderRadius: BorderRadius.circular(15),
+                  border: Border.all(color: AppData.accentColor, width: 1.5),
+                ),
+                child: Center(
+                  child: Image.asset(
+                    badge.imagePath,
+                    height: 60,
+                    width: 60,
+                    fit: BoxFit.contain,
+                  ),
+                ),
               ),
-            ),
-          ),
-          const SizedBox(width: 15),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                  ),
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  description,
-                  style: TextStyle(
-                    color: Colors.grey[700],
-                    fontSize: 12,
-                    height: 1.3,
-                  ),
-                ),
-                const SizedBox(height: 15),
-                Stack(
-                  alignment: Alignment.center,
+              const SizedBox(width: 15),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      height: 21,
-                      decoration: BoxDecoration(
-                        color: Colors.grey[300],
-                        borderRadius: BorderRadius.circular(12),
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
                       ),
                     ),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: FractionallySizedBox(
-                        widthFactor: progressValue,
-                        child: Container(
-                          height: 20,
+                    const SizedBox(height: 5),
+                    Text(
+                      description,
+                      style: TextStyle(
+                        color: Colors.grey[700],
+                        fontSize: 12,
+                        height: 1.3,
+                      ),
+                    ),
+                    const SizedBox(height: 15),
+                    Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Container(
+                          height: 21,
                           decoration: BoxDecoration(
-                            color: AppData.primaryColor,
+                            color: Colors.grey[300],
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                      ),
-                    ),
-                    Text(
-                      progressText,
-                      style: const TextStyle(
-                        color: AppData.whiteColor,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                      ),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: FractionallySizedBox(
+                            widthFactor: progressValue,
+                            child: Container(
+                              height: 20,
+                              decoration: BoxDecoration(
+                                color: AppData.primaryColor,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          ),
+                        ),
+                        Text(
+                          progressText,
+                          style: const TextStyle(
+                            color: AppData.whiteColor,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
+          if (canClaim) ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: onClaim,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppData.accentColor,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text(
+                  "CLAIM REWARD",
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );

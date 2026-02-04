@@ -5,6 +5,7 @@ class User {
   final double weekendHours;
   final double nightOwlHours;
   final int uniqueGenresCount;
+  final List<String> claimedBadgeIds;
   bool notification;
   final String? photoUrl;
   int seriesStreak;
@@ -17,6 +18,7 @@ class User {
     required this.weekendHours,
     required this.nightOwlHours,
     required this.uniqueGenresCount,
+    this.claimedBadgeIds = const [],
     required this.notification,
     this.photoUrl,
     this.seriesStreak = 0,

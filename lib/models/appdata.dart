@@ -204,7 +204,7 @@ class AppData {
     UserBadge(
       id: "tpbronze",
       title: "The Perfectionist",
-      imagePath: "assets/images/the_completionis_bronze.png",
+      imagePath: "assets/images/the_completionist_bronze.png",
       iconLabel: "3S",
       targetHours: 3,
       nextId: "tpsilver",
@@ -212,7 +212,7 @@ class AppData {
     UserBadge(
       id: "tpsilver",
       title: "The Perfectionist",
-      imagePath: "assets/images/the_completionis_silver.png",
+      imagePath: "assets/images/the_completionist_silver.png",
       iconLabel: "10S",
       targetHours: 10,
       nextId: "tpgold",
@@ -220,7 +220,7 @@ class AppData {
     UserBadge(
       id: "tpgold",
       title: "The Perfectionist",
-      imagePath: "assets/images/the_completionis_gold.png",
+      imagePath: "assets/images/the_completionist_gold.png",
       iconLabel: "20S",
       targetHours: 20,
       nextId: "tpdiamond",
@@ -228,7 +228,7 @@ class AppData {
     UserBadge(
       id: "tpdiamond",
       title: "The Perfectionist",
-      imagePath: "assets/images/the_completionis_diamond.png",
+      imagePath: "assets/images/the_completionist_diamond.png",
       iconLabel: "50S",
       targetHours: 50,
       nextId: null,
@@ -474,11 +474,11 @@ class AppData {
       currentUser = User(
         name: data['name'] ?? firebaseUser.displayName ?? "User",
         totalHoursWatched: (data['totalHoursWatched'] ?? 0).toDouble(),
-        maxConsecutiveHours: (data['maxConsecutiveHours'] ?? 0)
-            .toDouble(), // Fix cast
+        maxConsecutiveHours: (data['maxConsecutiveHours'] ?? 0).toDouble(),
         weekendHours: (data['weekendHours'] ?? 0).toDouble(),
         nightOwlHours: (data['nightOwlHours'] ?? 0).toDouble(),
         uniqueGenresCount: (data['uniqueGenresCount'] ?? 0).toInt(),
+        claimedBadgeIds: List<String>.from(data['claimedBadgeIds'] ?? []),
         notification: data['notification'] ?? true,
         photoUrl: highResPhotoUrl,
       );
@@ -1079,6 +1079,15 @@ class AppData {
       }
     }
     return target;
+  }
+
+  static Future<void> claimBadge(String badgeId) async {
+    final uid = auth.FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    await _db.collection('users').doc(uid).update({
+      'claimedBadgeIds': FieldValue.arrayUnion([badgeId]),
+    });
   }
 
   // 1. Controlla se la serie è già tracciata
