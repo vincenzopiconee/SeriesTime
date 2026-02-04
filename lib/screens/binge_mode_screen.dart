@@ -110,118 +110,49 @@ class BingeModeScreen extends StatelessWidget {
             double progressGenre =
                 user.uniqueGenresCount / targetGenre.targetHours;
             if (progressGenre > 1.0) progressGenre = 1.0;
-            return Scaffold(
-              backgroundColor: AppData.backgroundColor,
-              appBar: AppBar(
-                backgroundColor: AppData.primaryColor,
-                elevation: 0,
-                centerTitle: true,
-                title: const Text(
-                  "Binge Mode",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 27,
-                    letterSpacing: 1.2,
+
+            return DefaultTabController(
+              length: 2,
+              child: Scaffold(
+                backgroundColor: AppData.backgroundColor,
+                appBar: AppBar(
+                  backgroundColor: AppData.primaryColor,
+                  elevation: 0,
+                  centerTitle: true,
+                  title: const Text(
+                    "Binge Mode",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 24,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                  bottom: PreferredSize(
+                    preferredSize: const Size.fromHeight(50.0),
+                    child: Container(
+                      color: Colors.white,
+                      child: const TabBar(
+                        labelColor: AppData.primaryColor,
+                        unselectedLabelColor: Colors.grey,
+                        indicatorColor: AppData.accentColor,
+                        tabs: [
+                          Tab(text: "Quests"),
+                          Tab(text: "Completed"),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
-              ),
-              body: SingleChildScrollView(
-                padding: const EdgeInsets.only(
-                  left: 20,
-                  right: 20,
-                  top: 30,
-                  bottom: 120,
-                ),
-                child: Column(
+                body: TabBarView(
                   children: [
-                    _buildAchievementCard(
-                      title: targetMarathoner.title,
-                      description: isMarathonerFinished
-                          ? "You are a true legend! Max level reached."
-                          : "Reach ${targetMarathoner.iconLabel.replaceAll('G', '')} days of total watch time.",
-                      progressText: isMarathonerFinished
-                          ? "COMPLETED"
-                          : "${timeData["days"]}d ${timeData["hours"]}h / ${targetMarathoner.iconLabel.replaceAll('G', 'd 00h')}",
-                      progressValue: progressMarathoner,
-                      badge: targetMarathoner,
+                    _buildQuestsTab(
+                      user,
+                      realTotalHours,
+                      timeData,
+                      completedCount,
                     ),
-                    const SizedBox(height: 20),
-                    _buildAchievementCard(
-                      title: targetObsession.title,
-                      description: isObsessionFinished
-                          ? "Your obsession has no limits. Max level reached."
-                          : "Watch the same TV series for ${targetObsession.targetHours.toInt()} consecutive hours.",
-                      progressText: isObsessionFinished
-                          ? "COMPLETED"
-                          : "${user.maxConsecutiveHours.toStringAsFixed(1)}h / ${targetObsession.iconLabel}",
-                      progressValue: progressObsession,
-                      badge: targetObsession,
-                    ),
-                    const SizedBox(height: 20),
-                    // In binge_mode_screen.dart
-                    _buildAchievementCard(
-                      title: targetWeekend.title,
-                      description: isWeekendFinished
-                          ? "The ultimate weekend warrior! Max level reached."
-                          : "Watch ${targetWeekend.targetHours.toInt()} hours between Friday and Sunday.", // Descrizione aggiornata
-                      progressText: isWeekendFinished
-                          ? "COMPLETED"
-                          : "${user.weekendHours.toStringAsFixed(1)}h / ${targetWeekend.iconLabel}",
-                      progressValue: progressWeekend,
-                      badge: targetWeekend,
-                    ),
-                    const SizedBox(height: 20),
-                    // CARD STREAK
-                    _buildAchievementCard(
-                      title: "Daily Fan",
-                      description: isStreakFinished
-                          ? "Incredible consistency! You have reached the maximum level."
-                          : "Watch at least one episode for ${targetStreak.targetHours.toInt()} consecutive days.",
-                      progressText: isStreakFinished
-                          ? "COMPLETED"
-                          : "${user.seriesStreak} / ${targetStreak.iconLabel}",
-                      progressValue: progressStreak,
-                      badge: targetStreak,
-                    ),
-                    const SizedBox(height: 20),
-
-                    // CARD COMPLETIONIST
-                    _buildAchievementCard(
-                      title: "The Perfectionist",
-                      description: isCompFinished
-                          ? "You have completed everything possible! Legendary."
-                          : "Complete a total of ${targetComp.targetHours.toInt()} TV series to 100%.",
-                      progressText: isCompFinished
-                          ? "COMPLETED"
-                          : "$completedCount / ${targetComp.iconLabel.replaceAll('S', '')} series",
-                      progressValue: progressComp,
-                      badge: targetComp,
-                    ),
-                    const SizedBox(height: 20),
-                    _buildAchievementCard(
-                      title: targetNightOwl.title,
-                      description: isNightOwlFinished
-                          ? "Night is your kingdom. Max level reached."
-                          : "Watch ${targetNightOwl.targetHours.toInt()} hours between midnight and 4:00 AM.",
-                      progressText: isNightOwlFinished
-                          ? "COMPLETED"
-                          : "${user.nightOwlHours.toStringAsFixed(1)}h / ${targetNightOwl.iconLabel}",
-                      progressValue: progressNightOwl,
-                      badge: targetNightOwl,
-                    ),
-                    const SizedBox(height: 20),
-                    _buildAchievementCard(
-                      title: targetGenre.title,
-                      description: user.uniqueGenresCount >= 10
-                          ? "You've seen everything! Master of all genres."
-                          : "Watch series from ${targetGenre.targetHours.toInt()} different genres.",
-                      progressText: user.uniqueGenresCount >= 10
-                          ? "COMPLETED"
-                          : "${user.uniqueGenresCount} / ${targetGenre.iconLabel}",
-                      progressValue: progressGenre,
-                      badge: targetGenre,
-                    ),
+                    _buildCompletedTab(user, realTotalHours, completedCount),
                   ],
                 ),
               ),
@@ -229,6 +160,172 @@ class BingeModeScreen extends StatelessWidget {
           },
         );
       },
+    );
+  }
+
+  Widget _buildCompletedTab(User user, double totalHours, int completedCount) {
+    final List<UserBadge> allCompleted = [
+      ...AppData.marathonerMilestones.where((b) => totalHours >= b.targetHours),
+      ...AppData.obsessionMilestones.where(
+        (b) => user.maxConsecutiveHours >= b.targetHours,
+      ),
+      ...AppData.weekendMilestones.where(
+        (b) => user.weekendHours >= b.targetHours,
+      ),
+      ...AppData.streakMilestones.where(
+        (b) => user.seriesStreak >= b.targetHours,
+      ),
+      ...AppData.completionistMilestones.where(
+        (b) => completedCount >= b.targetHours,
+      ),
+      ...AppData.nightOwlMilestones.where(
+        (b) => user.nightOwlHours >= b.targetHours,
+      ),
+      ...AppData.genreMilestones.where(
+        (b) => user.uniqueGenresCount >= b.targetHours,
+      ),
+    ];
+
+    if (allCompleted.isEmpty) {
+      return const Center(
+        child: Text(
+          "No badges earned yet. Keep watching!",
+          style: TextStyle(color: Colors.grey),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.only(left: 20, right: 20, top: 20, bottom: 100),
+      itemCount: allCompleted.length,
+      itemBuilder: (context, index) {
+        final badge = allCompleted[index];
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 15),
+          child: _buildAchievementCard(
+            title: badge.title,
+            description: "Level Completed!",
+            progressText: "Completed",
+            progressValue: 1.0,
+            badge: badge,
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildQuestsTab(
+    User user,
+    double realTotalHours,
+    Map<String, int> timeData,
+    int completedCount,
+  ) {
+    final UserBadge targetMarathoner = AppData.getMarathonerTarget();
+    final UserBadge targetObsession = AppData.getObsessionTarget(
+      user.maxConsecutiveHours,
+    );
+    final UserBadge targetWeekend = AppData.getWeekendTarget(user.weekendHours);
+    final UserBadge targetStreak = AppData.getStreakTarget(
+      user.seriesStreak.toDouble(),
+    );
+    final UserBadge targetComp = AppData.getCompletionistTarget(
+      completedCount.toDouble(),
+    );
+    final UserBadge targetNightOwl = AppData.getNightOwlTarget(
+      user.nightOwlHours,
+    );
+    final UserBadge targetGenre = AppData.getGenreTarget(
+      user.uniqueGenresCount,
+    );
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.only(left: 20, right: 20, top: 20, bottom: 100),
+      child: Column(
+        children: [
+          _buildAchievementCard(
+            title: targetMarathoner.title,
+            description:
+                "Reach ${targetMarathoner.iconLabel} of total watch time.",
+            progressText:
+                "${timeData["days"]}d ${timeData["hours"]}h / ${targetMarathoner.iconLabel.replaceAll('G', 'd')}",
+            progressValue: (realTotalHours / targetMarathoner.targetHours)
+                .clamp(0.0, 1.0),
+            badge: targetMarathoner,
+          ),
+          const SizedBox(height: 15),
+          _buildAchievementCard(
+            title: targetObsession.title,
+            description:
+                "Watch for ${targetObsession.targetHours.toInt()} consecutive hours.",
+            progressText:
+                "${user.maxConsecutiveHours.toStringAsFixed(1)}h / ${targetObsession.iconLabel}",
+            progressValue:
+                (user.maxConsecutiveHours / targetObsession.targetHours).clamp(
+                  0.0,
+                  1.0,
+                ),
+            badge: targetObsession,
+          ),
+          const SizedBox(height: 15),
+          _buildAchievementCard(
+            title: targetWeekend.title,
+            description:
+                "Watch ${targetWeekend.targetHours.toInt()}h during the weekend.",
+            progressText:
+                "${user.weekendHours.toStringAsFixed(1)}h / ${targetWeekend.iconLabel}",
+            progressValue: (user.weekendHours / targetWeekend.targetHours)
+                .clamp(0.0, 1.0),
+            badge: targetWeekend,
+          ),
+          const SizedBox(height: 15),
+          _buildAchievementCard(
+            title: "Daily Fan",
+            description:
+                "Watch at least one episode for ${targetStreak.targetHours.toInt()} days.",
+            progressText: "${user.seriesStreak} / ${targetStreak.iconLabel}",
+            progressValue: (user.seriesStreak / targetStreak.targetHours).clamp(
+              0.0,
+              1.0,
+            ),
+            badge: targetStreak,
+          ),
+          const SizedBox(height: 15),
+          _buildAchievementCard(
+            title: "The Perfectionist",
+            description:
+                "Complete ${targetComp.targetHours.toInt()} series to 100%.",
+            progressText:
+                "$completedCount / ${targetComp.iconLabel.replaceAll('S', '')}",
+            progressValue: (completedCount / targetComp.targetHours).clamp(
+              0.0,
+              1.0,
+            ),
+            badge: targetComp,
+          ),
+          const SizedBox(height: 15),
+          _buildAchievementCard(
+            title: targetNightOwl.title,
+            description:
+                "Watch ${targetNightOwl.targetHours.toInt()}h between 00:00 and 04:00.",
+            progressText:
+                "${user.nightOwlHours.toStringAsFixed(1)}h / ${targetNightOwl.iconLabel}",
+            progressValue: (user.nightOwlHours / targetNightOwl.targetHours)
+                .clamp(0.0, 1.0),
+            badge: targetNightOwl,
+          ),
+          const SizedBox(height: 15),
+          _buildAchievementCard(
+            title: targetGenre.title,
+            description:
+                "Explore ${targetGenre.targetHours.toInt()} different genres.",
+            progressText:
+                "${user.uniqueGenresCount} / ${targetGenre.iconLabel}",
+            progressValue: (user.uniqueGenresCount / targetGenre.targetHours)
+                .clamp(0.0, 1.0),
+            badge: targetGenre,
+          ),
+        ],
+      ),
     );
   }
 
@@ -257,8 +354,8 @@ class BingeModeScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 90,
-            height: 90,
+            width: 80,
+            height: 80,
             decoration: BoxDecoration(
               color: AppData.backgroundColor,
               borderRadius: BorderRadius.circular(15),
@@ -267,8 +364,8 @@ class BingeModeScreen extends StatelessWidget {
             child: Center(
               child: Image.asset(
                 badge.imagePath,
-                height: 70,
-                width: 70,
+                height: 60,
+                width: 60,
                 fit: BoxFit.contain,
               ),
             ),
