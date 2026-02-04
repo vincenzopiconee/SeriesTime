@@ -5,7 +5,7 @@ class User {
   final double weekendHours;
   final double nightOwlHours;
   final int uniqueGenresCount;
-  final List<String> claimedBadgeIds;
+  List<String> claimedBadgeIds;
   bool notification;
   final String? photoUrl;
   int seriesStreak;

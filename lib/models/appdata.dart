@@ -617,6 +617,42 @@ class AppData {
     return totalMinutes / 60.0;
   }
 
+  static UserBadge? getFirstUnclaimedBadge() {
+    if (currentUser == null) return null;
+
+    final allMilestones = [
+      ...marathonerMilestones,
+      ...obsessionMilestones,
+      ...weekendMilestones,
+      ...streakMilestones,
+      ...completionistMilestones,
+      ...nightOwlMilestones,
+      ...genreMilestones,
+    ];
+
+    final stats = {
+      "Marathoner": currentUser!.totalHoursWatched,
+      "Pure Obsession": currentUser!.maxConsecutiveHours,
+      "Weekend Warrior": currentUser!.weekendHours,
+      "Streak": currentUser!.seriesStreak.toDouble(),
+      "The Perfectionist": userSeries
+          .where((s) => s.percentage >= 1.0)
+          .length
+          .toDouble(),
+      "The Night Owl": currentUser!.nightOwlHours,
+      "Genre Explorer": currentUser!.uniqueGenresCount.toDouble(),
+    };
+
+    for (var badge in allMilestones) {
+      double currentVal = stats[badge.title] ?? 0.0;
+      if (currentVal >= badge.targetHours &&
+          !currentUser!.claimedBadgeIds.contains(badge.id)) {
+        return badge;
+      }
+    }
+    return null;
+  }
+
   // --- FUNZIONE AGGIORNATA: Calcola totali, PROSSIMO episodio e STATO COMPLETATO ---
   static Future<void> syncSeriesTotalHours(String seriesName) async {
     final user = auth.FirebaseAuth.instance.currentUser;
