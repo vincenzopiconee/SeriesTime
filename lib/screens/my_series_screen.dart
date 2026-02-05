@@ -1,7 +1,11 @@
+import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart'; 
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http; // Aggiunto per chiamate API
 import 'package:seriestime/models/next_episode_info.dart';
 import 'package:seriestime/models/series.dart';
+import 'package:seriestime/models/tv_show_details.dart'; // Per il modello Episode
+import 'package:seriestime/screens/episode_detail_screen.dart'; // Per la navigazione
 import '../models/appdata.dart';
 import 'series_detail_screen.dart'; 
 
@@ -41,21 +45,65 @@ class _MySeriesScreenState extends State<MySeriesScreen> {
     return upcomingMap;
   }
 
+  // --- NUOVA FUNZIONE: Scarica dettagli e naviga ---
+  Future<void> _fetchAndNavigateToEpisode(
+      BuildContext context, int seriesId, String seriesName, int seasonNum, int episodeNum) async {
+    
+    // Mostra indicatore di caricamento
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (c) => const Center(child: CircularProgressIndicator(color: AppData.primaryColor)),
+    );
+
+    try {
+      final url = Uri.parse(
+          'https://api.themoviedb.org/3/tv/$seriesId/season/$seasonNum/episode/$episodeNum?api_key=${AppData.tmdbApiKey}&language=en-US&append_to_response=credits,guest_stars');
+      
+      final response = await http.get(url);
+
+      // Chiudi il caricamento
+      if (context.mounted) Navigator.pop(context);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final episode = Episode.fromJson(data); // Usa il costruttore esistente in tv_show_details.dart
+
+        if (context.mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => EpisodeDetailScreen(
+                seriesName: seriesName,
+                seriesId: seriesId,
+                seasonNumber: seasonNum,
+                episode: episode,
+              ),
+            ),
+          );
+        }
+      } else {
+        debugPrint("Error fetching episode details: ${response.statusCode}");
+      }
+    } catch (e) {
+      if (context.mounted) Navigator.pop(context); // Chiudi dialog in caso di errore
+      debugPrint("Exception fetching episode: $e");
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
       stream: AppData.seriesStream(),
       builder: (context, snapshot) {
         
-        //
         if (!snapshot.hasData) {
           return Scaffold(
             backgroundColor: AppData.backgroundColor,
-            // AGGIUNTO: AppBar statica per evitare il flash
             appBar: AppBar(
               backgroundColor: AppData.primaryColor,
               elevation: 0,
-              title: Text(
+              title: const Text(
                 "My Series",
                 style: TextStyle(
                   fontSize: 24, 
@@ -98,7 +146,7 @@ class _MySeriesScreenState extends State<MySeriesScreen> {
             appBar: AppBar(
               backgroundColor: AppData.primaryColor,
               elevation: 0,
-              title: Text(
+              title: const Text(
                 "My Series",
                 style: TextStyle(
                   fontSize: 24, 
@@ -110,11 +158,11 @@ class _MySeriesScreenState extends State<MySeriesScreen> {
                 preferredSize: const Size.fromHeight(48.0), 
                 child: Container(
                   color: AppData.whiteColor, 
-                  child: TabBar(
+                  child: const TabBar(
                     labelColor: AppData.primaryColor, 
                     unselectedLabelColor: Colors.grey,
                     indicatorColor: AppData.accentColor, 
-                    tabs: const [
+                    tabs: [
                       Tab(text: "Favorites"),
                       Tab(text: "Watching"),
                       Tab(text: "Upcoming"),
@@ -166,7 +214,7 @@ class _MySeriesScreenState extends State<MySeriesScreen> {
       itemBuilder: (ctx, index) {
         final series = watchingSeries[index];
         
-        // --- LOGICA PARSING EPISODIO ---
+        // --- LOGICA PARSING EPISODIO (S# E#) ---
         int sNum = 1;
         int eNum = 1;
         try {
@@ -194,13 +242,20 @@ class _MySeriesScreenState extends State<MySeriesScreen> {
         }
 
         return WatchingEpisodeCard(
-          key: ValueKey(series.episode), // Importante: forza il rebuild se cambia episodio
+          key: ValueKey(series.episode), 
           imageUrl: series.imageUrl,
           mainText: series.lastEpisodeTitle.isNotEmpty ? series.lastEpisodeTitle : series.name,
           subText: series.name, 
           episodeLabel: series.episode, 
           isUpcoming: false,
-          onCheckTap: isFuture ? null : () { // Se futuro -> null, altrimenti funzione
+          // --- NUOVO: Navigazione al click ---
+          onCardTap: () {
+            if (series.id != 0) {
+              _fetchAndNavigateToEpisode(context, series.id, series.name, sNum, eNum);
+            }
+          },
+          // ----------------------------------
+          onCheckTap: isFuture ? null : () { 
             AppData.toggleEpisodeWatched(
               seriesName: series.name,
               seriesId: series.id,
@@ -259,16 +314,29 @@ class _MySeriesScreenState extends State<MySeriesScreen> {
               final seriesName = sortedKeys[index];
               final info = upcomingMap[seriesName]!;
 
+              // Recupero l'ID della serie per la navigazione
+              final series = AppData.userSeries.firstWhere(
+                (s) => s.name == seriesName, 
+                orElse: () => AppData.userSeries.isNotEmpty ? AppData.userSeries[0] : Series(id:0, name: "", imageUrl: "", percentage: 0, totalHours: 0, episode: "")
+              );
+
               String imageUrl = info.stillUrl ?? "";
               if (imageUrl.isEmpty) {
-                final series = AppData.userSeries.firstWhere(
-                  (s) => s.name == seriesName, 
-                  orElse: () => AppData.userSeries.isNotEmpty ? AppData.userSeries[0] : Series(id:0, name: "", imageUrl: "", percentage: 0, totalHours: 0, episode: "")
-                );
                 imageUrl = series.imageUrl;
               }
 
               String dateFormatted = "${info.airDate.year}-${info.airDate.month}-${info.airDate.day}";
+
+              // --- LOGICA PARSING EPISODIO UPCOMING (S# E#) ---
+              int sNum = 1, eNum = 1;
+              try {
+                final parts = info.episodeLabel.split(' ');
+                if (parts.length >= 2) {
+                  sNum = int.tryParse(parts[0].replaceAll(RegExp(r'[^0-9]'), '')) ?? 1;
+                  eNum = int.tryParse(parts[1].replaceAll(RegExp(r'[^0-9]'), '')) ?? 1;
+                }
+              } catch (_) {}
+              // ------------------------------------------------
 
               return WatchingEpisodeCard(
                 imageUrl: imageUrl,
@@ -278,6 +346,13 @@ class _MySeriesScreenState extends State<MySeriesScreen> {
                 extraInfo: dateFormatted, 
                 isUpcoming: true,
                 daysLeft: info.daysLeft,
+                // --- NUOVO: Navigazione al click ---
+                onCardTap: () {
+                   if (series.id != 0) {
+                     _fetchAndNavigateToEpisode(context, series.id, series.name, sNum, eNum);
+                   }
+                },
+                // ----------------------------------
               );
             },
           ),
@@ -291,7 +366,7 @@ class _MySeriesScreenState extends State<MySeriesScreen> {
       child: Text(
         message,
         textAlign: TextAlign.center,
-        style: TextStyle(color: Colors.grey, fontSize: 16),
+        style: const TextStyle(color: Colors.grey, fontSize: 16),
       ),
     );
   }
@@ -344,7 +419,7 @@ class SeriesListCard extends StatelessWidget {
   }
 }
 
-// --- MODIFICA: Ora è STATEFUL per gestire l'animazione del check ---
+// --- MODIFICA: Aggiunto onCardTap e InkWell separato per la navigazione ---
 class WatchingEpisodeCard extends StatefulWidget {
   final String imageUrl;
   final String mainText; 
@@ -354,6 +429,7 @@ class WatchingEpisodeCard extends StatefulWidget {
   final bool isUpcoming;
   final int? daysLeft;
   final VoidCallback? onCheckTap; 
+  final VoidCallback? onCardTap; // <--- NUOVO PARAMETRO
 
   const WatchingEpisodeCard({
     super.key,
@@ -365,6 +441,7 @@ class WatchingEpisodeCard extends StatefulWidget {
     this.isUpcoming = false,
     this.daysLeft,
     this.onCheckTap,
+    this.onCardTap, // <---
   });
 
   @override
@@ -372,28 +449,17 @@ class WatchingEpisodeCard extends StatefulWidget {
 }
 
 class _WatchingEpisodeCardState extends State<WatchingEpisodeCard> {
-  // Stato locale per l'animazione
   bool _isChecking = false;
 
   void _handleCheck() async {
-    // 1. Evita doppi click
     if (_isChecking) return;
-
-    // 2. Avvia animazione (cambia colore)
     setState(() {
       _isChecking = true;
     });
-
-    // 3. Esegui la logica del database (passata dal parent)
     if (widget.onCheckTap != null) {
       widget.onCheckTap!();
     }
-    
-    // 4. Aspetta 1 secondo
     await Future.delayed(const Duration(seconds: 1));
-    
-    // 5. Reset opzionale se il widget viene riutilizzato, 
-    // anche se solitamente la lista si ricostruisce con nuovi dati.
     if (mounted) {
       setState(() {
         _isChecking = false;
@@ -415,69 +481,81 @@ class _WatchingEpisodeCardState extends State<WatchingEpisodeCard> {
       ),
       child: Row(
         children: [
-          ClipRRect(
-            borderRadius: const BorderRadius.horizontal(left: Radius.circular(10)),
-            child: Image.network(
-              widget.imageUrl,
-              width: 70, 
-              height: double.infinity,
-              fit: BoxFit.cover,
-              errorBuilder: (c, e, s) => Container(width: 70, color: Colors.grey[800]),
-            ),
-          ),
-          const SizedBox(width: 12),
-
+          // --- PARTE 1: CONTENUTO CLICCABILE (Immagine + Testi) ---
           Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  widget.mainText, 
-                  maxLines: 2, 
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 15, 
-                    fontWeight: FontWeight.bold, 
-                    color: AppData.primaryColor, 
-                  ),
-                ),
-                Text(
-                  widget.subText,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 13, 
-                    fontWeight: FontWeight.w500, 
-                    color: Colors.black87 
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Text(
-                      widget.episodeLabel, 
-                      style: const TextStyle(
-                        fontSize: 13, 
-                        fontWeight: FontWeight.w600, 
-                        color: AppData.accentColor
-                      ),
+            child: InkWell(
+              onTap: widget.onCardTap, // Usa la callback passata per navigare
+              borderRadius: const BorderRadius.horizontal(left: Radius.circular(12)),
+              child: Row(
+                children: [
+                  ClipRRect(
+                    borderRadius: const BorderRadius.horizontal(left: Radius.circular(10)),
+                    child: Image.network(
+                      widget.imageUrl,
+                      width: 70, 
+                      height: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (c, e, s) => Container(width: 70, color: Colors.grey[800]),
                     ),
-                    if (widget.extraInfo != null) ...[
-                      const SizedBox(width: 6),
-                      const Icon(Icons.circle, size: 4, color: Colors.grey),
-                      const SizedBox(width: 6),
-                      Text(
-                        widget.extraInfo!, 
-                        style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold),
-                      ),
-                    ]
-                  ],
-                ),
-              ],
+                  ),
+                  const SizedBox(width: 12),
+
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.mainText, 
+                          maxLines: 2, 
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 15, 
+                            fontWeight: FontWeight.bold, 
+                            color: AppData.primaryColor, 
+                          ),
+                        ),
+                        Text(
+                          widget.subText,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 13, 
+                            fontWeight: FontWeight.w500, 
+                            color: Colors.black87 
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Text(
+                              widget.episodeLabel, 
+                              style: const TextStyle(
+                                fontSize: 13, 
+                                fontWeight: FontWeight.w600, 
+                                color: AppData.accentColor
+                              ),
+                            ),
+                            if (widget.extraInfo != null) ...[
+                              const SizedBox(width: 6),
+                              const Icon(Icons.circle, size: 4, color: Colors.grey),
+                              const SizedBox(width: 6),
+                              Text(
+                                widget.extraInfo!, 
+                                style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold),
+                              ),
+                            ]
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
 
+          // --- PARTE 2: AZIONE (Check o Giorni) ---
           if (widget.isUpcoming && widget.daysLeft != null)
             Padding(
               padding: const EdgeInsets.only(right: 16, left: 8),
@@ -501,34 +579,29 @@ class _WatchingEpisodeCardState extends State<WatchingEpisodeCard> {
             )
           else if (!widget.isUpcoming)
             if (widget.onCheckTap == null) 
-                // Se la funzione è null (significa episodio futuro in Watching Tab), nascondi tutto o metti un'icona di attesa
                 Padding(
-                  padding: EdgeInsets.only(right: 17), // Spazio vuoto o icona
+                  padding: const EdgeInsets.only(right: 17), 
                   child: Icon(Icons.schedule, color: Colors.grey[400], size: 36),
                 )
             else
               Padding(
                 padding: const EdgeInsets.only(right: 16),
                 child: InkWell(
-                  onTap: _handleCheck, // Chiama la nostra funzione locale
+                  onTap: _handleCheck, 
                   borderRadius: BorderRadius.circular(30),
-                  // Usiamo AnimatedContainer per un cambio colore fluido
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 300),
                     width: 36, 
                     height: 36,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      // Se _isChecking è true (cliccato) -> Accent, altrimenti -> Grigio chiaro (come richiesto)
-                      color: _isChecking ? AppData.accentColor : Colors.grey[200], 
+                      color: _isChecking ? AppData.accentColor : Colors.grey[300], 
                       border: Border.all(
-                        // Bordo cambia colore o rimane grigio? Qui li metto coerenti con lo sfondo
                         color: _isChecking ? AppData.accentColor : Colors.grey.shade400, 
                       )
                     ),
                     child: Icon(
                       Icons.check, 
-                      // Icona diventa bianca su sfondo colorato
                       color: _isChecking ? Colors.white : Colors.grey[500], 
                       size: 20
                     ),

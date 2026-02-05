@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:seriestime/screens/season_tile.dart';
+import 'package:seriestime/screens/season_tile_screen.dart';
 import 'package:seriestime/models/tv_show_details.dart';
 import '../models/appdata.dart'; // Assicurati che il percorso sia corretto
 import 'all_cast_screen.dart';
@@ -340,118 +340,137 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> with SingleTick
 
           // 2. OVERVIEW SECTION
           _buildSectionTitle("Overview", primaryTextColor),
-           _buildInfoCard(
+          _buildInfoCard(
             children: [
-               Text(_details!.overview.isNotEmpty ? _details!.overview : "No overview available.", style: TextStyle(color: Colors.grey[800], height: 1.4)),
+              Text(_details!.overview.isNotEmpty ? _details!.overview : "No overview available.", style: TextStyle(color: Colors.grey[800], height: 1.4)),
             ]
-           ),
+          ),
 
-          // 3. CAST SECTION (Top Cast con Card Bianche)
-          _buildSectionTitle("Top Cast", primaryTextColor),
+          // 3. CAST SECTION (Top Cast)
           
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // 1. Lista Attori (Card Bianca)
-                ..._details!.cast.take(10).map((actor) {
+          
+
+          if (_details!.cast.isNotEmpty) ... [
+            _buildSectionTitle("Top Cast", primaryTextColor),
+            SizedBox(
+              height: 215, // Definisce l'altezza totale della striscia (Card completa)
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                // Se ci sono più di 10 attori, aggiungiamo 1 alla lunghezza per il tasto "View All"
+                itemCount: _details!.cast.take(10).length + (_details!.cast.length > 10 ? 1 : 0),
+                itemBuilder: (context, index) {
+                  
+                  // --- TASTO VIEW ALL (Ultimo elemento) ---
+                  if (index == 10 || index == _details!.cast.length) {
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => AllCastScreen(
+                              fullCast: _details!.cast, 
+                              seriesName: _details!.name
+                            ),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        width: 50,
+                        margin: const EdgeInsets.only(left: 8, right: 8),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              child: const Icon(Icons.arrow_forward, color: AppData.primaryColor, size: 20),
+                            ),
+                            const Text(
+                              "View All",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: AppData.primaryColor,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12
+                              ),
+                            )
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+
+                  // --- CARD ATTORE (Stile identico a AllCastScreen) ---
+                  final actor = _details!.cast[index];
+                  
                   return Container(
-                    width: 100,
-                    margin: const EdgeInsets.only(right: 12),
-                    // --- MODIFICA: Decorazione Card Bianca ---
-                    padding: const EdgeInsets.all(4), // Spaziatura interna per effetto cornice
+                    width: 115,
+                    // Aumentiamo leggermente l'altezza totale da 210 a 220 per stare comodi con 4 righe di testo totali
+                    // Ricordati di cambiare anche l'altezza del SizedBox padre a 220!
+                    // height: 220, 
+                    
+                    margin: const EdgeInsets.only(right: 10, bottom: 4),
+                    padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
-                      color: AppData.whiteColor, // Sfondo bianco
-                      borderRadius: BorderRadius.circular(12), // Bordi arrotondati container
+                      color: AppData.whiteColor,
+                      borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(color: Colors.black.withAlpha(13), blurRadius: 4, offset: const Offset(0, 2))
                       ],
                     ),
-                    // ----------------------------------------
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.start,
                       children: [
-                        // Foto Attore
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(8), // Radius leggermente ridotto per stare dentro il container
-                          child: actor.profileUrl != null
-                              ? Image.network(actor.profileUrl!, height: 110, width: double.infinity, fit: BoxFit.cover)
-                              : Container(height: 110, width: double.infinity, color: Colors.grey[300], child: Icon(Icons.person, color: Colors.grey[600])),
-                        ),
-                        const SizedBox(height: 6),
-                        
-                        // Nome Attore
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 2),
-                          child: Text(
-                            actor.name, 
-                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: primaryTextColor), 
-                            maxLines: 1, 
-                            overflow: TextOverflow.ellipsis, 
-                            textAlign: TextAlign.center
+                        // 1. FOTO (Fissa)
+                        SizedBox( 
+                          height: 135, 
+                          width: double.infinity,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: actor.profileUrl != null
+                                ? Image.network(actor.profileUrl!, fit: BoxFit.cover)
+                                : Container(color: Colors.grey[300], child: const Icon(Icons.person, color: Colors.grey, size: 105)),
                           ),
                         ),
                         
-                        // Ruolo
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 2),
-                          child: Text(
-                            actor.characterName, 
-                            style: TextStyle(fontSize: 11, color: Colors.grey[600]), 
-                            maxLines: 5,  
-                            overflow: TextOverflow.ellipsis, 
-                            textAlign: TextAlign.center
+                        const SizedBox(height: 4),
+                        
+                        // 2. TESTI (Ottimizzati)
+                        // Nome Attore: Permettiamo 2 righe
+                        Text(
+                          actor.name,
+                          maxLines: 2, // <--- MODIFICA: Da 1 a 2 righe
+                          overflow: TextOverflow.ellipsis, 
+                          style: const TextStyle(
+                            fontSize: 12, 
+                            fontWeight: FontWeight.bold, 
+                            color: AppData.primaryColor,
+                            height: 1.1 // Line height stretto per risparmiare spazio
                           ),
+                          textAlign: TextAlign.center,
                         ),
-                        const SizedBox(height: 4), // Spaziatura finale
+                        
+                        const SizedBox(height: 4),
+
+                        // Nome Personaggio: Permettiamo 2 righe
+                        Text(
+                          actor.characterName,
+                          maxLines: 4, 
+                          overflow: TextOverflow.ellipsis, 
+                          style: TextStyle(
+                            fontSize: 10, 
+                            color: Colors.grey[600],
+                            height: 1.1
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
                       ],
                     ),
                   );
-                }),
-
-                // 2. Bottone "View All" (Stile Uniformato)
-                if (_details!.cast.length > 10)
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => AllCastScreen(
-                            fullCast: _details!.cast, 
-                            seriesName: _details!.name
-                          ),
-                        ),
-                      );
-                    },
-                    child: Container(
-                      width: 50,
-                      height: 150, 
-                      margin: const EdgeInsets.only(right: 12),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(10),
-                            child: const Icon(Icons.arrow_forward, color: AppData.primaryColor, size: 20),
-                          ),
-                          const Text(
-                            "View All",
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: AppData.primaryColor,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12
-                            ),
-                          )
-                        ],
-                      ),
-                    ),
-                  ),
-              ],
+                },
+              ),
             ),
-          ),
+          ],
 
           // 4. WHERE TO WATCH & RATING (Affiancati)
           Row(

@@ -335,7 +335,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                               color: textColor, // Primary
                               height: 1.1,
                             ),
-                            maxLines: 2,
+                            maxLines: 3,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),

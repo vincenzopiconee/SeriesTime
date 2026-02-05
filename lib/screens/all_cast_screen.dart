@@ -43,14 +43,13 @@ class _AllCastScreenState extends State<AllCastScreen> {
       body: Scrollbar(
         controller: _scrollController, 
         thumbVisibility: true,         
-        thickness: 8.0,                
         radius: const Radius.circular(10),
         child: GridView.builder(
           controller: _scrollController, 
           padding: const EdgeInsets.all(16),
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 3, 
-            childAspectRatio: 0.47, // Leggermente ridotto per compensare il padding della card
+            childAspectRatio: 0.53, // Leggermente ridotto per compensare il padding della card
             crossAxisSpacing: 10,
             mainAxisSpacing: 16,
           ),
@@ -69,48 +68,44 @@ class _AllCastScreenState extends State<AllCastScreen> {
                 ]
               ),
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.start, 
                 children: [
-                  AspectRatio(
-                    aspectRatio: 3 / 4, 
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(8), // Radius interno (8 vs 12 esterno)
-                      child: actor.profileUrl != null
-                          ? Image.network(
-                              actor.profileUrl!,
-                              fit: BoxFit.cover,
-                              width: double.infinity,
-                            )
-                          : Container(
-                              color: Colors.grey[300],
-                              width: double.infinity,
-                              child: Icon(Icons.person, color: Colors.grey[600], size: 40),
-                            ),
-                    ),
+                  SizedBox( 
+                        height: 135, 
+                        width: double.infinity,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: actor.profileUrl != null
+                              ? Image.network(actor.profileUrl!, fit: BoxFit.cover)
+                              : Container(color: Colors.grey[300], child: const Icon(Icons.person, color: Colors.grey, size: 105)),
+                        ),
+                      ),
+
+                  const SizedBox(height: 4),
+                  
+                  Text(
+                    actor.name,
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppData.primaryColor),
+                    maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center,
                   ),
 
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 4),
                   
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 2),
-                    child: Text(
-                      actor.name,
-                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppData.primaryColor),
-                      maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center,
+                  Text(
+                    actor.characterName,
+                    maxLines: 4, 
+                    overflow: TextOverflow.ellipsis, 
+                    style: TextStyle(
+                      fontSize: 10, 
+                      color: Colors.grey[600],
+                      height: 1.1
                     ),
-                  ),
-                  
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 2),
-                    child: Text(
-                      actor.characterName,
-                      style: TextStyle(fontSize: 11, color: Colors.grey[600]),
-                      maxLines: 4, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center,
-                    ),
+                    textAlign: TextAlign.center,
                   ),
                 ],
               ),
             );
+
+            
             // --- FINE CARD BIANCA ---
           },
         ),

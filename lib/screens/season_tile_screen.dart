@@ -6,6 +6,7 @@ import 'package:seriestime/models/appdata.dart';
 import 'package:seriestime/models/tv_show_details.dart';
 import 'package:cloud_firestore/cloud_firestore.dart'; // Import necessario
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:seriestime/screens/episode_detail_screen.dart';
 
 const String apiKey = "0cbb1da4932d8722fcddf451692e1b2e"; 
 
@@ -126,10 +127,8 @@ class _SeasonTileState extends State<SeasonTile> {
       try {
         DateTime airDate = DateTime.parse(episode.airDate!);
         DateTime now = DateTime.now();
-        // Normalizziamo 'oggi' a mezzanotte per confrontare solo i giorni
         DateTime today = DateTime(now.year, now.month, now.day);
         
-        // Se la data è DOPO oggi, è nel futuro.
         if (airDate.isAfter(today)) {
           isFuture = true;
         }
@@ -138,13 +137,11 @@ class _SeasonTileState extends State<SeasonTile> {
       }
     }
 
-    // Avvolgiamo tutto nello StreamBuilder per ascoltare Firestore
     return StreamBuilder<DocumentSnapshot>(
       stream: _getEpisodeStream(episode.episodeNumber),
       builder: (context, snapshot) {
         
         bool isWatched = false;
-        // Se il documento esiste e ha il campo 'watched' a true
         if (snapshot.hasData && snapshot.data!.exists) {
           final data = snapshot.data!.data() as Map<String, dynamic>;
           isWatched = data['watched'] ?? false;
@@ -161,58 +158,79 @@ class _SeasonTileState extends State<SeasonTile> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center, 
             children: [
-              // 1. Immagine
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: episode.stillUrl != null
-                    ? Image.network(episode.stillUrl!, width: 80, height: 45, fit: BoxFit.cover)
-                    : Container(width: 80, height: 45, color: Colors.grey[300], child: const Icon(Icons.image, size: 20, color: Colors.grey)),
-              ),
-              const SizedBox(width: 12),
-              
-              // 2. Info Testuali
+              // --- PARTE CLICCABILE (Navigazione) ---
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          "Ep ${episode.episodeNumber}",
-                          style: const TextStyle(fontSize: 11, color: AppData.primaryColor, fontWeight: FontWeight.bold),
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque, // Prende il tocco anche sugli spazi vuoti
+                  onTap: () {
+                    // NAVIGAZIONE ALLA NUOVA PAGINA
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => EpisodeDetailScreen(
+                          seriesId: widget.seriesId,
+                          seriesName: widget.seriesName,
+                          seasonNumber: widget.season.seasonNumber,
+                          episode: episode,
                         ),
-                        Text(
-                          dateLabel,
-                          style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      episode.name,
-                      style: const TextStyle(
-                        fontSize: 14, 
-                        fontWeight: FontWeight.w600, 
-                        color: Colors.black87,
-                        height: 1.2,
                       ),
-                    ),
-                  ],
+                    );
+                  },
+                  child: Row(
+                    children: [
+                      // 1. Immagine
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: episode.stillUrl != null
+                            ? Image.network(episode.stillUrl!, width: 80, height: 45, fit: BoxFit.cover)
+                            : Container(width: 80, height: 45, color: Colors.grey[300], child: const Icon(Icons.image, size: 20, color: Colors.grey)),
+                      ),
+                      const SizedBox(width: 12),
+                      
+                      // 2. Info Testuali
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Row(
+                              children: [
+                                Text(
+                                  "Ep ${episode.episodeNumber}",
+                                  style: const TextStyle(fontSize: 11, color: AppData.primaryColor, fontWeight: FontWeight.bold),
+                                ),
+                                Text(
+                                  dateLabel,
+                                  style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.bold),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              episode.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 14, 
+                                fontWeight: FontWeight.w600, 
+                                color: Colors.black87,
+                                height: 1.2,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
               
               const SizedBox(width: 8),
 
-              // 3. LOGICA TOGGLE
+              // 3. LOGICA TOGGLE (Rimane fuori dalla navigazione)
               if (isFuture) 
-                // CASO A: EPISODIO FUTURO -> Nessun bottone o icona lucchetto/orologio
-                const Padding(
-                  padding: EdgeInsets.only(right: 8.0),
-                  child: Icon(Icons.access_time, size: 20, color: Colors.grey),
-                )
+                Icon(Icons.schedule, size: 36, color: Colors.grey[400])
               else
-              // CASO B: EPISODIO USCITO -> Bottone funzionante
                 InkWell(
                   onTap: () {                  
                     AppData.toggleEpisodeWatched(
@@ -221,7 +239,7 @@ class _SeasonTileState extends State<SeasonTile> {
                       seasonNum: widget.season.seasonNumber,
                       episodeNum: episode.episodeNumber,
                       episodeTitle: episode.name,
-                      isWatched: !isWatched, // Passiamo il valore opposto a quello attuale
+                      isWatched: !isWatched, 
                     );
                   },
                   borderRadius: BorderRadius.circular(30),
@@ -230,7 +248,7 @@ class _SeasonTileState extends State<SeasonTile> {
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: isWatched ? AppData.accentColor : Colors.grey[200],
+                      color: isWatched ? AppData.accentColor : Colors.grey[300],
                       border: Border.all(
                         color: isWatched ? AppData.accentColor : Colors.grey.shade400,
                       )
