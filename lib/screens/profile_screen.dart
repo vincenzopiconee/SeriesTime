@@ -27,7 +27,7 @@ class ProfileScreen extends StatelessWidget {
                 appBar: AppBar(
                   backgroundColor: AppData.primaryColor,
                   elevation: 0,
-                  title: Text(
+                  title: const Text(
                     "Profile",
                     style: TextStyle(
                       fontSize: 24, 
@@ -35,20 +35,23 @@ class ProfileScreen extends StatelessWidget {
                       color: AppData.whiteColor
                     ),
                   ),
+                  centerTitle: true,
                 ),
                 body: const Center(child: CircularProgressIndicator(color: AppData.primaryColor)),
               );
             }
 
-            final userData = userSnapshot.data!.data() as Map<String, dynamic>;
+            // Controllo di sicurezza: se i dati sono nulli (es. logout in corso), mostra caricamento
+            if (userSnapshot.data!.data() == null) {
+               return const Scaffold(
+                body: Center(child: CircularProgressIndicator(color: AppData.primaryColor)),
+              );
+            }
 
-            //double computedGlobalHours = 0;
+            final userData = userSnapshot.data!.data() as Map<String, dynamic>;
 
             AppData.userSeries = seriesSnapshot.data!.docs.map((doc) {
               final sData = doc.data() as Map<String, dynamic>;
-
-              AppData.syncSeriesTotalHours(doc.id);
-
               return Series(
                 id: sData['id'] ?? 0,
                 name: doc.id,
@@ -93,7 +96,7 @@ class ProfileScreen extends StatelessWidget {
                 backgroundColor: AppData.primaryColor,
                 elevation: 0,
                 scrolledUnderElevation: 0,
-                title: Text(
+                title: const Text(
                 "Profile",
                   style: TextStyle(
                     fontSize: 24, 
@@ -101,6 +104,7 @@ class ProfileScreen extends StatelessWidget {
                     color: AppData.whiteColor
                   ),
                 ),
+                centerTitle: true,
                 actions: [
                   IconButton(
                     icon: const Icon(Icons.settings, color: AppData.whiteColor),
@@ -279,7 +283,7 @@ class ProfileScreen extends StatelessWidget {
   }
 
   Widget _buildEmptyBadgesMessage() {
-    return Center(
+    return const Center(
       child: Text(
         "Keep watching to unlock badges!",
       ),

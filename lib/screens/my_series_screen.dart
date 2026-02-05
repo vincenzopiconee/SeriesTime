@@ -111,6 +111,7 @@ class _MySeriesScreenState extends State<MySeriesScreen> {
                   color: AppData.whiteColor
                 ),
               ),
+              centerTitle: true,
             ),
             body: const Center(child: CircularProgressIndicator(color: AppData.primaryColor)),
           );
@@ -154,6 +155,7 @@ class _MySeriesScreenState extends State<MySeriesScreen> {
                   color: AppData.whiteColor
                 ),
               ),
+              centerTitle: true,
               bottom: PreferredSize(
                 preferredSize: const Size.fromHeight(48.0), 
                 child: Container(

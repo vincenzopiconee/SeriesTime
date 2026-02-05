@@ -12,10 +12,9 @@ import 'screens/explore_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  SystemChrome.setEnabledSystemUIMode(
-    SystemUiMode.immersiveSticky,
-  ); //disable the bottom android navigation bar
-  //await AppData.initializeData();
+  
+  // Questa modalità rende le barre di sistema trasparenti ma visibili
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 

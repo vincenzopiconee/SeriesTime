@@ -153,6 +153,7 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> with SingleTick
                 color: Colors.white, 
                 onPressed: () => Navigator.pop(context)
               ),
+              centerTitle: true,
               flexibleSpace: FlexibleSpaceBar(
                 background: _buildHeader(primary, accent, headerHeight, screenWidth),
               ),
@@ -320,7 +321,7 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> with SingleTick
   // --- INFO TAB CONTENT ---
   Widget _buildInfoTab(Color primaryTextColor) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -588,17 +589,17 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> with SingleTick
     if (_details!.seasons.isEmpty) {
       return const Center(child: Text("No seasons information available."));
     }
-    return ListView.builder(
-      
-      padding: const EdgeInsets.only(top: 10, bottom: 40),
-      itemCount: _details!.seasons.length,
-      itemBuilder: (context, index) {
-        return SeasonTile(
-          seriesId: widget.seriesId,
-          seriesName: _details!.name,
-          season: _details!.seasons[index],
-        );
-      },
+    return SingleChildScrollView(
+      padding: const EdgeInsets.only(top: 10, bottom: 35),
+      child: Column(
+        children: _details!.seasons.map((season) {
+          return SeasonTile(
+            seriesId: widget.seriesId,
+            seriesName: _details!.name,
+            season: season,
+          );
+        }).toList(),
+      ),
     );
   }
 }

@@ -118,140 +118,151 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Uso i colori definiti in AppData
-    // Se necessario, AppData.backgroundColor per lo sfondo generale è già nel main theme
-
     return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            const SizedBox(height: 10),
-            
-            // --- SEARCH BAR ---
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Container(
-                height: 50,
-                decoration: BoxDecoration(
-                  color: AppData.whiteColor,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey.shade300), 
-                  boxShadow: [
-                    BoxShadow(color: Colors.black.withAlpha(13), blurRadius: 4, offset: const Offset(0, 2))
-                  ]
-                ),
-                child: TextField(
-                  controller: _searchController,
-                  onChanged: _onSearchChanged,
-                  textInputAction: TextInputAction.search,
-                  decoration: InputDecoration(
-                    hintText: "Search TV Series...",
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                    prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                    suffixIcon: _searchController.text.isNotEmpty 
-                      ? IconButton(
-                          icon: const Icon(Icons.close),
-                          onPressed: () {
-                            _searchController.clear();
-                            _fetchShows(""); 
-                          },
-                        )
-                      : null,
-                  ),
+      backgroundColor: AppData.backgroundColor,
+      // --- NUOVA APP BAR ---
+      appBar: AppBar(
+        backgroundColor: AppData.primaryColor,
+        elevation: 0,
+        scrolledUnderElevation: 0, // Mantiene il colore flat quando scorri
+        title: const Text(
+          "Explore",
+          style: TextStyle(
+            fontSize: 24, 
+            fontWeight: FontWeight.w600, 
+            color: AppData.whiteColor
+          ),
+        ),
+        centerTitle: true,
+      ),
+      // --------------------
+      body: Column(
+        children: [
+          const SizedBox(height: 16), // Spazio tra AppBar e SearchBar
+          
+          // --- SEARCH BAR ---
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Container(
+              height: 50,
+              decoration: BoxDecoration(
+                color: AppData.whiteColor,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey.shade300), 
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withAlpha(13), blurRadius: 4, offset: const Offset(0, 2))
+                ]
+              ),
+              child: TextField(
+                controller: _searchController,
+                onChanged: _onSearchChanged,
+                textInputAction: TextInputAction.search,
+                decoration: InputDecoration(
+                  hintText: "Search TV Series...",
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                  prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                  suffixIcon: _searchController.text.isNotEmpty 
+                    ? IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () {
+                          _searchController.clear();
+                          _fetchShows(""); 
+                        },
+                      )
+                    : null,
                 ),
               ),
             ),
+          ),
 
-            const SizedBox(height: 15),
+          const SizedBox(height: 15),
 
-            // --- GENRE FILTERS (CHIPS) ---
-            SizedBox(
-              height: 40,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: _availableGenres.length,
-                itemBuilder: (context, index) {
-                  final genre = _availableGenres[index];
-                  final isSelected = _selectedGenreId == genre.id;
+          // --- GENRE FILTERS (CHIPS) ---
+          SizedBox(
+            height: 40,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: _availableGenres.length,
+              itemBuilder: (context, index) {
+                final genre = _availableGenres[index];
+                final isSelected = _selectedGenreId == genre.id;
 
-                  return GestureDetector(
-                    onTap: () => _onGenreTap(genre.id),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      margin: const EdgeInsets.only(right: 10),
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                      decoration: BoxDecoration(
-                        // Accent color per le chips (Primary se selezionato per stacco visivo)
-                        color: isSelected ? AppData.accentColor: Colors.grey[400], 
-                        borderRadius: BorderRadius.circular(20),
-                        //border: isSelected ? Border.all(color: AppData.primaryColor, width: 2) : null,
-                      ),
-                      child: Center(
-                        child: Text(
-                          genre.name,
-                          style: const TextStyle(
-                            color: AppData.whiteColor, // Testo bianco su sfondo scuro (Accent/Primary)
-                            fontWeight: FontWeight.w600,
-                            fontSize: 13
-                          ),
+                return GestureDetector(
+                  onTap: () => _onGenreTap(genre.id),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    margin: const EdgeInsets.only(right: 10),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    decoration: BoxDecoration(
+                      // Accent color per le chips (Primary se selezionato per stacco visivo)
+                      color: isSelected ? AppData.accentColor: Colors.grey[400], 
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Center(
+                      child: Text(
+                        genre.name,
+                        style: const TextStyle(
+                          color: AppData.whiteColor, // Testo bianco su sfondo scuro
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13
                         ),
                       ),
                     ),
-                  );
-                },
-              ),
-            ),
-
-            const SizedBox(height: 10),
-            
-            // Titolo Sezione
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  _searchController.text.isEmpty 
-                      ? (_selectedGenreId == null ? "Trending Now" : "Popular in ${_availableGenres.firstWhere((g) => g.id == _selectedGenreId).name}")
-                      : "Search Results",
-                  style: const TextStyle(
-                    fontSize: 18, 
-                    fontWeight: FontWeight.bold,
-                    color: AppData.primaryColor // Primary color per i titoli
                   ),
+                );
+              },
+            ),
+          ),
+
+          const SizedBox(height: 10),
+          
+          // Titolo Sezione
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                _searchController.text.isEmpty 
+                    ? (_selectedGenreId == null ? "Trending Now" : "Popular in ${_availableGenres.firstWhere((g) => g.id == _selectedGenreId).name}")
+                    : "Search Results",
+                style: const TextStyle(
+                  fontSize: 18, 
+                  fontWeight: FontWeight.bold,
+                  color: AppData.primaryColor // Primary color per i titoli
                 ),
               ),
             ),
+          ),
 
-            // --- RESULTS LIST ---
-            Expanded(
-              child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : _shows.isEmpty 
-                      ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.tv_off, size: 60, color: Colors.grey[400]),
-                              const SizedBox(height: 10),
-                              Text(
-                                "No series found matching criteria",
-                                style: TextStyle(color: Colors.grey[600], fontSize: 16),
-                              ),
-                            ],
-                          ),
-                        )
-                      : ListView.builder(
-                          padding: const EdgeInsets.only(top: 5, bottom: 20),
-                          itemCount: _shows.length,
-                          itemBuilder: (context, index) {
-                            return _buildShowCard(_shows[index]);
-                          },
+          // --- RESULTS LIST ---
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _shows.isEmpty 
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.tv_off, size: 60, color: Colors.grey[400]),
+                            const SizedBox(height: 10),
+                            Text(
+                              "No series found matching criteria",
+                              style: TextStyle(color: Colors.grey[600], fontSize: 16),
+                            ),
+                          ],
                         ),
-            ),
-          ],
-        ),
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.only(top: 5, bottom: 90),
+                        itemCount: _shows.length,
+                        itemBuilder: (context, index) {
+                          return _buildShowCard(_shows[index]);
+                        },
+                      ),
+          ),
+        ],
       ),
     );
   }
@@ -261,12 +272,11 @@ class _ExploreScreenState extends State<ExploreScreen> {
     const double imgWidth = cardHeight * 0.68; 
     
     // Colori da AppData
-    const Color borderColor = AppData.accentColor; // Accent color per il bordo della card
-    const Color textColor = AppData.primaryColor; // Primary color per i testi
+    const Color borderColor = AppData.accentColor; 
+    const Color textColor = AppData.primaryColor; 
 
     return GestureDetector(
       onTap: () {
-        // Naviga alla schermata di dettaglio passando l'ID e il nome (per l'appbar temporanea)
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -278,9 +288,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
         height: cardHeight,
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: AppData.whiteColor, // Sfondo chiaro per leggibilità testo
+          color: AppData.whiteColor, 
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: borderColor, width: 2.0), // Bordo Accent come da richiesta
+          border: Border.all(color: borderColor, width: 2.0), 
           boxShadow: [
             BoxShadow(
               color: Colors.black.withAlpha(26),
@@ -332,7 +342,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                             style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              color: textColor, // Primary
+                              color: textColor, 
                               height: 1.1,
                             ),
                             maxLines: 3,
@@ -375,7 +385,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                             style: const TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
-                              color: textColor, // Primary per altre scritte
+                              color: textColor, 
                             ),
                           ),
                           const SizedBox(width: 8),
@@ -387,7 +397,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                             show.year,
                             style: const TextStyle(
                               fontSize: 13,
-                              color: textColor, // Primary per altre scritte
+                              color: textColor, 
                               fontStyle: FontStyle.italic,
                             ),
                           ),
@@ -402,7 +412,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                           show.overview,
                           style: TextStyle(
                             fontSize: 13,
-                            color: Colors.grey[800], // Overview meglio in grigio scuro per leggibilità lunga
+                            color: Colors.grey[800], 
                             height: 1.2,
                           ),
                           maxLines: 3,
@@ -418,7 +428,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                       show.genres.isNotEmpty ? show.genres.join(", ") : "No genres",
                       style: const TextStyle(
                         fontSize: 11,
-                        color: textColor, // Primary per altre scritte
+                        color: textColor, 
                         fontWeight: FontWeight.w600,
                       ),
                       maxLines: 1,

@@ -37,6 +37,7 @@ class EpisodeDetailScreen extends StatelessWidget {
             ),
           ),
         ),
+        centerTitle: true,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: SingleChildScrollView(
