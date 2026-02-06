@@ -65,7 +65,6 @@ class BingeModeScreen extends StatelessWidget {
             double progressMarathoner =
                 realTotalHours / targetMarathoner.targetHours;
             if (progressMarathoner > 1.0) progressMarathoner = 1.0;
-            bool isMarathonerFinished = realTotalHours >= 2400;
 
             final UserBadge targetObsession = AppData.getObsessionTarget(
               user.maxConsecutiveHours,
@@ -73,7 +72,6 @@ class BingeModeScreen extends StatelessWidget {
             double progressObsession =
                 user.maxConsecutiveHours / targetObsession.targetHours;
             if (progressObsession > 1.0) progressObsession = 1.0;
-            bool isObsessionFinished = user.maxConsecutiveHours >= 20;
 
             final UserBadge targetWeekend = AppData.getWeekendTarget(
               user.weekendHours,
@@ -81,14 +79,12 @@ class BingeModeScreen extends StatelessWidget {
             double progressWeekend =
                 user.weekendHours / targetWeekend.targetHours;
             if (progressWeekend > 1.0) progressWeekend = 1.0;
-            bool isWeekendFinished = user.weekendHours >= 48;
             final UserBadge targetStreak = AppData.getStreakTarget(
               user.seriesStreak.toDouble(),
             );
             double progressStreak =
                 user.seriesStreak / targetStreak.targetHours;
             if (progressStreak > 1.0) progressStreak = 1.0;
-            bool isStreakFinished = user.seriesStreak >= 365;
 
             int completedCount = AppData.userSeries
                 .where((s) => s.percentage >= 1.0)
@@ -98,7 +94,6 @@ class BingeModeScreen extends StatelessWidget {
             );
             double progressComp = completedCount / targetComp.targetHours;
             if (progressComp > 1.0) progressComp = 1.0;
-            bool isCompFinished = completedCount >= 50;
 
             final UserBadge targetNightOwl = AppData.getNightOwlTarget(
               user.nightOwlHours,
@@ -106,7 +101,6 @@ class BingeModeScreen extends StatelessWidget {
             double progressNightOwl =
                 user.nightOwlHours / targetNightOwl.targetHours;
             if (progressNightOwl > 1.0) progressNightOwl = 1.0;
-            bool isNightOwlFinished = user.nightOwlHours >= 50;
             final UserBadge targetGenre = AppData.getGenreTarget(
               user.uniqueGenresCount,
             );
@@ -167,7 +161,7 @@ class BingeModeScreen extends StatelessWidget {
   }
 
   Widget _buildCompletedTab(User user, double totalHours, int completedCount) {
-    // Creiamo una lista globale di tutti i badge possibili esistenti nell'app
+    // list of all badges
     final allPossibleBadges = [
       ...AppData.marathonerMilestones,
       ...AppData.obsessionMilestones,
@@ -177,8 +171,7 @@ class BingeModeScreen extends StatelessWidget {
       ...AppData.nightOwlMilestones,
       ...AppData.genreMilestones,
     ];
-
-    // Filtriamo: tieni solo quelli il cui ID è nella lista 'claimedBadgeIds' del database
+    //take only the Claimed Badges
     final List<UserBadge> allClaimed = allPossibleBadges
         .where((badge) => user.claimedBadgeIds.contains(badge.id))
         .toList();
@@ -221,15 +214,13 @@ class BingeModeScreen extends StatelessWidget {
     Map<String, int> timeData,
     int completedCount,
   ) {
-    // Funzione interna per trovare il primo badge NON riscattato in una lista
     UserBadge _findCurrentTarget(
       List<UserBadge> milestones,
       double currentVal,
     ) {
       return milestones.firstWhere(
         (b) => !user.claimedBadgeIds.contains(b.id),
-        orElse: () => milestones
-            .last, // Se tutti riscattati, mostra l'ultimo (sarà filtrato dopo)
+        orElse: () => milestones.last,
       );
     }
 
@@ -267,7 +258,6 @@ class BingeModeScreen extends StatelessWidget {
       double currentProgress,
       String progressText,
     ) {
-      // Se l'ID è già stato riscattato, questa categoria di missioni è FINITA
       if (user.claimedBadgeIds.contains(target.id))
         return const SizedBox.shrink();
 
@@ -355,7 +345,6 @@ class BingeModeScreen extends StatelessWidget {
         ],
       ),
       child: Column(
-        // Cambiato in Column per ospitare il tasto sotto
         children: [
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
