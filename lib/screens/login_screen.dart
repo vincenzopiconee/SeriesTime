@@ -152,6 +152,7 @@ class _LoginScreenState extends State<LoginScreen> {
               : Opacity(
                   opacity: 0.4,
                   child: GridView.builder(
+                    padding: EdgeInsets.zero,
                     controller: _scrollController,
                     physics: const NeverScrollableScrollPhysics(),
                     gridDelegate:
