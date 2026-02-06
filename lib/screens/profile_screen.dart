@@ -21,20 +21,36 @@ class ProfileScreen extends StatelessWidget {
           stream: AppData.seriesStream(),
           builder: (context, seriesSnapshot) {
             if (!userSnapshot.hasData || !seriesSnapshot.hasData) {
-              return const Scaffold(
-                body: Center(child: CircularProgressIndicator()),
+              return Scaffold(
+                // AGGIUNTO: Mostriamo la AppBar anche durante il caricamento
+                appBar: AppBar(
+                  backgroundColor: AppData.primaryColor,
+                  elevation: 0,
+                  title: const Text(
+                    "Profile",
+                    style: TextStyle(
+                      fontSize: 24, 
+                      fontWeight: FontWeight.w600, 
+                      color: AppData.whiteColor
+                    ),
+                  ),
+                  centerTitle: true,
+                ),
+                body: const Center(child: CircularProgressIndicator(color: AppData.primaryColor)),
+              );
+            }
+
+            // Controllo di sicurezza: se i dati sono nulli (es. logout in corso), mostra caricamento
+            if (userSnapshot.data!.data() == null) {
+               return const Scaffold(
+                body: Center(child: CircularProgressIndicator(color: AppData.primaryColor)),
               );
             }
 
             final userData = userSnapshot.data!.data() as Map<String, dynamic>;
 
-            //double computedGlobalHours = 0;
-
             AppData.userSeries = seriesSnapshot.data!.docs.map((doc) {
               final sData = doc.data() as Map<String, dynamic>;
-
-              AppData.syncSeriesTotalHours(doc.id);
-
               return Series(
                 id: sData['id'] ?? 0,
                 name: doc.id,
@@ -83,14 +99,16 @@ class ProfileScreen extends StatelessWidget {
                 backgroundColor: AppData.primaryColor,
                 elevation: 0,
                 scrolledUnderElevation: 0,
-                title: Text(
-                  "Profile",
+
+                title: const Text(
+                "Profile",
                   style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w600,
-                    color: AppData.whiteColor,
+                    fontSize: 24, 
+                    fontWeight: FontWeight.w600, 
+                    color: AppData.whiteColor
                   ),
                 ),
+                centerTitle: true,
                 actions: [
                   IconButton(
                     icon: const Icon(Icons.settings, color: AppData.whiteColor),
@@ -270,7 +288,11 @@ class ProfileScreen extends StatelessWidget {
   }
 
   Widget _buildEmptyBadgesMessage() {
-    return Center(child: Text("Keep watching to unlock badges!"));
+    return const Center(
+      child: Text(
+        "Keep watching to unlock badges!",
+      ),
+    );
   }
 
   Widget _buildWatchTimeCard(int d, int h, int m) {
