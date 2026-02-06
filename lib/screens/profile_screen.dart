@@ -8,9 +8,52 @@ import '../models/userbadge.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as auth;
 import '../models/user.dart';
+import 'binge_mode_screen.dart';
+import 'all_badges_screen.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  ChartPeriod _selectedPeriod = ChartPeriod.year;
+  final Map<ChartPeriod, List<double>> _cachedChartData = {};
+  Future<List<double>>? _initialLoadFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    // Carichiamo inizialmente solo i dati dell'anno
+    _initialLoadFuture = AppData.getChartData(ChartPeriod.year).then((data) {
+      _cachedChartData[ChartPeriod.year] = data;
+      // Una volta caricato l'anno, avviamo il caricamento degli altri in background
+      _loadRemainingData();
+      return data;
+    });
+  }
+
+  void _loadRemainingData() async {
+    try {
+      // Carichiamo i dati mancanti
+      final results = await Future.wait([
+        AppData.getChartData(ChartPeriod.month),
+        AppData.getChartData(ChartPeriod.week),
+      ]);
+
+      // Verifichiamo che il widget sia ancora "vivo" prima di chiamare setState
+      if (mounted) {
+        setState(() {
+          _cachedChartData[ChartPeriod.month] = results[0];
+          _cachedChartData[ChartPeriod.week] = results[1];
+        });
+      }
+    } catch (e) {
+      debugPrint("Errore nel caricamento dati background: $e");
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,21 +72,25 @@ class ProfileScreen extends StatelessWidget {
                   title: const Text(
                     "Profile",
                     style: TextStyle(
-                      fontSize: 24, 
-                      fontWeight: FontWeight.w600, 
-                      color: AppData.whiteColor
+                      fontSize: 24,
+                      fontWeight: FontWeight.w600,
+                      color: AppData.whiteColor,
                     ),
                   ),
                   centerTitle: true,
                 ),
-                body: const Center(child: CircularProgressIndicator(color: AppData.primaryColor)),
+                body: const Center(
+                  child: CircularProgressIndicator(color: AppData.primaryColor),
+                ),
               );
             }
 
             // Controllo di sicurezza: se i dati sono nulli (es. logout in corso), mostra caricamento
             if (userSnapshot.data!.data() == null) {
-               return const Scaffold(
-                body: Center(child: CircularProgressIndicator(color: AppData.primaryColor)),
+              return const Scaffold(
+                body: Center(
+                  child: CircularProgressIndicator(color: AppData.primaryColor),
+                ),
               );
             }
 
@@ -101,11 +148,11 @@ class ProfileScreen extends StatelessWidget {
                 scrolledUnderElevation: 0,
 
                 title: const Text(
-                "Profile",
+                  "Profile",
                   style: TextStyle(
-                    fontSize: 24, 
-                    fontWeight: FontWeight.w600, 
-                    color: AppData.whiteColor
+                    fontSize: 24,
+                    fontWeight: FontWeight.w600,
+                    color: AppData.whiteColor,
                   ),
                 ),
                 centerTitle: true,
@@ -172,20 +219,22 @@ class ProfileScreen extends StatelessWidget {
                           const Text(
                             "Statistics Overview",
                             style: TextStyle(
+                              color: AppData.primaryColor,
                               fontWeight: FontWeight.bold,
-                              fontSize: 20,
+                              fontSize: 21,
                             ),
                           ),
                           const SizedBox(height: 15),
                           _buildWatchTimeCard(days, remainingHours, minutes),
                           const SizedBox(height: 20),
-                          _buildFakeChart(),
+                          _buildActivityChart(),
                         ],
                       ),
                     ),
 
                     const SizedBox(height: 30),
 
+                    // --- SEZIONE MY BADGES (SINCRONIZZATA CON BINGE MODE) ---
                     const Align(
                       alignment: Alignment.centerLeft,
                       child: Text(
@@ -200,19 +249,54 @@ class ProfileScreen extends StatelessWidget {
 
                     SizedBox(
                       height: 115,
-                      child: AppData.userBadges.isEmpty
-                          ? _buildEmptyBadgesMessage()
-                          : ListView.builder(
-                              scrollDirection: Axis.horizontal,
-                              itemCount: AppData.userBadges.length,
-                              itemBuilder: (context, index) {
-                                return _buildBadgeItem(
-                                  AppData.userBadges[index],
-                                );
-                              },
-                            ),
-                    ),
+                      child: Builder(
+                        builder: (context) {
+                          // Recuperiamo gli ID riscattati direttamente dai dati correnti dello snapshot
+                          final List<String> claimedIds = List<String>.from(
+                            userData['claimedBadgeIds'] ?? [],
+                          );
 
+                          // Creiamo la lista di TUTTI i singoli badge sbloccati (come in Binge Mode)
+                          final List<UserBadge> allClaimed =
+                              [
+                                    ...AppData.marathonerMilestones,
+                                    ...AppData.obsessionMilestones,
+                                    ...AppData.weekendMilestones,
+                                    ...AppData.streakMilestones,
+                                    ...AppData.completionistMilestones,
+                                    ...AppData.nightOwlMilestones,
+                                    ...AppData.genreMilestones,
+                                  ]
+                                  .where(
+                                    (badge) => claimedIds.contains(badge.id),
+                                  )
+                                  .toList();
+
+                          // Se la lista filtrata è vuota, mostriamo il messaggio
+                          if (allClaimed.isEmpty) {
+                            return _buildEmptyBadgesMessage();
+                          }
+
+                          // Altrimenti mostriamo la lista orizzontale con la freccia View All
+                          return ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            physics: const BouncingScrollPhysics(),
+                            // Limite a 3 badge + 1 posto per la freccia se ce ne sono di più
+                            itemCount: allClaimed.length > 4
+                                ? 5
+                                : allClaimed.length,
+                            itemBuilder: (context, index) {
+                              // Se abbiamo più di 3 badge e siamo all'indice 3, mostriamo la freccia
+                              if (allClaimed.length > 4 && index == 4) {
+                                return _buildViewAllBadgeButton();
+                              }
+                              return _buildBadgeItem(allClaimed[index]);
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                    // NOTA: Verifica che non ci sia più l'ElevatedButton "View More Badges" qui sotto
                     const SizedBox(height: 30),
 
                     const Align(
@@ -288,11 +372,7 @@ class ProfileScreen extends StatelessWidget {
   }
 
   Widget _buildEmptyBadgesMessage() {
-    return const Center(
-      child: Text(
-        "Keep watching to unlock badges!",
-      ),
-    );
+    return const Center(child: Text("Keep watching to unlock badges!"));
   }
 
   Widget _buildWatchTimeCard(int d, int h, int m) {
@@ -310,7 +390,7 @@ class ProfileScreen extends StatelessWidget {
             "Total Watch Time",
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: 16,
+              fontSize: 21,
               fontWeight: FontWeight.bold,
               color: AppData.primaryColor,
             ),
@@ -342,6 +422,7 @@ class ProfileScreen extends StatelessWidget {
       ),
       child: Row(
         children: [
+          // PARTE SINISTRA: Immagine
           Expanded(
             flex: 5,
             child: Container(
@@ -370,6 +451,7 @@ class ProfileScreen extends StatelessWidget {
               ),
             ),
           ),
+          // PARTE DESTRA: Percentuale e Ore (Ripristinata)
           Expanded(
             flex: 5,
             child: Column(
@@ -391,7 +473,7 @@ class ProfileScreen extends StatelessWidget {
                     Text(
                       "${(series.percentage * 100).toInt()}%",
                       style: const TextStyle(
-                        fontSize: 14,
+                        fontSize: 12,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -401,13 +483,13 @@ class ProfileScreen extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.access_time, size: 15, color: Colors.grey),
+                    const Icon(Icons.access_time, size: 14, color: Colors.grey),
                     const SizedBox(width: 3),
                     Text(
                       formattedTime,
                       style: const TextStyle(
                         color: Colors.grey,
-                        fontSize: 11,
+                        fontSize: 10,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -421,125 +503,308 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildFakeChart() {
-    final List<double> chartData = [
-      27,
-      35,
-      25,
-      23,
-      9,
-      35,
-      33,
-      3,
-      2,
-      12,
-      19,
-      19,
-    ];
-    final List<String> months = [
-      "Jan",
-      "Feb",
-      "Mar",
-      "Apr",
-      "May",
-      "Jun",
-      "Jul",
-      "Aug",
-      "Sep",
-      "Oct",
-      "Nov",
-      "Dic",
-    ];
+  Widget _buildActivityChart() {
+    // Ora containsKey funzionerà senza errori perché la mappa non è null
+    if (_cachedChartData.containsKey(_selectedPeriod)) {
+      return _drawChartContent(_cachedChartData[_selectedPeriod]!);
+    }
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: AppData.accentColor, width: 2),
-        borderRadius: BorderRadius.circular(25),
-      ),
-      child: Column(
-        children: [
-          const Text(
-            "Whatch Time Activity",
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Color(0xFF8B261A),
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
+    return FutureBuilder<List<double>>(
+      future: _initialLoadFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const SizedBox(
+            height: 200,
+            child: Center(
+              child: CircularProgressIndicator(color: AppData.primaryColor),
             ),
-          ),
-          const SizedBox(height: 25),
-          SizedBox(
-            height: 150,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          );
+        }
+
+        if (snapshot.hasData && snapshot.data != null) {
+          // Se i dati arrivano ma non sono ancora in cache per qualche motivo, li aggiungiamo
+          if (!_cachedChartData.containsKey(ChartPeriod.year)) {
+            _cachedChartData[ChartPeriod.year] = snapshot.data!;
+          }
+          return _drawChartContent(snapshot.data!);
+        }
+
+        return const SizedBox(
+          height: 200,
+          child: Center(child: Text("Loading activity data...")),
+        );
+      },
+    );
+  }
+
+  Widget _drawChartContent(List<double> chartData) {
+    // 1. Definiamo maxVal ALL'INIZIO della funzione
+    final double maxVal = chartData.isEmpty
+        ? 10.0
+        : chartData.reduce((a, b) => a > b ? a : b).clamp(5.0, double.infinity);
+
+    String subTitle = "";
+    if (_selectedPeriod == ChartPeriod.week)
+      subTitle = "Activity in the current week";
+    else if (_selectedPeriod == ChartPeriod.month)
+      subTitle = "Activity in current Month";
+    else
+      subTitle = "Activity in current Year";
+
+    List<String> labels = [];
+    if (_selectedPeriod == ChartPeriod.year) {
+      labels = [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+      ];
+    } else if (_selectedPeriod == ChartPeriod.week) {
+      DateTime now = DateTime.now();
+      labels = List.generate(7, (index) {
+        DateTime day = now.subtract(Duration(days: 6 - index));
+        return ["M", "T", "W", "T", "F", "S", "S"][day.weekday - 1];
+      });
+    } else {
+      labels = List.generate(chartData.length, (i) => (i + 1).toString());
+    }
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "Watch Activity",
+                    style: TextStyle(
+                      color: AppData.accentColor,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  Text(
+                    subTitle,
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: Colors.grey[200],
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  _periodButton("W", ChartPeriod.week),
+                  _periodButton("M", ChartPeriod.month),
+                  _periodButton("Y", ChartPeriod.year),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 30),
+        SizedBox(
+          height: 160,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              // SCALA Y CORRETTA (qui maxVal è riconosciuto)
+              Column(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    formatChartValue(maxVal),
+                    style: TextStyle(
+                      fontSize: 9,
+                      color: Colors.grey[400],
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    formatChartValue(maxVal / 2),
+                    style: TextStyle(
+                      fontSize: 9,
+                      color: Colors.grey[400],
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    "0h",
+                    style: TextStyle(
+                      fontSize: 9,
+                      color: Colors.grey[400],
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Stack(
                   children: [
-                    for (var i in [40, 30, 20, 10])
-                      Text(
-                        "$i",
-                        style: const TextStyle(
-                          fontSize: 10,
-                          color: Colors.grey,
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: List.generate(
+                        4,
+                        (index) => Divider(
+                          height: 1,
+                          color: Colors.grey[100],
+                          thickness: 1,
                         ),
                       ),
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: List.generate(chartData.length, (index) {
+                        double barHeight = (chartData[index] / maxVal) * 130;
+                        bool showLabel =
+                            _selectedPeriod != ChartPeriod.month ||
+                            (index + 1) % 5 == 0 ||
+                            index == 0;
+                        return Column(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            Container(
+                              width: _selectedPeriod == ChartPeriod.month
+                                  ? 4
+                                  : 12,
+                              height: barHeight.clamp(3.0, 130.0),
+                              decoration: BoxDecoration(
+                                color: chartData[index] > 0
+                                    ? AppData.primaryColor
+                                    : Colors.grey[200],
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            SizedBox(
+                              height: 12,
+                              child: showLabel
+                                  ? Text(
+                                      labels[index],
+                                      style: TextStyle(
+                                        fontSize: 8,
+                                        color: Colors.grey[600],
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    )
+                                  : const SizedBox.shrink(),
+                            ),
+                          ],
+                        );
+                      }),
+                    ),
                   ],
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Stack(
-                    children: [
-                      Column(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: List.generate(
-                          5,
-                          (index) => const Divider(
-                            height: 1,
-                            color: Color(0xFFE2E8F0),
-                          ),
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: List.generate(chartData.length, (index) {
-                            return Column(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                Container(
-                                  width: 10,
-                                  height: chartData[index] * 2.5,
-                                  decoration: BoxDecoration(
-                                    color: AppData.primaryColor,
-                                    borderRadius: BorderRadius.circular(1),
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  months[index],
-                                  style: const TextStyle(
-                                    fontSize: 8,
-                                    color: Colors.black87,
-                                  ),
-                                ),
-                              ],
-                            );
-                          }),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildViewAllBadgeButton() {
+    return GestureDetector(
+      onTap: () {
+        // 1. Ricreiamo la lista completa di tutti i badge sbloccati (come fatto nel build)
+        final List<UserBadge> allClaimed =
+            [
+                  ...AppData.marathonerMilestones,
+                  ...AppData.obsessionMilestones,
+                  ...AppData.weekendMilestones,
+                  ...AppData.streakMilestones,
+                  ...AppData.completionistMilestones,
+                  ...AppData.nightOwlMilestones,
+                  ...AppData.genreMilestones,
+                ]
+                .where(
+                  (badge) =>
+                      AppData.currentUser!.claimedBadgeIds.contains(badge.id),
+                )
+                .toList();
+
+        // 2. Navighiamo alla nuova pagina AllBadgesScreen
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const AllBadgesScreen()),
+        );
+      },
+      child: Container(
+        width: 70,
+        margin: const EdgeInsets.only(left: 10, right: 20),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: const [
+            Icon(
+              Icons.arrow_forward_ios,
+              color: AppData.primaryColor,
+              size: 24,
+            ),
+            SizedBox(height: 8),
+            Text(
+              "View All",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: AppData.primaryColor,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _periodButton(String label, ChartPeriod period) {
+    bool isSelected = _selectedPeriod == period;
+    return GestureDetector(
+      onTap: () => setState(() => _selectedPeriod = period),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.white : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : [],
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? AppData.primaryColor : Colors.grey[500],
+            fontWeight: FontWeight.w900,
+            fontSize: 12,
+          ),
+        ),
       ),
     );
   }
@@ -556,12 +821,16 @@ class ProfileScreen extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const SizedBox(height: 4),
-          Image.asset(
-            badge.imagePath,
-            height: 65,
-            width: 65,
-            fit: BoxFit.contain,
+          Transform.scale(
+            scale: badge.title == "Streak" || badge.title == "The Perfectionist"
+                ? 1.7
+                : 1.0,
+            child: Image.asset(
+              badge.imagePath,
+              height: 60,
+              width: 60,
+              fit: BoxFit.contain,
+            ),
           ),
           const SizedBox(height: 6),
           Text(
@@ -582,5 +851,16 @@ class ProfileScreen extends StatelessWidget {
     if (h == 0) return "${m}m";
     if (m == 0) return "${h}h";
     return "${h}h ${m}m";
+  }
+
+  String formatChartValue(double totalHours) {
+    if (totalHours <= 0) return "0h";
+    int d = (totalHours / 24).floor();
+    int h = (totalHours % 24).round();
+
+    if (d > 0) {
+      return "${d}d ${h}h";
+    }
+    return "${h}h";
   }
 }

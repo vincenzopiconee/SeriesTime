@@ -358,11 +358,16 @@ class BingeModeScreen extends StatelessWidget {
                   border: Border.all(color: AppData.accentColor, width: 1.5),
                 ),
                 child: Center(
-                  child: Image.asset(
-                    badge.imagePath,
-                    height: 60,
-                    width: 60,
-                    fit: BoxFit.contain,
+                  child: Transform.scale(
+                    scale: (title == "Streak" || title == "The Perfectionist")
+                        ? 1.7
+                        : 1.0,
+                    child: Image.asset(
+                      badge.imagePath,
+                      height: 60,
+                      width: 60,
+                      fit: BoxFit.contain,
+                    ),
                   ),
                 ),
               ),

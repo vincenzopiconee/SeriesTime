@@ -8,6 +8,8 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as auth;
 
+enum ChartPeriod { year, month, week }
+
 class AppData {
   static final FirebaseFirestore _db = FirebaseFirestore.instance;
   static const String tmdbApiKey = "1a4c56551c8917b157c4a6fdd2fca54d";
@@ -1452,5 +1454,75 @@ class AppData {
       debugPrint("Errore fetchNextEpisode per ID $seriesId: $e");
     }
     return null;
+  }
+
+  static Future<List<double>> getChartData(ChartPeriod period) async {
+    final user = auth.FirebaseAuth.instance.currentUser;
+    if (user == null) return [];
+
+    final now = DateTime.now();
+    List<double> dataPoints = [];
+
+    if (period == ChartPeriod.year) {
+      dataPoints = List.filled(12, 0.0);
+    } else if (period == ChartPeriod.month) {
+      int currentDay = now.day;
+      dataPoints = List.filled(currentDay, 0.0);
+    } else {
+      dataPoints = List.filled(7, 0.0);
+    }
+
+    try {
+      final seriesSnap = await _db
+          .collection('users')
+          .doc(user.uid)
+          .collection('series')
+          .get();
+      for (var seriesDoc in seriesSnap.docs) {
+        final seasonsSnap = await seriesDoc.reference
+            .collection('seasons')
+            .get();
+        for (var seasonDoc in seasonsSnap.docs) {
+          final episodesSnap = await seasonDoc.reference
+              .collection('episodes')
+              .where('watched', isEqualTo: true)
+              .get();
+
+          for (var epDoc in episodesSnap.docs) {
+            final data = epDoc.data();
+            if (data['timestamp'] == null) continue;
+
+            DateTime date = (data['timestamp'] as Timestamp).toDate();
+            double hours = (data['runtime'] ?? 0) / 60.0;
+
+            if (period == ChartPeriod.year && date.year == now.year) {
+              dataPoints[date.month - 1] += hours;
+            } else if (period == ChartPeriod.month &&
+                date.year == now.year &&
+                date.month == now.month) {
+              dataPoints[date.day - 1] += hours;
+            } else if (period == ChartPeriod.week) {
+              final diff = now.difference(date).inDays;
+              if (diff >= 0 && diff < 7) dataPoints[6 - diff] += hours;
+            }
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint("Errore: $e");
+    }
+    return dataPoints;
+  }
+
+  static Future<Map<ChartPeriod, List<double>>> getAllChartData() async {
+    final weekData = await getChartData(ChartPeriod.week);
+    final monthData = await getChartData(ChartPeriod.month);
+    final yearData = await getChartData(ChartPeriod.year);
+
+    return {
+      ChartPeriod.week: weekData,
+      ChartPeriod.month: monthData,
+      ChartPeriod.year: yearData,
+    };
   }
 }
