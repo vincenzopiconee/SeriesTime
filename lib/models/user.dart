@@ -3,7 +3,10 @@ class User {
   final double totalHoursWatched;
   final double maxConsecutiveHours;
   final double weekendHours;
-   bool notification;
+  final double nightOwlHours;
+  final int uniqueGenresCount;
+  List<String> claimedBadgeIds;
+  bool notification;
   final String? photoUrl;
   int seriesStreak;
   DateTime? lastViewDate;
@@ -13,6 +16,9 @@ class User {
     required this.totalHoursWatched,
     required this.maxConsecutiveHours,
     required this.weekendHours,
+    required this.nightOwlHours,
+    required this.uniqueGenresCount,
+    this.claimedBadgeIds = const [],
     required this.notification,
     this.photoUrl,
     this.seriesStreak = 0,

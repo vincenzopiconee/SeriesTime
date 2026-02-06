@@ -9,6 +9,7 @@ import 'models/appdata.dart';
 import 'screens/binge_mode_screen.dart';
 import 'package:flutter/services.dart';
 import 'screens/explore_screen.dart';
+import 'models/userbadge.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -57,6 +58,8 @@ class MainWrapper extends StatefulWidget {
 
 class _MainWrapperState extends State<MainWrapper> {
   int _selectedIndex = 0;
+  UserBadge? _lastNotifiedBadge;
+  bool _isBannerShowing = false;
 
   final List<Widget> _pages = [
     const ExploreScreen(),
@@ -64,13 +67,109 @@ class _MainWrapperState extends State<MainWrapper> {
     const BingeModeScreen(),
     const ProfileScreen(),
   ];
+  void _showClaimBanner(UserBadge badge) {
+    if (_isBannerShowing) return;
+    _isBannerShowing = true;
+    _lastNotifiedBadge = badge;
+
+    final overlay = Overlay.of(context);
+    late OverlayEntry overlayEntry;
+
+    overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        top: MediaQuery.of(context).padding.top + 20,
+        left: 15,
+        right: 15,
+        child: TweenAnimationBuilder<double>(
+          duration: const Duration(milliseconds: 500),
+          tween: Tween(begin: -100.0, end: 0.0),
+          curve: Curves.bounceOut,
+          builder: (context, value, child) =>
+              Transform.translate(offset: Offset(0, value), child: child),
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: AppData.accentColor,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black26,
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Image.asset(badge.imagePath, width: 65, height: 65),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          "New Reward Available!",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                          ),
+                        ),
+                        Text(
+                          "You have a badge ready to claim!",
+                          style: TextStyle(color: Colors.white70, fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    overlay.insert(overlayEntry);
+
+    Future.delayed(const Duration(seconds: 5), () {
+      if (overlayEntry.mounted) {
+        overlayEntry.remove();
+      }
+      _isBannerShowing = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      extendBody: true,
-      body: _pages[_selectedIndex],
-      bottomNavigationBar: _buildCustomNavbar(),
+    return StreamBuilder(
+      stream: AppData.userStream(),
+      builder: (context, snapshot) {
+        if (snapshot.hasData && snapshot.data!.exists) {
+          final data = snapshot.data!.data() as Map<String, dynamic>;
+
+          AppData.currentUser?.claimedBadgeIds = List<String>.from(
+            data['claimedBadgeIds'] ?? [],
+          );
+
+          final unclaimed = AppData.getFirstUnclaimedBadge();
+
+          if (unclaimed != null && unclaimed.id != _lastNotifiedBadge?.id) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _showClaimBanner(unclaimed);
+            });
+          }
+        }
+
+        return Scaffold(
+          extendBody: true,
+          body: _pages[_selectedIndex],
+          bottomNavigationBar: _buildCustomNavbar(),
+        );
+      },
     );
   }
 
@@ -104,7 +203,7 @@ class _MainWrapperState extends State<MainWrapper> {
 
   Widget _navItem(IconData icon, String label, int index) {
     bool isSelected = _selectedIndex == index;
-    
+
     return GestureDetector(
       onTap: () => setState(() => _selectedIndex = index),
       child: Column(
@@ -119,17 +218,17 @@ class _MainWrapperState extends State<MainWrapper> {
               shape: BoxShape.circle,
             ),
             child: Icon(
-              icon, 
+              icon,
               // Selezionato: Bianco. Non selezionato: Bianco opaco (white70).
-              color: isSelected ? Colors.white : Colors.white70, 
-              size: 27
+              color: isSelected ? Colors.white : Colors.white70,
+              size: 27,
             ),
           ),
-                    
+
           Text(
             label,
             style: TextStyle(
-              color: isSelected ? Colors.white : Colors.white70, 
+              color: isSelected ? Colors.white : Colors.white70,
               fontSize: 10,
               fontWeight: FontWeight.bold,
             ),
