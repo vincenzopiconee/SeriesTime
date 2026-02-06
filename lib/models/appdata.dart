@@ -989,36 +989,51 @@ class AppData {
   }
 
   static Future<void> updateSeriesStreak() async {
-    if (currentUser == null) return;
+    final fbUser = auth.FirebaseAuth.instance.currentUser;
+    if (fbUser == null) return;
+
+    final userRef = _db.collection('users').doc(fbUser.uid);
+    final doc = await userRef.get();
+    if (!doc.exists) return;
+
+    final data = doc.data()!;
+    int currentStreak = data['seriesStreak'] ?? 0;
+    Timestamp? lastTimestamp = data['lastViewDate'] as Timestamp?;
 
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
-    if (currentUser!.lastViewDate != null) {
-      final last = currentUser!.lastViewDate!;
-      final lastView = DateTime(last.year, last.month, last.day);
+    if (lastTimestamp != null) {
+      final lastDate = lastTimestamp.toDate();
+      final lastView = DateTime(lastDate.year, lastDate.month, lastDate.day);
       final diff = today.difference(lastView).inDays;
 
       if (diff == 1) {
-        //if the user have seen something yesterday --> +1
-        currentUser!.seriesStreak += 1;
+        // IERI: Incrementiamo
+        currentStreak += 1;
       } else if (diff > 1) {
-        currentUser!.seriesStreak = 1;
+        // PIÙ DI UN GIORNO FA: Reset a 1
+        currentStreak = 1;
+      } else if (diff == 0) {
+        // GIÀ VISTO OGGI: Non fare nulla, esci dalla funzione
+        return;
       }
     } else {
-      currentUser!.seriesStreak = 1;
+      // MAI VISTO NULLA: Inizia da 1
+      currentStreak = 1;
     }
 
-    currentUser!.lastViewDate = now;
+    // AGGIORNAMENTO DB
+    await userRef.update({
+      'seriesStreak': currentStreak,
+      'lastViewDate': Timestamp.fromDate(now),
+    });
 
-    // Update on Firestore
-    await _db
-        .collection('users')
-        .doc(auth.FirebaseAuth.instance.currentUser!.uid)
-        .update({
-          'seriesStreak': currentUser!.seriesStreak,
-          'lastViewDate': Timestamp.fromDate(now),
-        });
+    // Aggiorna anche l'oggetto locale per la UI
+    if (currentUser != null) {
+      currentUser!.seriesStreak = currentStreak;
+      currentUser!.lastViewDate = now;
+    }
   }
 
   static UserBadge getStreakTarget(double currentStreak) {

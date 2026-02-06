@@ -163,7 +163,6 @@ class BingeModeScreen extends StatelessWidget {
   }
 
   Widget _buildCompletedTab(User user, double totalHours, int completedCount) {
-    // list of all badges
     final allPossibleBadges = [
       ...AppData.marathonerMilestones,
       ...AppData.obsessionMilestones,
@@ -173,7 +172,7 @@ class BingeModeScreen extends StatelessWidget {
       ...AppData.nightOwlMilestones,
       ...AppData.genreMilestones,
     ];
-    //take only the Claimed Badges
+
     final List<UserBadge> allClaimed = allPossibleBadges
         .where((badge) => user.claimedBadgeIds.contains(badge.id))
         .toList();
@@ -195,15 +194,66 @@ class BingeModeScreen extends StatelessWidget {
       itemCount: allClaimed.length,
       itemBuilder: (context, index) {
         final badge = allClaimed[index];
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 15),
-          child: _buildAchievementCard(
-            title: badge.title,
-            description: "Level Completed!",
-            progressText: "CLAIMED",
-            progressValue: 1.0,
-            badge: badge,
-            canClaim: false,
+
+        // Determiniamo i dati corretti da passare al dettaglio in base al titolo
+        List<UserBadge> categoryMilestones = [];
+        double currentProgressValue = 0;
+        String unit = "h";
+
+        if (badge.title == "Marathoner") {
+          categoryMilestones = AppData.marathonerMilestones;
+          currentProgressValue = totalHours;
+          unit = "h";
+        } else if (badge.title == "Pure Obsession") {
+          categoryMilestones = AppData.obsessionMilestones;
+          currentProgressValue = user.maxConsecutiveHours;
+          unit = "h";
+        } else if (badge.title == "Weekend Warrior") {
+          categoryMilestones = AppData.weekendMilestones;
+          currentProgressValue = user.weekendHours;
+          unit = "h";
+        } else if (badge.title == "Streak") {
+          categoryMilestones = AppData.streakMilestones;
+          currentProgressValue = user.seriesStreak.toDouble();
+          unit = "d";
+        } else if (badge.title == "The Perfectionist") {
+          categoryMilestones = AppData.completionistMilestones;
+          currentProgressValue = completedCount.toDouble();
+          unit = "S";
+        } else if (badge.title == "The Night Owl") {
+          categoryMilestones = AppData.nightOwlMilestones;
+          currentProgressValue = user.nightOwlHours;
+          unit = "h";
+        } else if (badge.title == "Genre Explorer") {
+          categoryMilestones = AppData.genreMilestones;
+          currentProgressValue = user.uniqueGenresCount.toDouble();
+          unit = "G";
+        }
+
+        return GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => BadgeDetailScreen(
+                  categoryTitle: badge.title,
+                  milestones: categoryMilestones,
+                  currentValue: currentProgressValue,
+                  unit: unit,
+                ),
+              ),
+            );
+          },
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 15),
+            child: _buildAchievementCard(
+              title: badge.title,
+              description: "Level Completed!",
+              progressText: "CLAIMED",
+              progressValue: 1.0,
+              badge: badge,
+              canClaim: false,
+            ),
           ),
         );
       },
