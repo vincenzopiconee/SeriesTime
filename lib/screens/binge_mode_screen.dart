@@ -4,6 +4,7 @@ import '../models/appdata.dart';
 import '../models/userbadge.dart';
 import '../models/user.dart';
 import '../models/series.dart';
+import 'badge_detail_screen.dart';
 
 class BingeModeScreen extends StatelessWidget {
   const BingeModeScreen({super.key});
@@ -148,6 +149,7 @@ class BingeModeScreen extends StatelessWidget {
                       realTotalHours,
                       timeData,
                       completedCount,
+                      context,
                     ),
                     _buildCompletedTab(user, realTotalHours, completedCount),
                   ],
@@ -213,6 +215,7 @@ class BingeModeScreen extends StatelessWidget {
     double realTotalHours,
     Map<String, int> timeData,
     int completedCount,
+    BuildContext context,
   ) {
     UserBadge _findCurrentTarget(
       List<UserBadge> milestones,
@@ -257,22 +260,41 @@ class BingeModeScreen extends StatelessWidget {
       UserBadge target,
       double currentProgress,
       String progressText,
+      List<UserBadge> categoryMilestones,
+      String unit,
     ) {
       if (user.claimedBadgeIds.contains(target.id))
         return const SizedBox.shrink();
 
       bool canClaim = currentProgress >= target.targetHours;
-
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 15),
-        child: _buildAchievementCard(
-          title: target.title,
-          description: "Reach ${target.iconLabel} to complete this level.",
-          progressText: canClaim ? "READY TO CLAIM" : progressText,
-          progressValue: (currentProgress / target.targetHours).clamp(0.0, 1.0),
-          badge: target,
-          canClaim: canClaim,
-          onClaim: () => AppData.claimBadge(target.id),
+      return GestureDetector(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => BadgeDetailScreen(
+                categoryTitle: target.title,
+                milestones: categoryMilestones,
+                currentValue: currentProgress,
+                unit: unit,
+              ),
+            ),
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: 15),
+          child: _buildAchievementCard(
+            title: target.title,
+            description: "Reach ${target.iconLabel} to complete this level.",
+            progressText: canClaim ? "READY TO CLAIM" : progressText,
+            progressValue: (currentProgress / target.targetHours).clamp(
+              0.0,
+              1.0,
+            ),
+            badge: target,
+            canClaim: canClaim,
+            onClaim: () => AppData.claimBadge(target.id),
+          ),
         ),
       );
     }
@@ -285,36 +307,50 @@ class BingeModeScreen extends StatelessWidget {
             targetM,
             realTotalHours,
             "${timeData["days"]}d ${timeData["hours"]}h / ${targetM.iconLabel.replaceAll('G', 'd')}",
-          ),
+            AppData.marathonerMilestones,
+            "h",
+          ), // Liste e unità aggiunte
           _questItem(
             targetO,
             user.maxConsecutiveHours,
             "${user.maxConsecutiveHours.toStringAsFixed(1)}h / ${targetO.iconLabel}",
+            AppData.obsessionMilestones,
+            "h",
           ),
           _questItem(
             targetW,
             user.weekendHours,
             "${user.weekendHours.toStringAsFixed(1)}h / ${targetW.iconLabel}",
+            AppData.weekendMilestones,
+            "h",
           ),
           _questItem(
             targetS,
             user.seriesStreak.toDouble(),
             "${user.seriesStreak} / ${targetS.iconLabel}",
+            AppData.streakMilestones,
+            "d",
           ),
           _questItem(
             targetC,
             completedCount.toDouble(),
             "$completedCount / ${targetC.iconLabel.replaceAll('S', '')}",
+            AppData.completionistMilestones,
+            "S",
           ),
           _questItem(
             targetNO,
             user.nightOwlHours,
             "${user.nightOwlHours.toStringAsFixed(1)}h / ${targetNO.iconLabel}",
+            AppData.nightOwlMilestones,
+            "h",
           ),
           _questItem(
             targetG,
             user.uniqueGenresCount.toDouble(),
             "${user.uniqueGenresCount} / ${targetG.iconLabel}",
+            AppData.genreMilestones,
+            "G",
           ),
         ],
       ),

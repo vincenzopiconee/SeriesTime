@@ -422,7 +422,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       child: Row(
         children: [
-          // PARTE SINISTRA: Immagine
           Expanded(
             flex: 5,
             child: Container(
