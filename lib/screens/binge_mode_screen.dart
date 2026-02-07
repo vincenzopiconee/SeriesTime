@@ -4,6 +4,7 @@ import '../models/appdata.dart';
 import '../models/userbadge.dart';
 import '../models/user.dart';
 import '../models/series.dart';
+import 'badge_detail_screen.dart';
 
 class BingeModeScreen extends StatelessWidget {
   const BingeModeScreen({super.key});
@@ -41,7 +42,9 @@ class BingeModeScreen extends StatelessWidget {
             }
 
             final userData = userSnapshot.data!.data() as Map<String, dynamic>;
-            //saves the date in the snaphot as a Map
+            //-----------------------------------------------------------
+            //--------------------------- TAKE THE USER AND SERIES DATA -----------------
+            //-----------------------------------------------------------
             AppData.currentUser = User(
               name: userData['name'] ?? "User",
               totalHoursWatched: (userData['totalHoursWatched'] ?? 0)
@@ -68,6 +71,8 @@ class BingeModeScreen extends StatelessWidget {
                 episode: sData['episode'] ?? "",
               );
             }).toList();
+
+            //----------------GET ALL THE BADGES----------------
 
             final user = AppData.currentUser!;
             final double realTotalHours = AppData.getTotalWatchTimeHours();
@@ -119,7 +124,7 @@ class BingeModeScreen extends StatelessWidget {
             double progressGenre =
                 user.uniqueGenresCount / targetGenre.targetHours;
             if (progressGenre > 1.0) progressGenre = 1.0;
-
+            // ------------------------------AppBar OF THE PAGE -------------------------------------------
             return DefaultTabController(
               length: 2,
               child: Scaffold(
@@ -159,6 +164,7 @@ class BingeModeScreen extends StatelessWidget {
                       realTotalHours,
                       timeData,
                       completedCount,
+                      context,
                     ),
                     _buildCompletedTab(user, realTotalHours, completedCount),
                   ],
@@ -171,8 +177,9 @@ class BingeModeScreen extends StatelessWidget {
     );
   }
 
+  // -------widget for the completed achievements--------
+
   Widget _buildCompletedTab(User user, double totalHours, int completedCount) {
-    // list of all badges
     final allPossibleBadges = [
       ...AppData.marathonerMilestones,
       ...AppData.obsessionMilestones,
@@ -182,7 +189,8 @@ class BingeModeScreen extends StatelessWidget {
       ...AppData.nightOwlMilestones,
       ...AppData.genreMilestones,
     ];
-    //take only the Claimed Badges
+
+    //list that take only the claimed ones
     final List<UserBadge> allClaimed = allPossibleBadges
         .where((badge) => user.claimedBadgeIds.contains(badge.id))
         .toList();
@@ -204,15 +212,66 @@ class BingeModeScreen extends StatelessWidget {
       itemCount: allClaimed.length,
       itemBuilder: (context, index) {
         final badge = allClaimed[index];
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 15),
-          child: _buildAchievementCard(
-            title: badge.title,
-            description: "Level Completed!",
-            progressText: "CLAIMED",
-            progressValue: 1.0,
-            badge: badge,
-            canClaim: false,
+        List<UserBadge> categoryMilestones = [];
+        double currentProgressValue = 0;
+        String unit = "h";
+
+        // -------- TAKE THE DATA OF ALL THE BADGES -------
+
+        if (badge.title == "Marathoner") {
+          categoryMilestones = AppData.marathonerMilestones;
+          currentProgressValue = totalHours;
+          unit = "h";
+        } else if (badge.title == "Pure Obsession") {
+          categoryMilestones = AppData.obsessionMilestones;
+          currentProgressValue = user.maxConsecutiveHours;
+          unit = "h";
+        } else if (badge.title == "Weekend Warrior") {
+          categoryMilestones = AppData.weekendMilestones;
+          currentProgressValue = user.weekendHours;
+          unit = "h";
+        } else if (badge.title == "Streak") {
+          categoryMilestones = AppData.streakMilestones;
+          currentProgressValue = user.seriesStreak.toDouble();
+          unit = "d";
+        } else if (badge.title == "The Perfectionist") {
+          categoryMilestones = AppData.completionistMilestones;
+          currentProgressValue = completedCount.toDouble();
+          unit = "S";
+        } else if (badge.title == "The Night Owl") {
+          categoryMilestones = AppData.nightOwlMilestones;
+          currentProgressValue = user.nightOwlHours;
+          unit = "h";
+        } else if (badge.title == "Genre Explorer") {
+          categoryMilestones = AppData.genreMilestones;
+          currentProgressValue = user.uniqueGenresCount.toDouble();
+          unit = "G";
+        }
+
+        return GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => BadgeDetailScreen(
+                  categoryTitle: badge.title,
+                  milestones: categoryMilestones,
+                  currentValue: currentProgressValue,
+                  unit: unit,
+                ),
+              ),
+            );
+          },
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 15),
+            child: _buildAchievementCard(
+              title: badge.title,
+              description: "Level Completed!",
+              progressText: "CLAIMED",
+              progressValue: 1.0,
+              badge: badge,
+              canClaim: false,
+            ),
           ),
         );
       },
@@ -224,7 +283,9 @@ class BingeModeScreen extends StatelessWidget {
     double realTotalHours,
     Map<String, int> timeData,
     int completedCount,
+    BuildContext context,
   ) {
+    //---- SEARCHING the target BADGES FOR ALL THE  TYPE OF BADGES
     UserBadge _findCurrentTarget(
       List<UserBadge> milestones,
       double currentVal,
@@ -263,31 +324,54 @@ class BingeModeScreen extends StatelessWidget {
       AppData.genreMilestones,
       user.uniqueGenresCount.toDouble(),
     );
-
+    //-----------------------------------------------------------------------
+    // ----------- BUILDING THE CARD FOR A QUEST ----------------------------
+    //-----------------------------------------------------------------------
     Widget _questItem(
       UserBadge target,
       double currentProgress,
       String progressText,
+      List<UserBadge> categoryMilestones,
+      String unit,
     ) {
       if (user.claimedBadgeIds.contains(target.id))
         return const SizedBox.shrink();
+      // if the badge is claimed, we don't have to show it
 
       bool canClaim = currentProgress >= target.targetHours;
-
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 15),
-        child: _buildAchievementCard(
-          title: target.title,
-          description: "Reach ${target.iconLabel} to complete this level.",
-          progressText: canClaim ? "READY TO CLAIM" : progressText,
-          progressValue: (currentProgress / target.targetHours).clamp(0.0, 1.0),
-          badge: target,
-          canClaim: canClaim,
-          onClaim: () => AppData.claimBadge(target.id),
+      return GestureDetector(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => BadgeDetailScreen(
+                categoryTitle: target.title,
+                milestones: categoryMilestones,
+                currentValue: currentProgress,
+                unit: unit,
+              ),
+            ),
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: 15),
+          child: _buildAchievementCard(
+            title: target.title,
+            description: "Reach ${target.iconLabel} to complete this level.",
+            progressText: canClaim ? "READY TO CLAIM" : progressText,
+            progressValue: (currentProgress / target.targetHours).clamp(
+              0.0,
+              1.0,
+            ),
+            badge: target,
+            canClaim: canClaim,
+            onClaim: () => AppData.claimBadge(target.id),
+          ),
         ),
       );
     }
 
+    // --------------------------- BODY OF THE PAGE ---------------------------
     return SingleChildScrollView(
       padding: const EdgeInsets.only(left: 20, right: 20, top: 20, bottom: 100),
       child: Column(
@@ -296,36 +380,50 @@ class BingeModeScreen extends StatelessWidget {
             targetM,
             realTotalHours,
             "${timeData["days"]}d ${timeData["hours"]}h / ${targetM.iconLabel.replaceAll('G', 'd')}",
+            AppData.marathonerMilestones,
+            "h",
           ),
           _questItem(
             targetO,
             user.maxConsecutiveHours,
             "${user.maxConsecutiveHours.toStringAsFixed(1)}h / ${targetO.iconLabel}",
+            AppData.obsessionMilestones,
+            "h",
           ),
           _questItem(
             targetW,
             user.weekendHours,
             "${user.weekendHours.toStringAsFixed(1)}h / ${targetW.iconLabel}",
+            AppData.weekendMilestones,
+            "h",
           ),
           _questItem(
             targetS,
             user.seriesStreak.toDouble(),
             "${user.seriesStreak} / ${targetS.iconLabel}",
+            AppData.streakMilestones,
+            "d",
           ),
           _questItem(
             targetC,
             completedCount.toDouble(),
             "$completedCount / ${targetC.iconLabel.replaceAll('S', '')}",
+            AppData.completionistMilestones,
+            "S",
           ),
           _questItem(
             targetNO,
             user.nightOwlHours,
             "${user.nightOwlHours.toStringAsFixed(1)}h / ${targetNO.iconLabel}",
+            AppData.nightOwlMilestones,
+            "h",
           ),
           _questItem(
             targetG,
             user.uniqueGenresCount.toDouble(),
             "${user.uniqueGenresCount} / ${targetG.iconLabel}",
+            AppData.genreMilestones,
+            "G",
           ),
         ],
       ),
@@ -369,11 +467,16 @@ class BingeModeScreen extends StatelessWidget {
                   border: Border.all(color: AppData.accentColor, width: 1.5),
                 ),
                 child: Center(
-                  child: Image.asset(
-                    badge.imagePath,
-                    height: 60,
-                    width: 60,
-                    fit: BoxFit.contain,
+                  child: Transform.scale(
+                    scale: (title == "Streak" || title == "The Perfectionist")
+                        ? 1.7
+                        : 1.0,
+                    child: Image.asset(
+                      badge.imagePath,
+                      height: 60,
+                      width: 60,
+                      fit: BoxFit.contain,
+                    ),
                   ),
                 ),
               ),

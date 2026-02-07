@@ -8,6 +8,8 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as auth;
 
+enum ChartPeriod { year, month, week }
+
 class AppData {
   static final FirebaseFirestore _db = FirebaseFirestore.instance;
   static const String tmdbApiKey = "1a4c56551c8917b157c4a6fdd2fca54d";
@@ -297,24 +299,24 @@ class AppData {
       id: "gsilver",
       title: "Genre Explorer",
       imagePath: "assets/images/genre_explorer_silver.png",
-      iconLabel: "5G",
-      targetHours: 5,
+      iconLabel: "4G",
+      targetHours: 4,
       nextId: "ggold",
     ),
     UserBadge(
       id: "ggold",
       title: "Genre Explorer",
       imagePath: "assets/images/genre_explorer_gold.png",
-      iconLabel: "7G",
-      targetHours: 7,
+      iconLabel: "6G",
+      targetHours: 6,
       nextId: "gdiamond",
     ),
     UserBadge(
       id: "gdiamond",
       title: "Genre Explorer",
       imagePath: "assets/images/genre_explorer_diamond.png",
-      iconLabel: "10G",
-      targetHours: 10,
+      iconLabel: "8G",
+      targetHours: 8,
       nextId: null,
     ),
   ];
@@ -985,36 +987,51 @@ class AppData {
   }
 
   static Future<void> updateSeriesStreak() async {
-    if (currentUser == null) return;
+    final fbUser = auth.FirebaseAuth.instance.currentUser;
+    if (fbUser == null) return;
+
+    final userRef = _db.collection('users').doc(fbUser.uid);
+    final doc = await userRef.get();
+    if (!doc.exists) return;
+
+    final data = doc.data()!;
+    int currentStreak = data['seriesStreak'] ?? 0;
+    Timestamp? lastTimestamp = data['lastViewDate'] as Timestamp?;
 
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
-    if (currentUser!.lastViewDate != null) {
-      final last = currentUser!.lastViewDate!;
-      final lastView = DateTime(last.year, last.month, last.day);
+    if (lastTimestamp != null) {
+      final lastDate = lastTimestamp.toDate();
+      final lastView = DateTime(lastDate.year, lastDate.month, lastDate.day);
       final diff = today.difference(lastView).inDays;
 
       if (diff == 1) {
-        //if the user have seen something yesterday --> +1
-        currentUser!.seriesStreak += 1;
+        // IERI: Incrementiamo
+        currentStreak += 1;
       } else if (diff > 1) {
-        currentUser!.seriesStreak = 1;
+        // PIÙ DI UN GIORNO FA: Reset a 1
+        currentStreak = 1;
+      } else if (diff == 0) {
+        // GIÀ VISTO OGGI: Non fare nulla, esci dalla funzione
+        return;
       }
     } else {
-      currentUser!.seriesStreak = 1;
+      // MAI VISTO NULLA: Inizia da 1
+      currentStreak = 0;
     }
 
-    currentUser!.lastViewDate = now;
+    // AGGIORNAMENTO DB
+    await userRef.update({
+      'seriesStreak': currentStreak,
+      'lastViewDate': Timestamp.fromDate(now),
+    });
 
-    // Update on Firestore
-    await _db
-        .collection('users')
-        .doc(auth.FirebaseAuth.instance.currentUser!.uid)
-        .update({
-          'seriesStreak': currentUser!.seriesStreak,
-          'lastViewDate': Timestamp.fromDate(now),
-        });
+    // Aggiorna anche l'oggetto locale per la UI
+    if (currentUser != null) {
+      currentUser!.seriesStreak = currentStreak;
+      currentUser!.lastViewDate = now;
+    }
   }
 
   static UserBadge getStreakTarget(double currentStreak) {
@@ -1450,5 +1467,75 @@ class AppData {
       debugPrint("Errore fetchNextEpisode per ID $seriesId: $e");
     }
     return null;
+  }
+
+  static Future<List<double>> getChartData(ChartPeriod period) async {
+    final user = auth.FirebaseAuth.instance.currentUser;
+    if (user == null) return [];
+
+    final now = DateTime.now();
+    List<double> dataPoints = [];
+
+    if (period == ChartPeriod.year) {
+      dataPoints = List.filled(12, 0.0);
+    } else if (period == ChartPeriod.month) {
+      int currentDay = now.day;
+      dataPoints = List.filled(currentDay, 0.0);
+    } else {
+      dataPoints = List.filled(7, 0.0);
+    }
+
+    try {
+      final seriesSnap = await _db
+          .collection('users')
+          .doc(user.uid)
+          .collection('series')
+          .get();
+      for (var seriesDoc in seriesSnap.docs) {
+        final seasonsSnap = await seriesDoc.reference
+            .collection('seasons')
+            .get();
+        for (var seasonDoc in seasonsSnap.docs) {
+          final episodesSnap = await seasonDoc.reference
+              .collection('episodes')
+              .where('watched', isEqualTo: true)
+              .get();
+
+          for (var epDoc in episodesSnap.docs) {
+            final data = epDoc.data();
+            if (data['timestamp'] == null) continue;
+
+            DateTime date = (data['timestamp'] as Timestamp).toDate();
+            double hours = (data['runtime'] ?? 0) / 60.0;
+
+            if (period == ChartPeriod.year && date.year == now.year) {
+              dataPoints[date.month - 1] += hours;
+            } else if (period == ChartPeriod.month &&
+                date.year == now.year &&
+                date.month == now.month) {
+              dataPoints[date.day - 1] += hours;
+            } else if (period == ChartPeriod.week) {
+              final diff = now.difference(date).inDays;
+              if (diff >= 0 && diff < 7) dataPoints[6 - diff] += hours;
+            }
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint("Errore: $e");
+    }
+    return dataPoints;
+  }
+
+  static Future<Map<ChartPeriod, List<double>>> getAllChartData() async {
+    final weekData = await getChartData(ChartPeriod.week);
+    final monthData = await getChartData(ChartPeriod.month);
+    final yearData = await getChartData(ChartPeriod.year);
+
+    return {
+      ChartPeriod.week: weekData,
+      ChartPeriod.month: monthData,
+      ChartPeriod.year: yearData,
+    };
   }
 }
