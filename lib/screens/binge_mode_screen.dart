@@ -55,7 +55,6 @@ class BingeModeScreen extends StatelessWidget {
                 userData['claimedBadgeIds'] ?? [],
               ),
               seriesStreak: userData['seriesStreak'] ?? 0,
-              notification: userData['notification'] ?? true,
             );
 
             AppData.userSeries = seriesSnapshot.data!.docs.map((doc) {
