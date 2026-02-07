@@ -299,24 +299,24 @@ class AppData {
       id: "gsilver",
       title: "Genre Explorer",
       imagePath: "assets/images/genre_explorer_silver.png",
-      iconLabel: "5G",
-      targetHours: 5,
+      iconLabel: "4G",
+      targetHours: 4,
       nextId: "ggold",
     ),
     UserBadge(
       id: "ggold",
       title: "Genre Explorer",
       imagePath: "assets/images/genre_explorer_gold.png",
-      iconLabel: "7G",
-      targetHours: 7,
+      iconLabel: "6G",
+      targetHours: 6,
       nextId: "gdiamond",
     ),
     UserBadge(
       id: "gdiamond",
       title: "Genre Explorer",
       imagePath: "assets/images/genre_explorer_diamond.png",
-      iconLabel: "10G",
-      targetHours: 10,
+      iconLabel: "8G",
+      targetHours: 8,
       nextId: null,
     ),
   ];
@@ -1020,7 +1020,7 @@ class AppData {
       }
     } else {
       // MAI VISTO NULLA: Inizia da 1
-      currentStreak = 1;
+      currentStreak = 0;
     }
 
     // AGGIORNAMENTO DB

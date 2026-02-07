@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/appdata.dart';
 import '../models/userbadge.dart';
-import '../models/user.dart';
 
 class BadgeDetailScreen extends StatelessWidget {
   final String categoryTitle;
@@ -17,9 +16,29 @@ class BadgeDetailScreen extends StatelessWidget {
     required this.unit,
   });
 
+  String _getDetailedDescription() {
+    switch (categoryTitle) {
+      case "Marathoner":
+        return "This mission tracks your total lifetime watch time. Every minute you spend watching an episode is converted into hours. Reach the targets to level up from a beginner to a legendary series marathoner!";
+      case "Pure Obsession":
+        return "Measures your longest consecutive binge-watching session. To count as a single session, episodes must be watched within 10 minutes of each other. How long can you stay glued to the screen?";
+      case "Weekend Warrior":
+        return "Tracks the maximum number of hours you've watched exclusively during weekends (Friday to Sunday). Perfect for those who save their favorite shows for a Saturday binge!";
+      case "Streak":
+        return "Counts consecutive days of activity. To maintain your streak, you must watch at least one episode every 24 hours. If you skip a day, the counter resets to 0!";
+      case "The Perfectionist":
+        return "Awarded based on the total number of series you have completely finished (100% progress). Quality over quantity—show your dedication to finishing what you started.";
+      case "The Night Owl":
+        return "Tracks hours watched during late-night hours (between midnight and 4:00 AM). While others sleep, you dive deeper into your favorite stories.";
+      case "Genre Explorer":
+        return "Measures your curiosity! This badge levels up as you watch series from different genres (Action, Drama, Sci-Fi, etc.). Diversify your watchlist to claim this reward.";
+      default:
+        return "Complete specific tasks within the app to unlock milestones and earn exclusive badges.";
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Troviamo l'ultimo badge sbloccato per l'header
     final List<String> claimedIds = AppData.currentUser?.claimedBadgeIds ?? [];
     final UserBadge currentBadge = milestones.lastWhere(
       (m) => claimedIds.contains(m.id),
@@ -50,7 +69,6 @@ class BadgeDetailScreen extends StatelessWidget {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // --- HEADER: Badge attuale e Progresso Totale ---
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(25),
@@ -87,7 +105,53 @@ class BadgeDetailScreen extends StatelessWidget {
               ),
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 25),
+
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppData.accentColor.withAlpha(20),
+                  borderRadius: BorderRadius.circular(15),
+                  border: Border.all(color: AppData.accentColor.withAlpha(40)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: const [
+                        Icon(
+                          Icons.info_outline,
+                          color: AppData.accentColor,
+                          size: 20,
+                        ),
+                        SizedBox(width: 8),
+                        Text(
+                          "How it works",
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: AppData.accentColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _getDetailedDescription(),
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[800],
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 25),
 
             // --- LISTA LIVELLI (Milestones) ---
             Padding(

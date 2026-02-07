@@ -29,7 +29,9 @@ class BingeModeScreen extends StatelessWidget {
             }
 
             final userData = userSnapshot.data!.data() as Map<String, dynamic>;
-            //saves the date in the snaphot as a Map
+            //-----------------------------------------------------------
+            //--------------------------- TAKE THE USER AND SERIES DATA -----------------
+            //-----------------------------------------------------------
             AppData.currentUser = User(
               name: userData['name'] ?? "User",
               totalHoursWatched: (userData['totalHoursWatched'] ?? 0)
@@ -57,6 +59,8 @@ class BingeModeScreen extends StatelessWidget {
                 episode: sData['episode'] ?? "",
               );
             }).toList();
+
+            //----------------GET ALL THE BADGES----------------
 
             final user = AppData.currentUser!;
             final double realTotalHours = AppData.getTotalWatchTimeHours();
@@ -108,7 +112,7 @@ class BingeModeScreen extends StatelessWidget {
             double progressGenre =
                 user.uniqueGenresCount / targetGenre.targetHours;
             if (progressGenre > 1.0) progressGenre = 1.0;
-
+            // ------------------------------AppBar OF THE PAGE -------------------------------------------
             return DefaultTabController(
               length: 2,
               child: Scaffold(
@@ -162,6 +166,8 @@ class BingeModeScreen extends StatelessWidget {
     );
   }
 
+  // -------widget for the completed achievements--------
+
   Widget _buildCompletedTab(User user, double totalHours, int completedCount) {
     final allPossibleBadges = [
       ...AppData.marathonerMilestones,
@@ -173,6 +179,7 @@ class BingeModeScreen extends StatelessWidget {
       ...AppData.genreMilestones,
     ];
 
+    //list that take only the claimed ones
     final List<UserBadge> allClaimed = allPossibleBadges
         .where((badge) => user.claimedBadgeIds.contains(badge.id))
         .toList();
@@ -194,11 +201,11 @@ class BingeModeScreen extends StatelessWidget {
       itemCount: allClaimed.length,
       itemBuilder: (context, index) {
         final badge = allClaimed[index];
-
-        // Determiniamo i dati corretti da passare al dettaglio in base al titolo
         List<UserBadge> categoryMilestones = [];
         double currentProgressValue = 0;
         String unit = "h";
+
+        // -------- TAKE THE DATA OF ALL THE BADGES -------
 
         if (badge.title == "Marathoner") {
           categoryMilestones = AppData.marathonerMilestones;
@@ -267,6 +274,7 @@ class BingeModeScreen extends StatelessWidget {
     int completedCount,
     BuildContext context,
   ) {
+    //---- SEARCHING the target BADGES FOR ALL THE  TYPE OF BADGES
     UserBadge _findCurrentTarget(
       List<UserBadge> milestones,
       double currentVal,
@@ -305,7 +313,9 @@ class BingeModeScreen extends StatelessWidget {
       AppData.genreMilestones,
       user.uniqueGenresCount.toDouble(),
     );
-
+    //-----------------------------------------------------------------------
+    // ----------- BUILDING THE CARD FOR A QUEST ----------------------------
+    //-----------------------------------------------------------------------
     Widget _questItem(
       UserBadge target,
       double currentProgress,
@@ -315,6 +325,7 @@ class BingeModeScreen extends StatelessWidget {
     ) {
       if (user.claimedBadgeIds.contains(target.id))
         return const SizedBox.shrink();
+      // if the badge is claimed, we don't have to show it
 
       bool canClaim = currentProgress >= target.targetHours;
       return GestureDetector(
@@ -349,6 +360,7 @@ class BingeModeScreen extends StatelessWidget {
       );
     }
 
+    // --------------------------- BODY OF THE PAGE ---------------------------
     return SingleChildScrollView(
       padding: const EdgeInsets.only(left: 20, right: 20, top: 20, bottom: 100),
       child: Column(
@@ -359,7 +371,7 @@ class BingeModeScreen extends StatelessWidget {
             "${timeData["days"]}d ${timeData["hours"]}h / ${targetM.iconLabel.replaceAll('G', 'd')}",
             AppData.marathonerMilestones,
             "h",
-          ), // Liste e unità aggiunte
+          ),
           _questItem(
             targetO,
             user.maxConsecutiveHours,

@@ -8,7 +8,6 @@ import '../models/userbadge.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as auth;
 import '../models/user.dart';
-import 'binge_mode_screen.dart';
 import 'all_badges_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -26,10 +25,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    // Carichiamo inizialmente solo i dati dell'anno
+    //get first the Year Data then the others
     _initialLoadFuture = AppData.getChartData(ChartPeriod.year).then((data) {
       _cachedChartData[ChartPeriod.year] = data;
-      // Una volta caricato l'anno, avviamo il caricamento degli altri in background
+      //then load also Month and Days
       _loadRemainingData();
       return data;
     });
@@ -37,13 +36,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   void _loadRemainingData() async {
     try {
-      // Carichiamo i dati mancanti
       final results = await Future.wait([
         AppData.getChartData(ChartPeriod.month),
         AppData.getChartData(ChartPeriod.week),
       ]);
 
-      // Verifichiamo che il widget sia ancora "vivo" prima di chiamare setState
       if (mounted) {
         setState(() {
           _cachedChartData[ChartPeriod.month] = results[0];
@@ -63,9 +60,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         return StreamBuilder<QuerySnapshot>(
           stream: AppData.seriesStream(),
           builder: (context, seriesSnapshot) {
+            //----------------------------------------------------------------
+            //------------------ IN CASE OF NO DATA --------------------------
+            //----------------------------------------------------------------
             if (!userSnapshot.hasData || !seriesSnapshot.hasData) {
               return Scaffold(
-                // AGGIUNTO: Mostriamo la AppBar anche durante il caricamento
                 appBar: AppBar(
                   backgroundColor: AppData.primaryColor,
                   elevation: 0,
@@ -93,7 +92,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               );
             }
-
+            //---------------------------------------------------------------------------------------------------
+            //------------------ IN CASE OF DATA Acquired, we get Series and User Data from AppData--------------
+            //---------------------------------------------------------------------------------------------------
             final userData = userSnapshot.data!.data() as Map<String, dynamic>;
 
             AppData.userSeries = seriesSnapshot.data!.docs.map((doc) {
@@ -125,7 +126,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   userData['photoUrl'] ??
                   auth.FirebaseAuth.instance.currentUser?.photoURL,
             );
-
+            //------------------------ computing Watch Time Data and taking the max 6 series -------------------
             final timeData = AppData.getTotalWatchTimeSplit();
             final int days = timeData["days"]!;
             final int remainingHours = timeData["hours"]!;
@@ -140,8 +141,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
             final List<Series> displaySeries = filteredSeries.take(6).toList();
 
             final currentUser = AppData.currentUser!;
-
+            //-----------------------------------------------------------------------------------------------------------
+            //------------------------------------------GUI Layout ------------------------------------------------------
+            //-----------------------------------------------------------------------------------------------------------
             return Scaffold(
+              //------- AppBar----
               appBar: AppBar(
                 backgroundColor: AppData.primaryColor,
                 elevation: 0,
@@ -158,6 +162,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 centerTitle: true,
                 actions: [
                   IconButton(
+                    // settings icon
                     icon: const Icon(Icons.settings, color: AppData.whiteColor),
                     onPressed: () {
                       Navigator.push(
@@ -171,12 +176,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ],
               ),
               body: SingleChildScrollView(
+                // body of the page
                 padding: const EdgeInsets.symmetric(
                   horizontal: 25,
                   vertical: 20,
                 ),
                 child: Column(
                   children: [
+                    // ---------------------------Profile Image and name -------------------------------
                     CircleAvatar(
                       radius: 45,
                       backgroundColor: AppData.avatarColor,
@@ -202,7 +209,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                     const SizedBox(height: 25),
-
+                    //------------------------ statistics container -------------------------------
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(15),
@@ -234,7 +241,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                     const SizedBox(height: 30),
 
-                    // --- SEZIONE MY BADGES (SINCRONIZZATA CON BINGE MODE) ---
+                    // ----------------- MY BADGES SECTION (SYNC WITH BINGE MODE) -----------------
                     const Align(
                       alignment: Alignment.centerLeft,
                       child: Text(
@@ -251,12 +258,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       height: 115,
                       child: Builder(
                         builder: (context) {
-                          // Recuperiamo gli ID riscattati direttamente dai dati correnti dello snapshot
+                          //taking claimedIds
                           final List<String> claimedIds = List<String>.from(
                             userData['claimedBadgeIds'] ?? [],
                           );
 
-                          // Creiamo la lista di TUTTI i singoli badge sbloccati (come in Binge Mode)
+                          //list of all the claimed badges And putting them into a list
                           final List<UserBadge> allClaimed =
                               [
                                     ...AppData.marathonerMilestones,
@@ -271,22 +278,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     (badge) => claimedIds.contains(badge.id),
                                   )
                                   .toList();
-
-                          // Se la lista filtrata è vuota, mostriamo il messaggio
                           if (allClaimed.isEmpty) {
                             return _buildEmptyBadgesMessage();
                           }
-
-                          // Altrimenti mostriamo la lista orizzontale con la freccia View All
                           return ListView.builder(
                             scrollDirection: Axis.horizontal,
                             physics: const BouncingScrollPhysics(),
-                            // Limite a 3 badge + 1 posto per la freccia se ce ne sono di più
                             itemCount: allClaimed.length > 4
                                 ? 5
                                 : allClaimed.length,
                             itemBuilder: (context, index) {
-                              // Se abbiamo più di 3 badge e siamo all'indice 3, mostriamo la freccia
                               if (allClaimed.length > 4 && index == 4) {
                                 return _buildViewAllBadgeButton();
                               }
@@ -296,9 +297,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         },
                       ),
                     ),
-                    // NOTA: Verifica che non ci sia più l'ElevatedButton "View More Badges" qui sotto
+
                     const SizedBox(height: 30),
 
+                    // -----------------------------------SERIES PROGRESS SECTION-----------------------------------------------
                     const Align(
                       alignment: Alignment.centerLeft,
                       child: Text(
@@ -334,6 +336,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                     displaySeries.isEmpty
                         ? const SizedBox(height: 1)
+                        //view more botton
                         : ElevatedButton(
                             onPressed: () {
                               Navigator.push(
@@ -370,10 +373,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       },
     );
   }
+  //----------------------------------------------------------------------------------
+  //----------------------------------------WIDGETS-----------------------------------
+  //----------------------------------------------------------------------------------
 
-  Widget _buildEmptyBadgesMessage() {
-    return const Center(child: Text("Keep watching to unlock badges!"));
-  }
+  //----------------------- STATISTICS CONTAINER WIDGETS------------------------------
 
   Widget _buildWatchTimeCard(int d, int h, int m) {
     return Container(
@@ -405,109 +409,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildSeriesCard(Series series) {
-    String formattedTime = formatHours(series.totalHours);
-    return Container(
-      decoration: BoxDecoration(
-        color: AppData.whiteColor,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: AppData.accentColor, width: 2),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(38),
-            blurRadius: 8,
-            offset: const Offset(3, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            flex: 5,
-            child: Container(
-              margin: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(15),
-                border: Border.all(color: AppData.accentColor, width: 1.5),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(13),
-                child: Image.network(
-                  series.imageUrl,
-                  height: double.infinity,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    width: double.infinity,
-                    height: double.infinity,
-                    color: Colors.grey[300],
-                    child: const Icon(
-                      Icons.broken_image,
-                      size: 24,
-                      color: Colors.grey,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          // PARTE DESTRA: Percentuale e Ore (Ripristinata)
-          Expanded(
-            flex: 5,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    SizedBox(
-                      width: 42,
-                      height: 42,
-                      child: CircularProgressIndicator(
-                        value: series.percentage,
-                        strokeWidth: 4,
-                        backgroundColor: Colors.grey[200],
-                        color: AppData.primaryColor,
-                      ),
-                    ),
-                    Text(
-                      "${(series.percentage * 100).toInt()}%",
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.access_time, size: 14, color: Colors.grey),
-                    const SizedBox(width: 3),
-                    Text(
-                      formattedTime,
-                      style: const TextStyle(
-                        color: Colors.grey,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildActivityChart() {
-    // Ora containsKey funzionerà senza errori perché la mappa non è null
+    //check if the datas are contained in the cache yet
     if (_cachedChartData.containsKey(_selectedPeriod)) {
       return _drawChartContent(_cachedChartData[_selectedPeriod]!);
     }
-
+    //else, get the Data
     return FutureBuilder<List<double>>(
       future: _initialLoadFuture,
       builder: (context, snapshot) {
@@ -521,7 +428,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         }
 
         if (snapshot.hasData && snapshot.data != null) {
-          // Se i dati arrivano ma non sono ancora in cache per qualche motivo, li aggiungiamo
           if (!_cachedChartData.containsKey(ChartPeriod.year)) {
             _cachedChartData[ChartPeriod.year] = snapshot.data!;
           }
@@ -537,10 +443,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _drawChartContent(List<double> chartData) {
-    // 1. Definiamo maxVal ALL'INIZIO della funzione
+    //maxVal is the max val seen in the Chart, if is empty, maxVal it's 1'
+    // otherwise
     final double maxVal = chartData.isEmpty
         ? 10.0
         : chartData.reduce((a, b) => a > b ? a : b).clamp(5.0, double.infinity);
+    //reduce--> for each of the component of the list, a is the current higher (between a and b)
+    // clamp forces to maxVal to be min. 5
 
     String subTitle = "";
     if (_selectedPeriod == ChartPeriod.week)
@@ -626,7 +535,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              // SCALA Y CORRETTA (qui maxVal è riconosciuto)
               Column(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -723,59 +631,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildViewAllBadgeButton() {
-    return GestureDetector(
-      onTap: () {
-        // 1. Ricreiamo la lista completa di tutti i badge sbloccati (come fatto nel build)
-        final List<UserBadge> allClaimed =
-            [
-                  ...AppData.marathonerMilestones,
-                  ...AppData.obsessionMilestones,
-                  ...AppData.weekendMilestones,
-                  ...AppData.streakMilestones,
-                  ...AppData.completionistMilestones,
-                  ...AppData.nightOwlMilestones,
-                  ...AppData.genreMilestones,
-                ]
-                .where(
-                  (badge) =>
-                      AppData.currentUser!.claimedBadgeIds.contains(badge.id),
-                )
-                .toList();
-
-        // 2. Navighiamo alla nuova pagina AllBadgesScreen
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const AllBadgesScreen()),
-        );
-      },
-      child: Container(
-        width: 70,
-        margin: const EdgeInsets.only(left: 10, right: 20),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
-            Icon(
-              Icons.arrow_forward_ios,
-              color: AppData.primaryColor,
-              size: 24,
-            ),
-            SizedBox(height: 8),
-            Text(
-              "View All",
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: AppData.primaryColor,
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _periodButton(String label, ChartPeriod period) {
     bool isSelected = _selectedPeriod == period;
     return GestureDetector(
@@ -806,6 +661,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       ),
     );
+  }
+  //------------------------------------ BADGES WIDGET--------------------------------
+
+  Widget _buildEmptyBadgesMessage() {
+    return const Center(child: Text("Keep watching to unlock badges!"));
   }
 
   Widget _buildBadgeItem(UserBadge badge) {
@@ -842,6 +702,156 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  Widget _buildViewAllBadgeButton() {
+    return GestureDetector(
+      onTap: () {
+        final List<UserBadge> allClaimed =
+            [
+                  ...AppData.marathonerMilestones,
+                  ...AppData.obsessionMilestones,
+                  ...AppData.weekendMilestones,
+                  ...AppData.streakMilestones,
+                  ...AppData.completionistMilestones,
+                  ...AppData.nightOwlMilestones,
+                  ...AppData.genreMilestones,
+                ]
+                .where(
+                  (badge) =>
+                      AppData.currentUser!.claimedBadgeIds.contains(badge.id),
+                )
+                .toList();
+
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const AllBadgesScreen()),
+        );
+      },
+      child: Container(
+        width: 70,
+        margin: const EdgeInsets.only(left: 10, right: 20),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: const [
+            Icon(
+              Icons.arrow_forward_ios,
+              color: AppData.primaryColor,
+              size: 24,
+            ),
+            SizedBox(height: 8),
+            Text(
+              "View All",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: AppData.primaryColor,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  //------------------------ Series Progress Card ----------------------
+
+  Widget _buildSeriesCard(Series series) {
+    String formattedTime = formatHours(series.totalHours);
+    return Container(
+      decoration: BoxDecoration(
+        color: AppData.whiteColor,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: AppData.accentColor, width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(38),
+            blurRadius: 8,
+            offset: const Offset(3, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            flex: 5,
+            child: Container(
+              margin: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(15),
+                border: Border.all(color: AppData.accentColor, width: 1.5),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(13),
+                child: Image.network(
+                  series.imageUrl,
+                  height: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    width: double.infinity,
+                    height: double.infinity,
+                    color: Colors.grey[300],
+                    child: const Icon(
+                      Icons.broken_image,
+                      size: 24,
+                      color: Colors.grey,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 5,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    SizedBox(
+                      width: 42,
+                      height: 42,
+                      child: CircularProgressIndicator(
+                        value: series.percentage,
+                        strokeWidth: 4,
+                        backgroundColor: Colors.grey[200],
+                        color: AppData.primaryColor,
+                      ),
+                    ),
+                    Text(
+                      "${(series.percentage * 100).toInt()}%",
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.access_time, size: 14, color: Colors.grey),
+                    const SizedBox(width: 3),
+                    Text(
+                      formattedTime,
+                      style: const TextStyle(
+                        color: Colors.grey,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  //utility functions (can be moved??)
   String formatHours(double totalHours) {
     if (totalHours <= 0) return "0m";
     int h = totalHours.toInt();
