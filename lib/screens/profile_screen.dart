@@ -73,7 +73,6 @@ class ProfileScreen extends StatelessWidget {
               nightOwlHours: (userData['nightOwlHours'] ?? 0).toDouble(),
               uniqueGenresCount: (userData['uniqueGenresCount'] ?? 0).toInt(),
               seriesStreak: userData['seriesStreak'] ?? 0,
-              notification: userData['notification'] ?? true,
               photoUrl:
                   userData['photoUrl'] ??
                   auth.FirebaseAuth.instance.currentUser?.photoURL,

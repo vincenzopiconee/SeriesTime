@@ -22,7 +22,20 @@ class BingeModeScreen extends StatelessWidget {
           stream: AppData.seriesStream(),
           builder: (context, seriesSnapshot) {
             if (!userSnapshot.hasData || !seriesSnapshot.hasData) {
-              return const Scaffold(
+              return Scaffold(
+                appBar: AppBar(
+                  backgroundColor: AppData.primaryColor,
+                  elevation: 0,
+                  centerTitle: true,
+                  title: const Text(
+                    "Binge Mode",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 24,
+                    ),
+                  ),
+                ),
                 body: Center(child: CircularProgressIndicator()),
               );
             }
@@ -42,7 +55,6 @@ class BingeModeScreen extends StatelessWidget {
                 userData['claimedBadgeIds'] ?? [],
               ),
               seriesStreak: userData['seriesStreak'] ?? 0,
-              notification: userData['notification'] ?? true,
             );
 
             AppData.userSeries = seriesSnapshot.data!.docs.map((doc) {
@@ -122,11 +134,10 @@ class BingeModeScreen extends StatelessWidget {
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
                       fontSize: 24,
-                      letterSpacing: 1.2,
                     ),
                   ),
                   bottom: PreferredSize(
-                    preferredSize: const Size.fromHeight(50.0),
+                    preferredSize: const Size.fromHeight(48.0),
                     child: Container(
                       color: Colors.white,
                       child: const TabBar(

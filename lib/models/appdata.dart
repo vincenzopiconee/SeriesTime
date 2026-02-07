@@ -479,7 +479,6 @@ class AppData {
         nightOwlHours: (data['nightOwlHours'] ?? 0).toDouble(),
         uniqueGenresCount: (data['uniqueGenresCount'] ?? 0).toInt(),
         claimedBadgeIds: List<String>.from(data['claimedBadgeIds'] ?? []),
-        notification: data['notification'] ?? true,
         photoUrl: highResPhotoUrl,
       );
 
@@ -536,7 +535,6 @@ class AppData {
       'maxConsecutiveHours': 0.0,
       'weekendHours': 0.0,
       'nightOwlHours': 0.0,
-      'notification': true,
     }, SetOptions(merge: true));
   }
 
