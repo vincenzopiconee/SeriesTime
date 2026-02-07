@@ -14,13 +14,7 @@ import 'models/userbadge.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  /*SystemChrome.setSystemUIOverlayStyle(
-    const SystemUiOverlayStyle(
-      systemNavigationBarColor: Colors.white,
-      systemNavigationBarIconBrightness: Brightness.dark, 
-      systemNavigationBarContrastEnforced: false, 
-    ),
-  );*/
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: [SystemUiOverlay.top]);
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const MyApp());
@@ -169,7 +163,7 @@ class _MainWrapperState extends State<MainWrapper> {
         }
 
         return Scaffold(
-          extendBody: false,
+          extendBody: true,
           body: _pages[_selectedIndex],
           bottomNavigationBar: _buildCustomNavbar(),
         );
@@ -178,29 +172,29 @@ class _MainWrapperState extends State<MainWrapper> {
   }
 
   Widget _buildCustomNavbar() {
-    return SafeArea(
-      top: false,
-      child: Container(
-        height: 70,
-        decoration: BoxDecoration(
-          color: AppData.primaryColor,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withAlpha(51),
-              blurRadius: 10,
-              offset: const Offset(0, -5),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _navItem(Icons.search, "Explore", 0),
-            _navItem(Icons.subscriptions, "My Series", 1),
-            _navItem(Icons.track_changes, "Binge Mode", 2),
-            _navItem(Icons.person_outline, "Profile", 3),
-          ],
-        ),
+    return Container(
+      height: 85,
+      margin: const EdgeInsets.only(bottom: 0, left: 0, right: 0),
+      padding: const EdgeInsets.only(bottom: 26),
+      decoration: BoxDecoration(
+        color: AppData.primaryColor,
+        //borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(51),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _navItem(Icons.search, "Explore", 0),
+          _navItem(Icons.subscriptions, "My Series", 1),
+          _navItem(Icons.track_changes, "Binge Mode", 2),
+          _navItem(Icons.person_outline, "Profile", 3),
+        ],
       ),
     );
   }
