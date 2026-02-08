@@ -27,7 +27,7 @@ class AppData {
       id: "mbase",
       title: "Marathoner",
       imagePath: "assets/images/marathoner_base.png",
-      iconLabel: "1G",
+      iconLabel: "1D",
       targetHours: 24,
       nextId: "mbronze",
     ),
@@ -35,7 +35,7 @@ class AppData {
       id: "mbronze",
       title: "Marathoner",
       imagePath: "assets/images/marathoner_bronze.png",
-      iconLabel: "3G",
+      iconLabel: "3D",
       targetHours: 72,
       nextId: "msilver",
     ),
@@ -43,7 +43,7 @@ class AppData {
       id: "msilver",
       title: "Marathoner",
       imagePath: "assets/images/marathoner_silver.png",
-      iconLabel: "10G",
+      iconLabel: "10D",
       targetHours: 240,
       nextId: "mgold",
     ),
@@ -51,7 +51,7 @@ class AppData {
       id: "mgold",
       title: "Marathoner",
       imagePath: "assets/images/marathoner_gold.png",
-      iconLabel: "20G",
+      iconLabel: "20D",
       targetHours: 480,
       nextId: "mdiamond",
     ),
@@ -59,7 +59,7 @@ class AppData {
       id: "mdiamond",
       title: "Marathoner",
       imagePath: "assets/images/marathoner_diamond.png",
-      iconLabel: "100G",
+      iconLabel: "100D",
       targetHours: 2400,
       nextId: null,
     ),
@@ -156,7 +156,7 @@ class AppData {
       id: "sbase",
       title: "Streak",
       imagePath: "assets/images/streak_base.png",
-      iconLabel: "7G",
+      iconLabel: "7D",
       targetHours: 7,
       nextId: "sbronze",
     ),
@@ -164,7 +164,7 @@ class AppData {
       id: "sbronze",
       title: "Streak",
       imagePath: "assets/images/streak_bronze.png",
-      iconLabel: "10G",
+      iconLabel: "10D",
       targetHours: 10,
       nextId: "ssilver",
     ),
@@ -172,7 +172,7 @@ class AppData {
       id: "ssilver",
       title: "Streak",
       imagePath: "assets/images/streak_silver.png",
-      iconLabel: "20G",
+      iconLabel: "20D",
       targetHours: 20,
       nextId: "sgold",
     ),
@@ -180,7 +180,7 @@ class AppData {
       id: "sgold",
       title: "Streak",
       imagePath: "assets/images/streak_gold.png",
-      iconLabel: "50G",
+      iconLabel: "50D",
       targetHours: 50,
       nextId: "sdiamond",
     ),
@@ -188,7 +188,7 @@ class AppData {
       id: "sdiamond",
       title: "Streak",
       imagePath: "assets/images/streak_diamond.png",
-      iconLabel: "100G",
+      iconLabel: "100D",
       targetHours: 100,
       nextId: null,
     ),
@@ -645,7 +645,8 @@ class AppData {
 
     for (var badge in allMilestones) {
       double currentVal = stats[badge.title] ?? 0.0;
-      if (currentVal >= badge.targetHours &&
+      if (currentVal > 0.0 &&
+          currentVal >= badge.targetHours &&
           !currentUser!.claimedBadgeIds.contains(badge.id)) {
         return badge;
       }

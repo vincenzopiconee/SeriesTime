@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/appdata.dart';
 import '../models/series.dart';
+import 'series_detail_screen.dart';
 
 class SeriesProgressScreen extends StatelessWidget {
   const SeriesProgressScreen({super.key});
@@ -15,82 +16,86 @@ class SeriesProgressScreen extends StatelessWidget {
     }
 
     final List<Series> progressList = AppData.userSeries
-      .where((s) => s.percentage > 0.0)
-      .toList();
+        .where((s) => s.percentage > 0.0)
+        .toList();
     progressList.sort(
       (a, b) => b.percentage.compareTo(a.percentage),
     ); //List sorted by percentage
 
     return GestureDetector(
-    onHorizontalDragUpdate: (details) {
-      if (details.delta.dx > 18) { 
-        Navigator.pop(context);
-      }
-    },
-    child: Scaffold(
-      backgroundColor: AppData.backgroundColor,
-      appBar: AppBar(
-        backgroundColor: AppData.primaryColor,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_ios_new,
-            color: AppData.whiteColor,
-          ),
-          onPressed: () => Navigator.pop(context),
-        ),
-        centerTitle: true,
-        title: const Text(
-          "Series Progress",
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: AppData.whiteColor,
-            fontWeight: FontWeight.bold,
-            fontSize: 27,
-          ),
-        ),
-      ),
-      body: ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-        itemCount: progressList.length,
-        itemBuilder: (context, index) {
-          final series = progressList[index];
-
-          double hoursSeen = series.totalHours;
-
-          // --- CALCOLO NUOVO E CORRETTO ---
-          // Se seriesDuration è 0 (magari vecchi dati), usiamo hoursSeen per non rompere l'app
-          double totalSeriesDuration = series.seriesDuration > 0 
-              ? series.seriesDuration 
-              : (series.percentage > 0 ? hoursSeen / series.percentage : 0);
-
-          double hoursLeft = totalSeriesDuration - hoursSeen;
-          if (hoursLeft < 0) hoursLeft = 0; // Evita numeri negativi
-          // --------------------------------
-
-          String seenText = "${formatHours(hoursSeen)} seen";
-          String leftText = "${formatHours(hoursLeft)} left";
-
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 15),
-            child: _buildProgressCard(
-              title: series.name,
-              episode: series.episode,
-              percentage: series.percentage,
-              totalHours: seenText,
-              timeLeft: leftText,
-              imageUrl: series.imageUrl,
-              isFinished: series.percentage >= 1.0,
+      onHorizontalDragUpdate: (details) {
+        if (details.delta.dx > 18) {
+          Navigator.pop(context);
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppData.backgroundColor,
+        appBar: AppBar(
+          backgroundColor: AppData.primaryColor,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          leading: IconButton(
+            icon: const Icon(
+              Icons.arrow_back_ios_new,
+              color: AppData.whiteColor,
             ),
-          );
-        },
+            onPressed: () => Navigator.pop(context),
+          ),
+          centerTitle: true,
+          title: const Text(
+            "Series Progress",
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: AppData.whiteColor,
+              fontWeight: FontWeight.bold,
+              fontSize: 27,
+            ),
+          ),
+        ),
+        body: ListView.builder(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+          itemCount: progressList.length,
+          itemBuilder: (context, index) {
+            final series = progressList[index];
+
+            double hoursSeen = series.totalHours;
+
+            // --- CALCOLO NUOVO E CORRETTO ---
+            // Se seriesDuration è 0 (magari vecchi dati), usiamo hoursSeen per non rompere l'app
+            double totalSeriesDuration = series.seriesDuration > 0
+                ? series.seriesDuration
+                : (series.percentage > 0 ? hoursSeen / series.percentage : 0);
+
+            double hoursLeft = totalSeriesDuration - hoursSeen;
+            if (hoursLeft < 0) hoursLeft = 0; // Evita numeri negativi
+            // --------------------------------
+
+            String seenText = "${formatHours(hoursSeen)} seen";
+            String leftText = "${formatHours(hoursLeft)} left";
+
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 15),
+              child: _buildProgressCard(
+                context: context,
+                seriesId: series.id,
+                title: series.name,
+                episode: series.episode,
+                percentage: series.percentage,
+                totalHours: seenText,
+                timeLeft: leftText,
+                imageUrl: series.imageUrl,
+                isFinished: series.percentage >= 1.0,
+              ),
+            );
+          },
+        ),
       ),
-    ),
-     );
+    );
   }
 
   Widget _buildProgressCard({
+    required BuildContext context,
+    required int seriesId,
     required String title,
     required String episode,
     required double percentage,
@@ -99,95 +104,111 @@ class SeriesProgressScreen extends StatelessWidget {
     required String imageUrl,
     bool isFinished = false,
   }) {
-    return Container(
-      height: 110,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppData.accentColor, width: 2),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(26),
-            blurRadius: 10,
-            offset: const Offset(4, 4),
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) =>
+                SeriesDetailScreen(seriesId: seriesId, seriesName: title),
           ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            margin: const EdgeInsets.all(10),
-            width: 60,
-            height: 90,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(15),
-              border: Border.all(color: AppData.accentColor, width: 1.5),
+        );
+      },
+      child: Container(
+        height: 110,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppData.accentColor, width: 2),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha(26),
+              blurRadius: 10,
+              offset: const Offset(4, 4),
             ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(13),
-              child: imageUrl.isNotEmpty
-                  ? Image.network(imageUrl, fit: BoxFit.cover)
-                  : Container(
-                      color: Colors.grey[300],
-                      child: const Icon(Icons.movie_creation_outlined),
-                    ),
-            ),
-          ),
-
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.only(right: 12, top: 7, bottom: 10, left: 6),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        episode,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                        ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              margin: const EdgeInsets.all(10),
+              width: 60,
+              height: 90,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(15),
+                border: Border.all(color: AppData.accentColor, width: 1.5),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(13),
+                child: imageUrl.isNotEmpty
+                    ? Image.network(imageUrl, fit: BoxFit.cover)
+                    : Container(
+                        color: Colors.grey[300],
+                        child: const Icon(Icons.movie_creation_outlined),
                       ),
-                      if (isFinished)
-                        _badge("Finished")
-                      else
-                        _percentageLabel(percentage),
-                    ],
-                  ),
-                  _progressBar(percentage),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        totalHours,
-                        style: const TextStyle(
-                          color: Colors.grey,
-                          fontSize: 11,
-                        ),
-                      ),
-                      Text(
-                        timeLeft,
-                        style: const TextStyle(
-                          color: Colors.grey,
-                          fontSize: 11,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
               ),
             ),
-          ),
-        ],
+
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(
+                  right: 12,
+                  top: 7,
+                  bottom: 10,
+                  left: 6,
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          episode,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        if (isFinished)
+                          _badge("Finished")
+                        else
+                          _percentageLabel(percentage),
+                      ],
+                    ),
+                    _progressBar(percentage),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          totalHours,
+                          style: const TextStyle(
+                            color: Colors.grey,
+                            fontSize: 11,
+                          ),
+                        ),
+                        Text(
+                          timeLeft,
+                          style: const TextStyle(
+                            color: Colors.grey,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -242,13 +263,14 @@ class SeriesProgressScreen extends StatelessWidget {
       ],
     );
   }
+
   String formatHours(double totalHours) {
-  if (totalHours <= 0) return "0m";
-  int h = totalHours.toInt(); 
-  int m = ((totalHours - h) * 60).round(); 
-  
-  if (h == 0) return "${m}m";
-  if (m == 0) return "${h}h";
-  return "${h}h ${m}m";
-}
+    if (totalHours <= 0) return "0m";
+    int h = totalHours.toInt();
+    int m = ((totalHours - h) * 60).round();
+
+    if (h == 0) return "${m}m";
+    if (m == 0) return "${h}h";
+    return "${h}h ${m}m";
+  }
 }
