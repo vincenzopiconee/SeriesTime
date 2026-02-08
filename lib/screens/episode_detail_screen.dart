@@ -4,18 +4,20 @@ import 'package:seriestime/models/tv_show_details.dart';
 // --- AGGIUNTO: Import necessari per il database ---
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as auth;
+// --- AGGIUNTO: Import per la navigazione alla serie ---
+import 'series_detail_screen.dart'; 
 // --------------------------------------------------
 
 class EpisodeDetailScreen extends StatelessWidget {
   final String seriesName;
-  final int seriesId; // Necessario per la funzione toggle
+  final int seriesId; // Necessario per la funzione toggle e navigazione
   final int seasonNumber;
   final Episode episode;
 
   const EpisodeDetailScreen({
     super.key,
     required this.seriesName,
-    required this.seriesId, // Aggiunto al costruttore
+    required this.seriesId, 
     required this.seasonNumber,
     required this.episode,
   });
@@ -47,9 +49,9 @@ class EpisodeDetailScreen extends StatelessWidget {
           children: [
             // 1. HEADER: Immagine e Info Principali
             _buildHeaderImage(),
-            const SizedBox(height: 16),
+            const SizedBox(height: 15),
 
-            // 2. TITOLO, NUMERO EPISODIO E VOTO
+            // 2. RIGA NUMERO EPISODIO E VOTO
             Row(
               children: [
                 Column(
@@ -59,7 +61,7 @@ class EpisodeDetailScreen extends StatelessWidget {
                       style: const TextStyle(
                         color: AppData.primaryColor,
                         fontWeight: FontWeight.bold,
-                        fontSize: 16,
+                        fontSize: 20,
                       ),
                     ),
                   ],
@@ -68,13 +70,13 @@ class EpisodeDetailScreen extends StatelessWidget {
                 if (episode.voteAverage > 0) 
                   Row(
                     children: [
-                      const Icon(Icons.star, color: Colors.amber, size: 18),
+                      const Icon(Icons.star, color: Colors.amber, size: 20),
                       const SizedBox(width: 2),
                       Text(
                         episode.voteAverage.toStringAsFixed(1),
                         style: const TextStyle(
                             fontWeight: FontWeight.bold,
-                            fontSize: 16,
+                            fontSize: 20,
                             color: Colors.black87
                         ),
                       ),
@@ -82,6 +84,7 @@ class EpisodeDetailScreen extends StatelessWidget {
                   ),
               ],
             ),
+            // TITOLO EPISODIO
             Text(
               episode.name,
               style: const TextStyle(
@@ -91,6 +94,32 @@ class EpisodeDetailScreen extends StatelessWidget {
               ),
             ),
 
+
+            // --- NUOVO: NOME SERIE CLICCABILE ---
+            GestureDetector(
+              onTap: () {
+                // Naviga alla pagina di dettaglio della serie
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => SeriesDetailScreen(
+                      seriesId: seriesId,
+                      seriesName: seriesName,
+                    ),
+                  ),
+                );
+              },
+              child: Text(
+                seriesName,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey[600], 
+                  decoration: TextDecoration.underline,
+                  decorationColor: Colors.grey[600],
+                ),
+              ),
+            ),
             const SizedBox(height: 12),
 
             // 3. RIGA INFO: Data, Durata, toggle Visto
@@ -168,12 +197,12 @@ class EpisodeDetailScreen extends StatelessWidget {
     );
   }
 
-  // --- AGGIUNTO: Widget per il toggle (copiato e adattato da season_tile_screen.dart) ---
+  // --- Widget per il toggle (copiato e adattato da season_tile_screen.dart) ---
   Widget _buildWatchedToggle() {
     final user = auth.FirebaseAuth.instance.currentUser;
     if (user == null) return const SizedBox.shrink();
 
-    // Logica per episodi futuri (copiata da season_tile)
+    // Logica per episodi futuri
     bool isFuture = false;
     if (episode.airDate != null && episode.airDate!.isNotEmpty) {
       try {
@@ -201,10 +230,8 @@ class EpisodeDetailScreen extends StatelessWidget {
         ],
 
       );
-      
     }
                 
-
     // Stream per ascoltare lo stato "visto" di questo specifico episodio
     return StreamBuilder<DocumentSnapshot>(
         stream: FirebaseFirestore.instance
@@ -237,14 +264,13 @@ class EpisodeDetailScreen extends StatelessWidget {
               const SizedBox(width: 8),
               InkWell(
                 onTap: () {
-                  // Chiama la stessa funzione usata in season_tile
                   AppData.toggleEpisodeWatched(
                     seriesName: seriesName,
                     seriesId: seriesId,
                     seasonNum: seasonNumber,
                     episodeNum: episode.episodeNumber,
                     episodeTitle: episode.name,
-                    isWatched: !isWatched, // Inverte lo stato attuale
+                    isWatched: !isWatched, 
                   );
                 },
                 borderRadius: BorderRadius.circular(30),
@@ -270,8 +296,6 @@ class EpisodeDetailScreen extends StatelessWidget {
         }
     );
   }
-  // --------------------------------------------------
-
 
   Widget _buildHeaderImage() {
     return Container(
@@ -345,23 +369,21 @@ class EpisodeDetailScreen extends StatelessWidget {
           const SizedBox(height: 4),
           
           // 2. TESTI (Ottimizzati)
-          // Nome Attore: Permettiamo 2 righe
           Text(
             actor.name,
-            maxLines: 2, // <--- MODIFICA: Da 1 a 2 righe
+            maxLines: 2, 
             overflow: TextOverflow.ellipsis, 
             style: const TextStyle(
               fontSize: 12, 
               fontWeight: FontWeight.bold, 
               color: AppData.primaryColor,
-              height: 1.1 // Line height stretto per risparmiare spazio
+              height: 1.1 
             ),
             textAlign: TextAlign.center,
           ),
           
           const SizedBox(height: 4),
 
-          // Nome Personaggio: Permettiamo 2 righe
           Text(
             actor.characterName,
             maxLines: 4, 

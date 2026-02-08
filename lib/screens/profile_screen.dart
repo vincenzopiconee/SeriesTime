@@ -186,7 +186,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               body: SingleChildScrollView(
                 // body of the page
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 25,
+                  horizontal: 15,
                   vertical: 20,
                 ),
                 child: Column(
@@ -576,13 +576,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // clamp forces to maxVal to be min. 5
 
     String subTitle = "";
-    if (_selectedPeriod == ChartPeriod.week)
+    if (_selectedPeriod == ChartPeriod.week) {
       subTitle = "Activity in the current week";
-    else if (_selectedPeriod == ChartPeriod.month)
-      subTitle = "Activity in current Month";
-    else
+    } else if (_selectedPeriod == ChartPeriod.month) {
+       subTitle = "Activity in current Month";
+    } else {
       subTitle = "Activity in current Year";
-
+    }
     List<String> labels = [];
     if (_selectedPeriod == ChartPeriod.year) {
       labels = [
@@ -768,7 +768,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: Colors.black.withAlpha(25),
                     blurRadius: 4,
                     offset: const Offset(0, 2),
                   ),
@@ -828,12 +828,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
-
   //------------------------ Series Progress Card ----------------------
 
   Widget _buildSeriesCard(Series series) {
     String formattedTime = formatHours(series.totalHours);
-
+    // --- 2. WRAP CON GESTURE DETECTOR ---
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -849,7 +848,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Container(
         decoration: BoxDecoration(
           color: AppData.whiteColor,
-          borderRadius: BorderRadius.circular(22),
+          borderRadius: BorderRadius.circular(20),
           border: Border.all(color: AppData.accentColor, width: 2),
           boxShadow: [
             BoxShadow(
@@ -864,7 +863,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Expanded(
               flex: 5,
               child: Container(
-                margin: const EdgeInsets.all(4),
+                margin: const EdgeInsets.all(3),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(15),
                   border: Border.all(color: AppData.accentColor, width: 1.5),
@@ -920,11 +919,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(
-                        Icons.access_time,
-                        size: 14,
-                        color: Colors.grey,
-                      ),
+                      const Icon(Icons.access_time, size: 14, color: Colors.grey),
                       const SizedBox(width: 3),
                       Text(
                         formattedTime,

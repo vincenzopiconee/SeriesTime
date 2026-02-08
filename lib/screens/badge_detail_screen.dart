@@ -61,10 +61,7 @@ class BadgeDetailScreen extends StatelessWidget {
         ),
         centerTitle: true,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
+        iconTheme: const IconThemeData(color: AppData.whiteColor),
       ),
       body: SingleChildScrollView(
         child: Column(
