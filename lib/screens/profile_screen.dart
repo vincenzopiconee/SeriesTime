@@ -289,12 +289,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           if (allClaimed.isEmpty) {
                             return _buildEmptyBadgesMessage();
                           }
-                          final displayBadges = allClaimed.take(3).toList();
+                          final displayBadges = allClaimed.take(4).toList();
 
                           return Column(
+                            
                             children: [
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: displayBadges.map((badge) {
                                   return GestureDetector(
                                     onTap: () {
@@ -794,14 +795,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildBadgeItem(UserBadge badge) {
     return Container(
-      width: 85,
+      width: 80,
       height: 105, // Aggiungi un'altezza fissa se necessario per uniformità
-      margin: const EdgeInsets.symmetric(
-        horizontal: 8,
-      ), // Margine laterale per spaziarli
+      // Margine laterale per spaziarli
       decoration: BoxDecoration(
         color: AppData.whiteColor,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: const Color(0xFF2D3748), width: 1.5),
       ),
       child: Column(
