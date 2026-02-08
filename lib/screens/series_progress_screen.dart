@@ -16,43 +16,43 @@ class SeriesProgressScreen extends StatelessWidget {
     }
 
     final List<Series> progressList = AppData.userSeries
-      .where((s) => s.percentage > 0.0)
-      .toList();
+        .where((s) => s.percentage > 0.0)
+        .toList();
     progressList.sort(
       (a, b) => b.percentage.compareTo(a.percentage),
     ); //List sorted by percentage
 
     return GestureDetector(
-    onHorizontalDragUpdate: (details) {
-      if (details.delta.dx > 18) { 
-        Navigator.pop(context);
-      }
-    },
-    child: Scaffold(
-      backgroundColor: AppData.backgroundColor,
-      appBar: AppBar(
-        backgroundColor: AppData.primaryColor,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_ios_new,
-            color: AppData.whiteColor,
+      onHorizontalDragUpdate: (details) {
+        if (details.delta.dx > 18) {
+          Navigator.pop(context);
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppData.backgroundColor,
+        appBar: AppBar(
+          backgroundColor: AppData.primaryColor,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          leading: IconButton(
+            icon: const Icon(
+              Icons.arrow_back_ios_new,
+              color: AppData.whiteColor,
+            ),
+            onPressed: () => Navigator.pop(context),
           ),
-          onPressed: () => Navigator.pop(context),
-        ),
-        centerTitle: true,
-        title: const Text(
-          "Series Progress",
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: AppData.whiteColor,
-            fontWeight: FontWeight.bold,
-            fontSize: 27,
+          centerTitle: true,
+          title: const Text(
+            "Series Progress",
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: AppData.whiteColor,
+              fontWeight: FontWeight.bold,
+              fontSize: 27,
+            ),
           ),
         ),
-      ),
-      body: ListView.builder(
+        body: ListView.builder(
         padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 20),
         itemCount: progressList.length,
         itemBuilder: (context, index) {
@@ -257,12 +257,12 @@ class SeriesProgressScreen extends StatelessWidget {
   }
 
   String formatHours(double totalHours) {
-  if (totalHours <= 0) return "0m";
-  int h = totalHours.toInt(); 
-  int m = ((totalHours - h) * 60).round(); 
-  
-  if (h == 0) return "${m}m";
-  if (m == 0) return "${h}h";
-  return "${h}h ${m}m";
+    if (totalHours <= 0) return "0m";
+    int h = totalHours.toInt();
+    int m = ((totalHours - h) * 60).round();
+
+    if (h == 0) return "${m}m";
+    if (m == 0) return "${h}h";
+    return "${h}h ${m}m";
   }
 }

@@ -9,7 +9,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as auth;
 import '../models/user.dart';
 import 'all_badges_screen.dart';
-import 'series_detail_screen.dart'; // <--- 1. IMPORT AGGIUNTO
+import 'series_detail_screen.dart';
+import 'badge_detail_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -97,7 +98,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
             //------------------ IN CASE OF DATA Acquired, we get Series and User Data from AppData--------------
             //---------------------------------------------------------------------------------------------------
             final userData = userSnapshot.data!.data() as Map<String, dynamic>;
-
+            if (AppData.currentUser != null) {
+              AppData.currentUser!.claimedBadgeIds = List<String>.from(
+                userData['claimedBadgeIds'] ?? [],
+              );
+            }
             AppData.userSeries = seriesSnapshot.data!.docs.map((doc) {
               final sData = doc.data() as Map<String, dynamic>;
               return Series(
@@ -122,6 +127,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               nightOwlHours: (userData['nightOwlHours'] ?? 0).toDouble(),
               uniqueGenresCount: (userData['uniqueGenresCount'] ?? 0).toInt(),
               seriesStreak: userData['seriesStreak'] ?? 0,
+              claimedBadgeIds: List<String>.from(
+                userData['claimedBadgeIds'] ?? [],
+              ),
               photoUrl:
                   userData['photoUrl'] ??
                   auth.FirebaseAuth.instance.currentUser?.photoURL,
@@ -255,7 +263,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     const SizedBox(height: 15),
 
                     SizedBox(
-                      height: 115,
+                      //height: 115,
                       child: Builder(
                         builder: (context) {
                           //taking claimedIds
@@ -281,18 +289,134 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           if (allClaimed.isEmpty) {
                             return _buildEmptyBadgesMessage();
                           }
-                          return ListView.builder(
-                            scrollDirection: Axis.horizontal,
-                            physics: const BouncingScrollPhysics(),
-                            itemCount: allClaimed.length > 4
-                                ? 5
-                                : allClaimed.length,
-                            itemBuilder: (context, index) {
-                              if (allClaimed.length > 4 && index == 4) {
-                                return _buildViewAllBadgeButton();
-                              }
-                              return _buildBadgeItem(allClaimed[index]);
-                            },
+                          final displayBadges = allClaimed.take(3).toList();
+
+                          return Column(
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: displayBadges.map((badge) {
+                                  return GestureDetector(
+                                    onTap: () {
+                                      List<UserBadge> milestones = [];
+                                      double currentValue = 0;
+                                      String unit = "h";
+
+                                      // Mappatura identica a quella usata in AllBadges e BingeMode
+                                      if (badge.title == "Marathoner") {
+                                        milestones =
+                                            AppData.marathonerMilestones;
+                                        currentValue =
+                                            AppData
+                                                .currentUser
+                                                ?.totalHoursWatched ??
+                                            0;
+                                        unit = "h";
+                                      } else if (badge.title ==
+                                          "Pure Obsession") {
+                                        milestones =
+                                            AppData.obsessionMilestones;
+                                        currentValue =
+                                            AppData
+                                                .currentUser
+                                                ?.maxConsecutiveHours ??
+                                            0;
+                                        unit = "h";
+                                      } else if (badge.title ==
+                                          "Weekend Warrior") {
+                                        milestones = AppData.weekendMilestones;
+                                        currentValue =
+                                            AppData.currentUser?.weekendHours ??
+                                            0;
+                                        unit = "h";
+                                      } else if (badge.title == "Streak") {
+                                        milestones = AppData.streakMilestones;
+                                        currentValue =
+                                            (AppData
+                                                        .currentUser
+                                                        ?.seriesStreak ??
+                                                    0)
+                                                .toDouble();
+                                        unit = "d";
+                                      } else if (badge.title ==
+                                          "The Perfectionist") {
+                                        milestones =
+                                            AppData.completionistMilestones;
+                                        currentValue = AppData.userSeries
+                                            .where((s) => s.percentage >= 1.0)
+                                            .length
+                                            .toDouble();
+                                        unit = "S";
+                                      } else if (badge.title ==
+                                          "The Night Owl") {
+                                        milestones = AppData.nightOwlMilestones;
+                                        currentValue =
+                                            AppData
+                                                .currentUser
+                                                ?.nightOwlHours ??
+                                            0;
+                                        unit = "h";
+                                      } else if (badge.title ==
+                                          "Genre Explorer") {
+                                        milestones = AppData.genreMilestones;
+                                        currentValue =
+                                            (AppData
+                                                        .currentUser
+                                                        ?.uniqueGenresCount ??
+                                                    0)
+                                                .toDouble();
+                                        unit = "G";
+                                      }
+
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              BadgeDetailScreen(
+                                                categoryTitle: badge.title,
+                                                milestones: milestones,
+                                                currentValue: currentValue,
+                                                unit: unit,
+                                              ),
+                                        ),
+                                      );
+                                    },
+                                    child: _buildBadgeItem(badge),
+                                  );
+                                }).toList(),
+                              ),
+                              if (allClaimed.length > 3) ...[
+                                const SizedBox(height: 15),
+                                ElevatedButton(
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            const AllBadgesScreen(),
+                                      ),
+                                    );
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppData.accentColor,
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 30,
+                                      vertical: 12,
+                                    ),
+                                  ),
+                                  child: const Text(
+                                    "View More",
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
                           );
                         },
                       ),
@@ -671,7 +795,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildBadgeItem(UserBadge badge) {
     return Container(
       width: 85,
-      margin: const EdgeInsets.only(right: 15),
+      height: 105, // Aggiungi un'altezza fissa se necessario per uniformità
+      margin: const EdgeInsets.symmetric(
+        horizontal: 8,
+      ), // Margine laterale per spaziarli
       decoration: BoxDecoration(
         color: AppData.whiteColor,
         borderRadius: BorderRadius.circular(20),
@@ -701,58 +828,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
-
-  Widget _buildViewAllBadgeButton() {
-    return GestureDetector(
-      onTap: () {
-        final List<UserBadge> allClaimed =
-            [
-                  ...AppData.marathonerMilestones,
-                  ...AppData.obsessionMilestones,
-                  ...AppData.weekendMilestones,
-                  ...AppData.streakMilestones,
-                  ...AppData.completionistMilestones,
-                  ...AppData.nightOwlMilestones,
-                  ...AppData.genreMilestones,
-                ]
-                .where(
-                  (badge) =>
-                      AppData.currentUser!.claimedBadgeIds.contains(badge.id),
-                )
-                .toList();
-
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const AllBadgesScreen()),
-        );
-      },
-      child: Container(
-        width: 70,
-        margin: const EdgeInsets.only(left: 10, right: 20),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
-            Icon(
-              Icons.arrow_forward_ios,
-              color: AppData.primaryColor,
-              size: 24,
-            ),
-            SizedBox(height: 8),
-            Text(
-              "View All",
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: AppData.primaryColor,
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   //------------------------ Series Progress Card ----------------------
 
   Widget _buildSeriesCard(Series series) {
