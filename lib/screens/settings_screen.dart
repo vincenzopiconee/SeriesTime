@@ -115,7 +115,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       color: AppData.primaryColor,
                       strokeWidth: 2,
                     ),
-                  )
+                  ),
+                  SizedBox(height: 15),
+                  Text(
+                    "Cleaning Database",
+                    style: TextStyle(
+                    color: AppData.primaryColor,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    ),
+                  ),
                 ],
               )
             else

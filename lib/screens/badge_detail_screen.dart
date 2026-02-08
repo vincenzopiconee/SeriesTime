@@ -37,6 +37,47 @@ class BadgeDetailScreen extends StatelessWidget {
     }
   }
 
+  // --- FUNZIONE DI FORMATTAZIONE AGGIORNATA ---
+  String _formatDisplayValue() {
+    // 1. Serie (S) -> "Series"
+    if (unit == 'S') {
+      return "${currentValue.toInt()} Series";
+    }
+
+    // 2. Generi (G) -> "Genres"
+    if (unit == 'G') {
+      return "${currentValue.toInt()} Genres";
+    }
+
+    // 3. Giorni (d): Input in Giorni. Mostra Xd
+    if (unit == 'd') {
+      int d = currentValue.toInt();
+      return "${d}d";
+    }
+
+    // 4. Ore come Giorni/Ore (dh): Input in Ore. Mostra Xd Yh
+    // Usato per Marathoner. Usa .floor() sulle ore rimanenti per coerenza con BingeModeScreen
+    if (unit == 'dh') {
+      int d = (currentValue / 24).floor();
+      int h = (currentValue % 24).floor(); 
+      return "${d}d ${h}h";
+    }
+
+    // 5. Ore (h): Input in Ore. Mostra Xh Ym
+    if (unit == 'h') {
+      if (currentValue <= 0) return "0m";
+      int h = currentValue.toInt();
+      int m = ((currentValue - h) * 60).round();
+
+      if (h > 0 && m > 0) return "${h}h ${m}m";
+      if (h > 0) return "${h}h";
+      return "${m}m";
+    }
+
+    // Fallback generico
+    return "${currentValue.toStringAsFixed(1)} $unit";
+  }
+
   @override
   Widget build(BuildContext context) {
     final List<String> claimedIds = AppData.currentUser?.claimedBadgeIds ?? [];
@@ -69,12 +110,6 @@ class BadgeDetailScreen extends StatelessWidget {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(25),
-              decoration: const BoxDecoration(
-                color: AppData.whiteColor,
-                borderRadius: BorderRadius.vertical(
-                  bottom: Radius.circular(30),
-                ),
-              ),
               child: Column(
                 children: [
                   Transform.scale(
@@ -86,14 +121,17 @@ class BadgeDetailScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 20),
+                  
+                  // --- VALORE FORMATTATO ---
                   Text(
-                    "${currentValue.toStringAsFixed(1)}$unit",
+                    _formatDisplayValue(),
                     style: const TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
                       color: AppData.primaryColor,
                     ),
                   ),
+                  
                   Text(
                     "Total Progress",
                     style: TextStyle(color: Colors.grey[600], fontSize: 16),
@@ -102,7 +140,6 @@ class BadgeDetailScreen extends StatelessWidget {
               ),
             ),
 
-            const SizedBox(height: 25),
 
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),

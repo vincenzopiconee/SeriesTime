@@ -173,9 +173,8 @@ class _MainWrapperState extends State<MainWrapper> {
 
   Widget _buildCustomNavbar() {
     return Container(
-      height: 85,
-      margin: const EdgeInsets.only(bottom: 0, left: 0, right: 0),
-      padding: const EdgeInsets.only(bottom: 26),
+      height: 83,
+      padding: const EdgeInsets.only(bottom: 25),
       decoration: BoxDecoration(
         color: AppData.primaryColor,
         //borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
@@ -209,7 +208,7 @@ class _MainWrapperState extends State<MainWrapper> {
         children: [
           // Usiamo un Container con dimensioni fisse o padding uguale per entrambi gli stati
           Container(
-            padding: const EdgeInsets.all(6), // Stesso padding per tutti
+            padding: const EdgeInsets.all(5), // Stesso padding per tutti
             decoration: BoxDecoration(
               // Selezionato: Colore Accent. Non selezionato: Trasparente.
               color: isSelected ? AppData.accentColor : Colors.transparent,

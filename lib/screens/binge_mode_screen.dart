@@ -9,17 +9,23 @@ import 'badge_detail_screen.dart';
 class BingeModeScreen extends StatelessWidget {
   const BingeModeScreen({super.key});
 
+  // Funzione helper per formattare la durata (da 1.5 a "1h 30m")
+  String _formatDuration(double totalHours) {
+    if (totalHours <= 0) return "0m";
+    int h = totalHours.toInt();
+    int m = ((totalHours - h) * 60).round();
+
+    if (h > 0 && m > 0) return "${h}h ${m}m";
+    if (h > 0) return "${h}h";
+    return "${m}m";
+  }
+
   @override
   Widget build(BuildContext context) {
-    //streamBuilder handles the stream of data, stream is the source (firebase),
-    // the builder is the function triggered when the DB is changed
-    // ( then context is the context of the app and the snapshot is an object
-    // which contain the state of the app (snapsht.data, snapshot.error) )
     return StreamBuilder<DocumentSnapshot>(
       stream: AppData.userStream(),
       builder: (context, userSnapshot) {
         return StreamBuilder<QuerySnapshot>(
-          // nested streambuilder to collect also the series
           stream: AppData.seriesStream(),
           builder: (context, seriesSnapshot) {
             if (!userSnapshot.hasData || !seriesSnapshot.hasData) {
@@ -37,14 +43,11 @@ class BingeModeScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-                body: Center(child: CircularProgressIndicator()),
+                body: const Center(child: CircularProgressIndicator()),
               );
             }
 
             final userData = userSnapshot.data!.data() as Map<String, dynamic>;
-            //-----------------------------------------------------------
-            //--------------------------- TAKE THE USER AND SERIES DATA -----------------
-            //-----------------------------------------------------------
             AppData.currentUser = User(
               name: userData['name'] ?? "User",
               totalHoursWatched: (userData['totalHoursWatched'] ?? 0)
@@ -67,12 +70,10 @@ class BingeModeScreen extends StatelessWidget {
                 name: doc.id,
                 imageUrl: sData['imageUrl'] ?? "",
                 percentage: (sData['percentage'] ?? 0).toDouble(),
-                totalHours: sData['totalHours'] ?? 0,
+                totalHours: (sData['totalHours'] ?? 0).toDouble(),
                 episode: sData['episode'] ?? "",
               );
             }).toList();
-
-            //----------------GET ALL THE BADGES----------------
 
             final user = AppData.currentUser!;
             final double realTotalHours = AppData.getTotalWatchTimeHours();
@@ -124,7 +125,7 @@ class BingeModeScreen extends StatelessWidget {
             double progressGenre =
                 user.uniqueGenresCount / targetGenre.targetHours;
             if (progressGenre > 1.0) progressGenre = 1.0;
-            // ------------------------------AppBar OF THE PAGE -------------------------------------------
+
             return DefaultTabController(
               length: 2,
               child: Scaffold(
@@ -208,7 +209,7 @@ class BingeModeScreen extends StatelessWidget {
     allClaimed.sort((a, b) => a.title.compareTo(b.title));
 
     return ListView.builder(
-      padding: const EdgeInsets.only(left: 15, right: 15, top: 20, bottom: 100),
+      padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 100),
       itemCount: allClaimed.length,
       itemBuilder: (context, index) {
         final badge = allClaimed[index];
@@ -221,7 +222,7 @@ class BingeModeScreen extends StatelessWidget {
         if (badge.title == "Marathoner") {
           categoryMilestones = AppData.marathonerMilestones;
           currentProgressValue = totalHours;
-          unit = "h";
+          unit = "dh"; // Usa Days+Hours
         } else if (badge.title == "Pure Obsession") {
           categoryMilestones = AppData.obsessionMilestones;
           currentProgressValue = user.maxConsecutiveHours;
@@ -233,7 +234,7 @@ class BingeModeScreen extends StatelessWidget {
         } else if (badge.title == "Streak") {
           categoryMilestones = AppData.streakMilestones;
           currentProgressValue = user.seriesStreak.toDouble();
-          unit = "d";
+          unit = "d"; // Days (formatted as Xd Yh)
         } else if (badge.title == "The Perfectionist") {
           categoryMilestones = AppData.completionistMilestones;
           currentProgressValue = completedCount.toDouble();
@@ -285,7 +286,6 @@ class BingeModeScreen extends StatelessWidget {
     int completedCount,
     BuildContext context,
   ) {
-    //---- SEARCHING the target BADGES FOR ALL THE  TYPE OF BADGES
     UserBadge _findCurrentTarget(
       List<UserBadge> milestones,
       double currentVal,
@@ -324,9 +324,7 @@ class BingeModeScreen extends StatelessWidget {
       AppData.genreMilestones,
       user.uniqueGenresCount.toDouble(),
     );
-    //-----------------------------------------------------------------------
-    // ----------- BUILDING THE CARD FOR A QUEST ----------------------------
-    //-----------------------------------------------------------------------
+
     Widget _questItem(
       UserBadge target,
       double currentProgress,
@@ -336,7 +334,6 @@ class BingeModeScreen extends StatelessWidget {
     ) {
       if (user.claimedBadgeIds.contains(target.id))
         return const SizedBox.shrink();
-      // if the badge is claimed, we don't have to show it
 
       bool canClaim = currentProgress >= target.targetHours;
       return GestureDetector(
@@ -371,50 +368,51 @@ class BingeModeScreen extends StatelessWidget {
       );
     }
 
-    // --------------------------- BODY OF THE PAGE ---------------------------
     return SingleChildScrollView(
-      padding: const EdgeInsets.only(left: 15, right: 15, top: 20, bottom: 85),
+      padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 100),
       child: Column(
         children: [
+          // Marathoner: usa 'dh' (Hours displayed as Days/Hours)
           _questItem(
             targetM,
             realTotalHours,
-            "${timeData["days"]}d ${timeData["hours"]}h / ${targetM.iconLabel.replaceAll('G', 'd')}",
+            "${timeData["days"]}d ${timeData["hours"]}h / ${targetM.iconLabel}",
             AppData.marathonerMilestones,
-            "h",
+            "dh",
           ),
           _questItem(
             targetO,
             user.maxConsecutiveHours,
-            "${user.maxConsecutiveHours.toStringAsFixed(1)}h / ${targetO.iconLabel}",
+            "${_formatDuration(user.maxConsecutiveHours)} / ${targetO.iconLabel}",
             AppData.obsessionMilestones,
             "h",
           ),
           _questItem(
             targetW,
             user.weekendHours,
-            "${user.weekendHours.toStringAsFixed(1)}h / ${targetW.iconLabel}",
+            "${_formatDuration(user.weekendHours)} / ${targetW.iconLabel}",
             AppData.weekendMilestones,
             "h",
           ),
+          // Streak: usa 'd' (Days), ma il testo lo mostriamo come "Xd 0h" per consistenza
           _questItem(
             targetS,
             user.seriesStreak.toDouble(),
-            "${user.seriesStreak} / ${targetS.iconLabel}",
+            "${user.seriesStreak}d 0h / ${targetS.iconLabel}",
             AppData.streakMilestones,
             "d",
           ),
           _questItem(
             targetC,
             completedCount.toDouble(),
-            "$completedCount / ${targetC.iconLabel.replaceAll('S', '')}",
+            "$completedCount / ${targetC.iconLabel}",
             AppData.completionistMilestones,
             "S",
           ),
           _questItem(
             targetNO,
             user.nightOwlHours,
-            "${user.nightOwlHours.toStringAsFixed(1)}h / ${targetNO.iconLabel}",
+            "${_formatDuration(user.nightOwlHours)} / ${targetNO.iconLabel}",
             AppData.nightOwlMilestones,
             "h",
           ),
@@ -508,7 +506,7 @@ class BingeModeScreen extends StatelessWidget {
                         Container(
                           height: 21,
                           decoration: BoxDecoration(
-                            color: Colors.grey[300],
+                            color: Colors.grey[400],
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
