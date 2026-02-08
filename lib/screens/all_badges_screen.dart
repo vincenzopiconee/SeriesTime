@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/appdata.dart';
 import '../models/userbadge.dart';
+import 'badge_detail_screen.dart';
 
 class AllBadgesScreen extends StatefulWidget {
   const AllBadgesScreen({super.key});
@@ -42,6 +43,11 @@ class _AllBadgesScreenState extends State<AllBadgesScreen> {
           }
 
           final userData = snapshot.data!.data() as Map<String, dynamic>;
+          if (AppData.currentUser != null) {
+            AppData.currentUser!.claimedBadgeIds = List<String>.from(
+              userData['claimedBadgeIds'] ?? [],
+            );
+          }
           final List<String> claimedIds = List<String>.from(
             userData['claimedBadgeIds'] ?? [],
           );
@@ -86,52 +92,117 @@ class _AllBadgesScreenState extends State<AllBadgesScreen> {
                     badge.title == "Streak" ||
                     badge.title == "The Perfectionist";
 
-                return Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: AppData.whiteColor,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withAlpha(13),
-                        blurRadius: 4,
-                        offset: const Offset(0, 2),
+                return GestureDetector(
+                  onTap: () {
+                    // Determiniamo i dati da passare in base al titolo della categoria
+                    List<UserBadge> milestones = [];
+                    double currentValue = 0;
+                    String unit = "h";
+
+                    if (badge.title == "Marathoner") {
+                      milestones = AppData.marathonerMilestones;
+                      currentValue =
+                          AppData.currentUser?.totalHoursWatched ?? 0;
+                      unit = "h";
+                    } else if (badge.title == "Pure Obsession") {
+                      milestones = AppData.obsessionMilestones;
+                      currentValue =
+                          AppData.currentUser?.maxConsecutiveHours ?? 0;
+                      unit = "h";
+                    } else if (badge.title == "Weekend Warrior") {
+                      milestones = AppData.weekendMilestones;
+                      currentValue = AppData.currentUser?.weekendHours ?? 0;
+                      unit = "h";
+                    } else if (badge.title == "Streak") {
+                      milestones = AppData.streakMilestones;
+                      currentValue = (AppData.currentUser?.seriesStreak ?? 0)
+                          .toDouble();
+                      unit = "d";
+                    } else if (badge.title == "The Perfectionist") {
+                      milestones = AppData.completionistMilestones;
+                      currentValue = AppData.userSeries
+                          .where((s) => s.percentage >= 1.0)
+                          .length
+                          .toDouble();
+                      unit = "S";
+                    } else if (badge.title == "The Night Owl") {
+                      milestones = AppData.nightOwlMilestones;
+                      currentValue = AppData.currentUser?.nightOwlHours ?? 0;
+                      unit = "h";
+                    } else if (badge.title == "Genre Explorer") {
+                      milestones = AppData.genreMilestones;
+                      currentValue =
+                          (AppData.currentUser?.uniqueGenresCount ?? 0)
+                              .toDouble();
+                      unit = "G";
+                    }
+
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => BadgeDetailScreen(
+                          categoryTitle: badge.title,
+                          milestones: milestones,
+                          currentValue: currentValue,
+                          unit: unit,
+                        ),
                       ),
-                    ],
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Expanded(
-                        child: Center(
-                          child: Transform.scale(
-                            scale: shouldScale ? 1.5 : 1.0,
-                            child: Image.asset(
-                              badge.imagePath,
-                              fit: BoxFit.contain,
+                    );
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: AppData.whiteColor,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: AppData.accentColor,
+                        width: 1.5,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withAlpha(13),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Expanded(
+                          child: Center(
+                            child: Transform.scale(
+                              scale: shouldScale ? 1.5 : 1.0,
+                              child: Image.asset(
+                                badge.imagePath,
+                                fit: BoxFit.contain,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        badge.title,
-                        style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: AppData.primaryColor,
+                        const SizedBox(height: 4),
+                        Text(
+                          badge.title,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: AppData.primaryColor,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        badge.iconLabel,
-                        style: TextStyle(fontSize: 10, color: Colors.grey[600]),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
+                        const SizedBox(height: 2),
+                        Text(
+                          badge.iconLabel,
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Colors.grey[600],
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
                   ),
                 );
               },
