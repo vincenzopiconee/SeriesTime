@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/appdata.dart';
 import '../models/series.dart';
+import 'series_detail_screen.dart'; // <--- 1. IMPORT AGGIUNTO
 
 class SeriesProgressScreen extends StatelessWidget {
   const SeriesProgressScreen({super.key});
@@ -52,7 +53,7 @@ class SeriesProgressScreen extends StatelessWidget {
         ),
       ),
       body: ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 20),
         itemCount: progressList.length,
         itemBuilder: (context, index) {
           final series = progressList[index];
@@ -72,16 +73,30 @@ class SeriesProgressScreen extends StatelessWidget {
           String seenText = "${formatHours(hoursSeen)} seen";
           String leftText = "${formatHours(hoursLeft)} left";
 
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 15),
-            child: _buildProgressCard(
-              title: series.name,
-              episode: series.episode,
-              percentage: series.percentage,
-              totalHours: seenText,
-              timeLeft: leftText,
-              imageUrl: series.imageUrl,
-              isFinished: series.percentage >= 1.0,
+          // --- 2. WRAP CON GESTURE DETECTOR ---
+          return GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => SeriesDetailScreen(
+                    seriesId: series.id,
+                    seriesName: series.name,
+                  ),
+                ),
+              );
+            },
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 15),
+              child: _buildProgressCard(
+                title: series.name,
+                episode: series.episode,
+                percentage: series.percentage,
+                totalHours: seenText,
+                timeLeft: leftText,
+                imageUrl: series.imageUrl,
+                isFinished: series.percentage >= 1.0,
+              ),
             ),
           );
         },
@@ -116,9 +131,7 @@ class SeriesProgressScreen extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            margin: const EdgeInsets.all(10),
-            width: 60,
-            height: 90,
+            margin: const EdgeInsets.all(3),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(15),
               border: Border.all(color: AppData.accentColor, width: 1.5),
@@ -242,6 +255,7 @@ class SeriesProgressScreen extends StatelessWidget {
       ],
     );
   }
+
   String formatHours(double totalHours) {
   if (totalHours <= 0) return "0m";
   int h = totalHours.toInt(); 
@@ -250,5 +264,5 @@ class SeriesProgressScreen extends StatelessWidget {
   if (h == 0) return "${m}m";
   if (m == 0) return "${h}h";
   return "${h}h ${m}m";
-}
+  }
 }

@@ -142,7 +142,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
           
           // --- SEARCH BAR ---
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            padding: const EdgeInsets.symmetric(horizontal: 15.0),
             child: Container(
               height: 50,
               decoration: BoxDecoration(
@@ -183,7 +183,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
             height: 40,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 15),
               itemCount: _availableGenres.length,
               itemBuilder: (context, index) {
                 final genre = _availableGenres[index];
@@ -220,7 +220,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
           
           // Titolo Sezione
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 15.0, vertical: 8),
             child: Align(
               alignment: Alignment.centerLeft,
               child: Text(
@@ -286,7 +286,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
       },
       child: Container(
         height: cardHeight,
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
         decoration: BoxDecoration(
           color: AppData.whiteColor, 
           borderRadius: BorderRadius.circular(16),

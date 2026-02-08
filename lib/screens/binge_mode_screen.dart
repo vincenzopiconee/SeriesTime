@@ -198,7 +198,7 @@ class BingeModeScreen extends StatelessWidget {
     if (allClaimed.isEmpty) {
       return const Center(
         child: Text(
-          "No badges claimed yet. Complete a quest and click CLAIM!",
+          "No badges claimed yet.\nComplete a quest and click CLAIM!",
           textAlign: TextAlign.center,
           style: TextStyle(color: Colors.grey, fontSize: 16),
         ),
@@ -208,7 +208,7 @@ class BingeModeScreen extends StatelessWidget {
     allClaimed.sort((a, b) => a.title.compareTo(b.title));
 
     return ListView.builder(
-      padding: const EdgeInsets.only(left: 20, right: 20, top: 20, bottom: 100),
+      padding: const EdgeInsets.only(left: 15, right: 15, top: 20, bottom: 100),
       itemCount: allClaimed.length,
       itemBuilder: (context, index) {
         final badge = allClaimed[index];
@@ -373,7 +373,7 @@ class BingeModeScreen extends StatelessWidget {
 
     // --------------------------- BODY OF THE PAGE ---------------------------
     return SingleChildScrollView(
-      padding: const EdgeInsets.only(left: 20, right: 20, top: 20, bottom: 100),
+      padding: const EdgeInsets.only(left: 15, right: 15, top: 20, bottom: 85),
       child: Column(
         children: [
           _questItem(

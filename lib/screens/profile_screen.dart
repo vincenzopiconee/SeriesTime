@@ -9,6 +9,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as auth;
 import '../models/user.dart';
 import 'all_badges_screen.dart';
+import 'series_detail_screen.dart'; // <--- 1. IMPORT AGGIUNTO
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -177,7 +178,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               body: SingleChildScrollView(
                 // body of the page
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 25,
+                  horizontal: 15,
                   vertical: 20,
                 ),
                 child: Column(
@@ -451,13 +452,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // clamp forces to maxVal to be min. 5
 
     String subTitle = "";
-    if (_selectedPeriod == ChartPeriod.week)
+    if (_selectedPeriod == ChartPeriod.week) {
       subTitle = "Activity in the current week";
-    else if (_selectedPeriod == ChartPeriod.month)
-      subTitle = "Activity in current Month";
-    else
+    } else if (_selectedPeriod == ChartPeriod.month) {
+       subTitle = "Activity in current Month";
+    } else {
       subTitle = "Activity in current Year";
-
+    }
     List<String> labels = [];
     if (_selectedPeriod == ChartPeriod.year) {
       labels = [
@@ -643,7 +644,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: Colors.black.withAlpha(25),
                     blurRadius: 4,
                     offset: const Offset(0, 2),
                   ),
@@ -756,96 +757,110 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildSeriesCard(Series series) {
     String formattedTime = formatHours(series.totalHours);
-    return Container(
-      decoration: BoxDecoration(
-        color: AppData.whiteColor,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: AppData.accentColor, width: 2),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(38),
-            blurRadius: 8,
-            offset: const Offset(3, 4),
+    // --- 2. WRAP CON GESTURE DETECTOR ---
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => SeriesDetailScreen(
+              seriesId: series.id,
+              seriesName: series.name,
+            ),
           ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            flex: 5,
-            child: Container(
-              margin: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(15),
-                border: Border.all(color: AppData.accentColor, width: 1.5),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(13),
-                child: Image.network(
-                  series.imageUrl,
-                  height: double.infinity,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    width: double.infinity,
+        );
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppData.whiteColor,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppData.accentColor, width: 2),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha(38),
+              blurRadius: 8,
+              offset: const Offset(3, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              flex: 5,
+              child: Container(
+                margin: const EdgeInsets.all(3),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(15),
+                  border: Border.all(color: AppData.accentColor, width: 1.5),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(13),
+                  child: Image.network(
+                    series.imageUrl,
                     height: double.infinity,
-                    color: Colors.grey[300],
-                    child: const Icon(
-                      Icons.broken_image,
-                      size: 24,
-                      color: Colors.grey,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      width: double.infinity,
+                      height: double.infinity,
+                      color: Colors.grey[300],
+                      child: const Icon(
+                        Icons.broken_image,
+                        size: 24,
+                        color: Colors.grey,
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
-          ),
-          Expanded(
-            flex: 5,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    SizedBox(
-                      width: 42,
-                      height: 42,
-                      child: CircularProgressIndicator(
-                        value: series.percentage,
-                        strokeWidth: 4,
-                        backgroundColor: Colors.grey[200],
-                        color: AppData.primaryColor,
+            Expanded(
+              flex: 5,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      SizedBox(
+                        width: 42,
+                        height: 42,
+                        child: CircularProgressIndicator(
+                          value: series.percentage,
+                          strokeWidth: 4,
+                          backgroundColor: Colors.grey[200],
+                          color: AppData.primaryColor,
+                        ),
                       ),
-                    ),
-                    Text(
-                      "${(series.percentage * 100).toInt()}%",
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
+                      Text(
+                        "${(series.percentage * 100).toInt()}%",
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.access_time, size: 14, color: Colors.grey),
-                    const SizedBox(width: 3),
-                    Text(
-                      formattedTime,
-                      style: const TextStyle(
-                        color: Colors.grey,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.access_time, size: 14, color: Colors.grey),
+                      const SizedBox(width: 3),
+                      Text(
+                        formattedTime,
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

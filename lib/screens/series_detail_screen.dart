@@ -148,12 +148,8 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> with SingleTick
                     fontWeight: FontWeight.bold
                   )
                 ) : null,
-              leading: IconButton(
-                icon: const Icon(Icons.arrow_back), 
-                color: Colors.white, 
-                onPressed: () => Navigator.pop(context)
-              ),
               centerTitle: true,
+              iconTheme: const IconThemeData(color: AppData.whiteColor),
               flexibleSpace: FlexibleSpaceBar(
                 background: _buildHeader(primary, accent, headerHeight, screenWidth),
               ),
