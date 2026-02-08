@@ -386,7 +386,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   );
                                 }).toList(),
                               ),
-                              if (allClaimed.length > 3) ...[
+                              if (allClaimed.length > 4) ...[
                                 const SizedBox(height: 15),
                                 ElevatedButton(
                                   onPressed: () {
@@ -622,7 +622,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const Text(
                     "Watch Activity",
                     style: TextStyle(
-                      color: AppData.accentColor,
+                      color: AppData.primaryColor,
                       fontSize: 18,
                       fontWeight: FontWeight.w900,
                     ),

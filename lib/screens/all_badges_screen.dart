@@ -22,11 +22,7 @@ class _AllBadgesScreenState extends State<AllBadgesScreen> {
         backgroundColor: AppData.primaryColor,
         elevation: 0,
         centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          color: AppData.whiteColor,
-          onPressed: () => Navigator.pop(context),
-        ),
+        iconTheme: IconThemeData(color: AppData.whiteColor),
         title: const Text(
           "My Badges",
           style: TextStyle(
@@ -80,10 +76,10 @@ class _AllBadgesScreenState extends State<AllBadgesScreen> {
               controller: _scrollController,
               padding: const EdgeInsets.all(16),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
+                crossAxisCount: 4,
                 childAspectRatio: 0.65,
                 crossAxisSpacing: 10,
-                mainAxisSpacing: 16,
+                mainAxisSpacing: 10,
               ),
               itemCount: allUnlocked.length,
               itemBuilder: (context, index) {
@@ -188,19 +184,11 @@ class _AllBadgesScreenState extends State<AllBadgesScreen> {
                             fontWeight: FontWeight.bold,
                             color: AppData.primaryColor,
                           ),
-                          maxLines: 1,
+                          maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           textAlign: TextAlign.center,
                         ),
-                        const SizedBox(height: 2),
-                        Text(
-                          badge.iconLabel,
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: Colors.grey[600],
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
+                        const SizedBox(height: 4),
                       ],
                     ),
                   ),
