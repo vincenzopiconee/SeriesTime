@@ -12,11 +12,12 @@ class AuthGate extends StatelessWidget {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
-        
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
-            backgroundColor: Colors.black, 
-            body: Center(child: CircularProgressIndicator(color: AppData.primaryColor)),
+            backgroundColor: Colors.black,
+            body: Center(
+              child: CircularProgressIndicator(color: AppData.primaryColor),
+            ),
           );
         }
 
@@ -29,7 +30,11 @@ class AuthGate extends StatelessWidget {
               } else {
                 return const Scaffold(
                   backgroundColor: AppData.backgroundColor,
-                  body: Center(child: CircularProgressIndicator(color: AppData.primaryColor)),
+                  body: Center(
+                    child: CircularProgressIndicator(
+                      color: AppData.primaryColor,
+                    ),
+                  ),
                 );
               }
             },

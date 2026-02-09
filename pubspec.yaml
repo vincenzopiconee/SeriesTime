@@ -43,6 +43,7 @@ dependencies:
   google_sign_in: ^6.2.1
   http: ^1.6.0
 
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -54,6 +55,14 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  
+  # Per gli Unit Test e il Mocking (per simulare Firebase senza collegarsi davvero)
+  test: ^1.24.9
+  mockito: ^5.4.4
+  
+  # Per gli Integration Test (necessario per testare l'app su emulatore/dispositivo)
+  integration_test:
+    sdk: flutter
 
 flutter_launcher_icons:
   android: false
