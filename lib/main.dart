@@ -9,6 +9,10 @@ import 'data/app_data.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+  ]);
+
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual,
       overlays: [SystemUiOverlay.top]);
 
