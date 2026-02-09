@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:seriestime/models/appdata.dart';
-import 'package:seriestime/models/tv_show_details.dart';
-// --- AGGIUNTO: Import necessari per il database ---
+import 'package:seriestime/models/actor.dart';
+import 'package:seriestime/data/app_data.dart';
+import 'package:seriestime/models/episode.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as auth;
-// --- AGGIUNTO: Import per la navigazione alla serie ---
+import 'package:seriestime/models/user.dart';
+import 'package:seriestime/services/series_logic.dart';
 import 'series_detail_screen.dart'; 
-// --------------------------------------------------
 
 class EpisodeDetailScreen extends StatelessWidget {
   final String seriesName;
-  final int seriesId; // Necessario per la funzione toggle e navigazione
+  final int seriesId; 
   final int seasonNumber;
   final Episode episode;
 
@@ -24,197 +24,207 @@ class EpisodeDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppData.backgroundColor,
-      appBar: AppBar(
-        backgroundColor: AppData.primaryColor,
-        elevation: 0,
-        title: FittedBox(
-          fit: BoxFit.scaleDown, // Riduce il testo solo se necessario
-          child: Text(
-            "$seriesName - S$seasonNumber E${episode.episodeNumber}",
-            style: const TextStyle(
-              fontWeight: FontWeight.bold, 
-              color: Colors.white, 
-            ),
-          ),
-        ),
-        centerTitle: true,
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 1. HEADER: Immagine e Info Principali
-            _buildHeaderImage(),
-            const SizedBox(height: 15),
+    return StreamBuilder<DocumentSnapshot>(
+      stream: AppData.userStream(),
+      builder: (context, userSnapshot) {
+        
+        if (userSnapshot.hasData && userSnapshot.data!.data() != null) {
+          final userData = userSnapshot.data!.data() as Map<String, dynamic>;
+          AppData.currentUser = User(
+            name: userData['name'] ?? "User",
+            totalHoursWatched: (userData['totalHoursWatched'] ?? 0).toDouble(),
+            maxConsecutiveHours: (userData['maxConsecutiveHours'] ?? 0).toDouble(),
+            weekendHours: (userData['weekendHours'] ?? 0).toDouble(),
+            nightOwlHours: (userData['nightOwlHours'] ?? 0).toDouble(),
+            uniqueGenresCount: (userData['uniqueGenresCount'] ?? 0).toInt(),
+            seriesStreak: userData['seriesStreak'] ?? 0,
+            claimedBadgeIds: List<String>.from(userData['claimedBadgeIds'] ?? []),
+            photoUrl: userData['photoUrl'] ?? auth.FirebaseAuth.instance.currentUser?.photoURL,
+          );
+        }
 
-            // 2. RIGA NUMERO EPISODIO E VOTO
-            Row(
+        return Scaffold(
+          backgroundColor: AppData.backgroundColor,
+          appBar: AppBar(
+            backgroundColor: AppData.primaryColor,
+            elevation: 0,
+            title: FittedBox(
+              fit: BoxFit.scaleDown, 
+              child: Text(
+                "$seriesName - S$seasonNumber E${episode.episodeNumber}",
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold, 
+                  color: Colors.white, 
+                ),
+              ),
+            ),
+            centerTitle: true,
+            iconTheme: const IconThemeData(color: Colors.white),
+          ),
+          body: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Column(
+                _buildHeaderImage(),
+                const SizedBox(height: 16),
+
+                Row(
                   children: [
-                    Text(
-                      "S$seasonNumber E${episode.episodeNumber}",
-                      style: const TextStyle(
-                        color: AppData.primaryColor,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20,
-                      ),
+                    Column(
+                      children: [
+                        Text(
+                          "S$seasonNumber E${episode.episodeNumber}",
+                          style: const TextStyle(
+                            color: AppData.primaryColor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ],
                     ),
+                    const SizedBox(width: 12),
+                    if (episode.voteAverage > 0) 
+                      Row(
+                        children: [
+                          const Icon(Icons.star, color: Colors.amber, size: 18),
+                          const SizedBox(width: 2),
+                          Text(
+                            episode.voteAverage.toStringAsFixed(1),
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                color: Colors.black87
+                            ),
+                          ),
+                        ],
+                      ),
                   ],
                 ),
-                const SizedBox(width: 12),
-                if (episode.voteAverage > 0) 
-                  Row(
-                    children: [
-                      const Icon(Icons.star, color: Colors.amber, size: 20),
-                      const SizedBox(width: 2),
-                      Text(
-                        episode.voteAverage.toStringAsFixed(1),
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 20,
-                            color: Colors.black87
+
+                const SizedBox(height: 6),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => SeriesDetailScreen(
+                          seriesId: seriesId,
+                          seriesName: seriesName,
                         ),
                       ),
-                    ],
-                  ),
-              ],
-            ),
-            // TITOLO EPISODIO
-            Text(
-              episode.name,
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
-            ),
-
-
-            // --- NUOVO: NOME SERIE CLICCABILE ---
-            GestureDetector(
-              onTap: () {
-                // Naviga alla pagina di dettaglio della serie
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => SeriesDetailScreen(
-                      seriesId: seriesId,
-                      seriesName: seriesName,
+                    );
+                  },
+                  child: Text(
+                    seriesName,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey[700],
+                      decoration: TextDecoration.underline, 
+                      decorationColor: Colors.grey[700],
                     ),
                   ),
-                );
-              },
-              child: Text(
-                seriesName,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey[600], 
-                  decoration: TextDecoration.underline,
-                  decorationColor: Colors.grey[600],
                 ),
-              ),
-            ),
-            const SizedBox(height: 12),
+                const SizedBox(height: 4),
 
-            // 3. RIGA INFO: Data, Durata, toggle Visto
-            Row(
-              children: [
-                _buildBadge(Icons.calendar_today, episode.airDate ?? "Unknown"),
-                const SizedBox(width: 12),
-                if (episode.runtime > 0) _buildBadge(Icons.access_time, "${episode.runtime} min"),
-                
-                const Spacer(flex: 5),
+                Text(
+                  episode.name,
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
 
-                _buildWatchedToggle(),
+                const SizedBox(height: 12),
 
-                const Spacer(flex: 1),
+                Row(
+                  children: [
+                    _buildBadge(Icons.calendar_today, episode.airDate ?? "Unknown"),
+                    const SizedBox(width: 12),
+                    if (episode.runtime > 0) _buildBadge(Icons.access_time, "${episode.runtime} min"),
+                    
+                    const Spacer(flex: 5),
+
+                    _buildWatchedToggle(),
+
+                    const Spacer(flex: 1),
+                  ],
+                ),
+
+                const SizedBox(height: 24),
+
+                const Text(
+                  "Overview",
+                  style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: AppData.primaryColor
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                      color: AppData.whiteColor,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.shade300),
+                      boxShadow: [
+                        BoxShadow(color: Colors.black.withAlpha(10), blurRadius: 4, offset: const Offset(0, 2))
+                      ]
+                  ),
+                  child: Text(
+                    episode.overview.isNotEmpty ? episode.overview : "No description available.",
+                    style: TextStyle(fontSize: 15, color: Colors.grey[800], height: 1.4),
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                if (episode.guestStars.isNotEmpty) ...[
+                  const Text(
+                    "Guest Stars",
+                    style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppData.primaryColor
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    height: 215, 
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: episode.guestStars.length,
+                      itemBuilder: (context, index) {
+                        final actor = episode.guestStars[index];
+                        return _buildCastCard(actor);
+                      },
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 30),
               ],
             ),
-
-            const SizedBox(height: 24),
-
-            // 4. OVERVIEW
-            const Text(
-              "Overview",
-              style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: AppData.primaryColor
-              ),
-            ),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                  color: AppData.whiteColor,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade300),
-                  boxShadow: [
-                    BoxShadow(color: Colors.black.withAlpha(10), blurRadius: 4, offset: const Offset(0, 2))
-                  ]
-              ),
-              child: Text(
-                episode.overview.isNotEmpty ? episode.overview : "No description available.",
-                style: TextStyle(fontSize: 15, color: Colors.grey[800], height: 1.4),
-              ),
-            ),
-
-            const SizedBox(height: 24),
-
-            // 5. GUEST STARS / CAST
-            if (episode.guestStars.isNotEmpty) ...[
-              const Text(
-                "Guest Stars",
-                style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AppData.primaryColor
-                ),
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                height: 215, // Altezza fissa per lo scorrimento orizzontale
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: episode.guestStars.length,
-                  itemBuilder: (context, index) {
-                    final actor = episode.guestStars[index];
-                    return _buildCastCard(actor);
-                  },
-                ),
-              ),
-            ],
-            const SizedBox(height: 30),
-          ],
-        ),
-      ),
+          ),
+        );
+      }
     );
   }
 
-  // --- Widget per il toggle (copiato e adattato da season_tile_screen.dart) ---
   Widget _buildWatchedToggle() {
     final user = auth.FirebaseAuth.instance.currentUser;
     if (user == null) return const SizedBox.shrink();
 
-    // Logica per episodi futuri
     bool isFuture = false;
     if (episode.airDate != null && episode.airDate!.isNotEmpty) {
-      try {
-        DateTime airDate = DateTime.parse(episode.airDate!);
+      DateTime airDate = DateTime.parse(episode.airDate!);
         DateTime now = DateTime.now();
         DateTime today = DateTime(now.year, now.month, now.day);
         if (airDate.isAfter(today)) {
           isFuture = true;
         }
-      } catch (e) {
-        // ignore error
-      }
     }
 
     if (isFuture) {
@@ -232,7 +242,6 @@ class EpisodeDetailScreen extends StatelessWidget {
       );
     }
                 
-    // Stream per ascoltare lo stato "visto" di questo specifico episodio
     return StreamBuilder<DocumentSnapshot>(
         stream: FirebaseFirestore.instance
             .collection('users')
@@ -264,7 +273,7 @@ class EpisodeDetailScreen extends StatelessWidget {
               const SizedBox(width: 8),
               InkWell(
                 onTap: () {
-                  AppData.toggleEpisodeWatched(
+                  SeriesLogic.toggleEpisodeWatched(
                     seriesName: seriesName,
                     seriesId: seriesId,
                     seasonNum: seasonNumber,
@@ -354,7 +363,6 @@ class EpisodeDetailScreen extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
-          // 1. FOTO (Fissa)
           SizedBox( 
             height: 135, 
             width: double.infinity,
@@ -365,10 +373,7 @@ class EpisodeDetailScreen extends StatelessWidget {
                   : Container(color: Colors.grey[300], child: const Icon(Icons.person, color: Colors.grey, size: 105)),
             ),
           ),
-          
           const SizedBox(height: 4),
-          
-          // 2. TESTI (Ottimizzati)
           Text(
             actor.name,
             maxLines: 2, 
@@ -381,9 +386,7 @@ class EpisodeDetailScreen extends StatelessWidget {
             ),
             textAlign: TextAlign.center,
           ),
-          
           const SizedBox(height: 4),
-
           Text(
             actor.characterName,
             maxLines: 4, 

@@ -3,11 +3,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:seriestime/models/tv_show.dart';
-import '../models/appdata.dart'; // Importazione dei colori da AppData
+import '../data/app_data.dart';
 import 'series_detail_screen.dart';
-
-// --- CONFIGURATION ---
-const String apiKey = "0cbb1da4932d8722fcddf451692e1b2e"; 
 
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({super.key});
@@ -21,13 +18,10 @@ class _ExploreScreenState extends State<ExploreScreen> {
   List<TvShow> _shows = [];
   bool _isLoading = false;
   
-  // Variabile per gestire il genere selezionato (null = nessun filtro)
   int? _selectedGenreId;
   
-  // Timer per debounce
   Timer? _debounce;
 
-  // Lista dei generi con ID corretti di TMDB
   final List<Genre> _availableGenres = [
     Genre(id: 10759, name: "Action & Adventure"),
     Genre(id: 18, name: "Drama"),
@@ -53,14 +47,14 @@ class _ExploreScreenState extends State<ExploreScreen> {
       Uri url;
 
       if (searchText.trim().isEmpty) {
-        String baseUrl = 'https://api.themoviedb.org/3/discover/tv?api_key=$apiKey&language=en-US&sort_by=popularity.desc&include_adult=false&include_null_first_air_dates=false';
+        String baseUrl = 'https://api.themoviedb.org/3/discover/tv?api_key=${AppData.tmdbApiKey}&language=en-US&sort_by=popularity.desc&include_adult=false&include_null_first_air_dates=false';
         if (_selectedGenreId != null) {
           baseUrl += '&with_genres=$_selectedGenreId';
         }
         url = Uri.parse(baseUrl);
       } else {
         url = Uri.parse(
-          'https://api.themoviedb.org/3/search/tv?api_key=$apiKey&query=$searchText&language=en-US&include_adult=false'
+          'https://api.themoviedb.org/3/search/tv?api_key=${AppData.tmdbApiKey}&query=$searchText&language=en-US&include_adult=false'
         );
       }
       
@@ -120,11 +114,10 @@ class _ExploreScreenState extends State<ExploreScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppData.backgroundColor,
-      // --- NUOVA APP BAR ---
       appBar: AppBar(
         backgroundColor: AppData.primaryColor,
         elevation: 0,
-        scrolledUnderElevation: 0, // Mantiene il colore flat quando scorri
+        scrolledUnderElevation: 0,
         title: const Text(
           "Explore",
           style: TextStyle(
@@ -135,12 +128,10 @@ class _ExploreScreenState extends State<ExploreScreen> {
         ),
         centerTitle: true,
       ),
-      // --------------------
       body: Column(
         children: [
-          const SizedBox(height: 16), // Spazio tra AppBar e SearchBar
+          const SizedBox(height: 16),
           
-          // --- SEARCH BAR ---
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 15.0),
             child: Container(
@@ -178,7 +169,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
           const SizedBox(height: 15),
 
-          // --- GENRE FILTERS (CHIPS) ---
           SizedBox(
             height: 40,
             child: ListView.builder(
@@ -196,7 +186,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
                     margin: const EdgeInsets.only(right: 10),
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                     decoration: BoxDecoration(
-                      // Accent color per le chips (Primary se selezionato per stacco visivo)
                       color: isSelected ? AppData.accentColor: Colors.grey[400], 
                       borderRadius: BorderRadius.circular(20),
                     ),
@@ -204,7 +193,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                       child: Text(
                         genre.name,
                         style: const TextStyle(
-                          color: AppData.whiteColor, // Testo bianco su sfondo scuro
+                          color: AppData.whiteColor,
                           fontWeight: FontWeight.w600,
                           fontSize: 13
                         ),
@@ -218,7 +207,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
           const SizedBox(height: 10),
           
-          // Titolo Sezione
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 15.0, vertical: 8),
             child: Align(
@@ -230,13 +218,12 @@ class _ExploreScreenState extends State<ExploreScreen> {
                 style: const TextStyle(
                   fontSize: 18, 
                   fontWeight: FontWeight.bold,
-                  color: AppData.primaryColor // Primary color per i titoli
+                  color: AppData.primaryColor
                 ),
               ),
             ),
           ),
 
-          // --- RESULTS LIST ---
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
@@ -271,9 +258,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
     const double cardHeight = 180;
     const double imgWidth = cardHeight * 0.68; 
     
-    // Colori da AppData
-    const Color borderColor = AppData.accentColor; 
-    const Color textColor = AppData.primaryColor; 
 
     return GestureDetector(
       onTap: () {
@@ -290,7 +274,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
         decoration: BoxDecoration(
           color: AppData.whiteColor, 
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: borderColor, width: 2.0), 
+          border: Border.all(color: AppData.accentColor, width: 2.0), 
           boxShadow: [
             BoxShadow(
               color: Colors.black.withAlpha(26),
@@ -302,7 +286,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // --- POSTER ---
             ClipRRect(
               borderRadius: const BorderRadius.horizontal(left: Radius.circular(14)),
               child: show.posterUrl != null
@@ -326,7 +309,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                     ),
             ),
 
-            // --- INFO ---
+
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(12.0),
@@ -342,7 +325,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                             style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              color: textColor, 
+                              color: AppData.primaryColor, 
                               height: 1.1,
                             ),
                             maxLines: 3,
@@ -385,7 +368,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                             style: const TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
-                              color: textColor, 
+                              color: AppData.primaryColor, 
                             ),
                           ),
                           const SizedBox(width: 8),
@@ -397,7 +380,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                             show.year,
                             style: const TextStyle(
                               fontSize: 13,
-                              color: textColor, 
+                              color: AppData.primaryColor, 
                               fontStyle: FontStyle.italic,
                             ),
                           ),
@@ -428,7 +411,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                       show.genres.isNotEmpty ? show.genres.join(", ") : "No genres",
                       style: const TextStyle(
                         fontSize: 11,
-                        color: textColor, 
+                        color: AppData.primaryColor, 
                         fontWeight: FontWeight.w600,
                       ),
                       maxLines: 1,

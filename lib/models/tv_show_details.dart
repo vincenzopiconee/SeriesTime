@@ -1,8 +1,7 @@
-
-
-// ==========================================
-// --- DETAILED DATA MODELS ---
-// ==========================================
+import 'package:seriestime/models/actor.dart';
+import 'package:seriestime/models/last_episode_info.dart';
+import 'package:seriestime/models/season.dart';
+import 'package:seriestime/models/watch_provider.dart';
 
 class TvShowDetails {
   final int id;
@@ -23,7 +22,7 @@ class TvShowDetails {
   final List<Actor> cast;
   final List<WatchProvider> watchProviders;
   final LastEpisodeInfo? lastEpisode;
-  final List<Season> seasons; // <--- NUOVO CAMPO
+  final List<Season> seasons;
 
   TvShowDetails({
     required this.id, required this.name, required this.seasons, this.posterUrl, this.backdropUrl, this.tagline,
@@ -45,11 +44,10 @@ class TvShowDetails {
     if (json['seasons'] != null) {
       seasonsList = (json['seasons'] as List)
           .map((s) => Season.fromJson(s))
-          .where((s) => s.seasonNumber > 0) // Escludiamo la stagione 0 (Specials) se vuoi, o tienila
+          .where((s) => s.seasonNumber > 0)
           .toList();
     }
 
-    // Parsing Cast (prendiamo i primi 10)
     List<Actor> castList = [];
     
     if (json['aggregate_credits'] != null && json['aggregate_credits']['cast'] != null) {
@@ -57,16 +55,12 @@ class TvShowDetails {
           .map((c) {
             String charName = "Unknown";
             
-            // LOGICA RUOLI MULTIPLI
             if (c['roles'] != null && (c['roles'] as List).isNotEmpty) {
               final roles = c['roles'] as List;
               
-              // 1. Prendiamo il primo nome (il principale)
               charName = roles[0]['character']; 
 
-              // 2. Se ci sono più ruoli, aggiungiamo il contatore "(+X)"
               if (roles.length > 1) {
-                // Esempio: "Homer Simpson (+15)"
                 charName += " (+${roles.length - 1})";
               }
             }
@@ -82,7 +76,6 @@ class TvShowDetails {
           .toList();
     }
 
-    // Parsing Watch Providers (Logica per estrarre quelli 'flatrate' US)
     List<WatchProvider> providersList = [];
     if (json['watch/providers'] != null && json['watch/providers']['results'] != null && json['watch/providers']['results']['US'] != null) {
       var usProviders = json['watch/providers']['results']['US'];
@@ -120,117 +113,3 @@ class TvShowDetails {
   }
 }
 
-class Season {
-  final int id;
-  final String name;
-  final int seasonNumber;
-  final int episodeCount;
-
-  Season({required this.id, required this.name, required this.seasonNumber, required this.episodeCount});
-
-  factory Season.fromJson(Map<String, dynamic> json) {
-    return Season(
-      id: json['id'],
-      name: json['name'] ?? "Season ${json['season_number']}",
-      seasonNumber: json['season_number'] ?? 0,
-      episodeCount: json['episode_count'] ?? 0,
-    );
-  }
-}
-
-class Episode {
-  final int id;
-  final String name;
-  final int episodeNumber;
-  final String? stillUrl;
-  final String overview;
-  final String? airDate;
-  final int runtime;
-  // --- NUOVI CAMPI ---
-  final double voteAverage;
-  final List<Actor> guestStars;
-  // -------------------
-
-  Episode({
-    required this.id, 
-    required this.name, 
-    required this.episodeNumber, 
-    this.stillUrl, 
-    required this.overview, 
-    this.airDate, 
-    required this.runtime,
-    // --- AGGIUNGI AL COSTRUTTORE ---
-    this.voteAverage = 0.0,
-    this.guestStars = const [],
-  });
-
-  factory Episode.fromJson(Map<String, dynamic> json) {
-    // Parsing Guest Stars
-    List<Actor> guests = [];
-    if (json['guest_stars'] != null) {
-      guests = (json['guest_stars'] as List)
-          .map((a) => Actor.fromJson(a))
-          .toList();
-    }
-
-    return Episode(
-      id: json['id'],
-      name: json['name'] ?? "Episode ${json['episode_number']}",
-      episodeNumber: json['episode_number'] ?? 0,
-      overview: json['overview'] ?? "",
-      stillUrl: json['still_path'] != null ? 'https://image.tmdb.org/t/p/w500${json['still_path']}' : null, // Aumentata risoluzione a w500 per la pagina dettagli
-      airDate: json['air_date'],
-      runtime: json['runtime'] ?? 0,
-      // --- MAPPA NUOVI CAMPI ---
-      voteAverage: (json['vote_average'] ?? 0).toDouble(),
-      guestStars: guests,
-    );
-  }
-}
-
-class Actor {
-  final String name;
-  final String characterName;
-  final String? profileUrl;
-
-  Actor({required this.name, required this.characterName, this.profileUrl});
-
-  factory Actor.fromJson(Map<String, dynamic> json) {
-    String? profilePath = json['profile_path'];
-    return Actor(
-      name: json['name'] ?? "Unknown",
-      characterName: json['character'] ?? "Unknown",
-      profileUrl: profilePath != null ? 'https://image.tmdb.org/t/p/w185$profilePath' : null,
-    );
-  }
-}
-
-class WatchProvider {
-  final String providerName;
-  final String logoUrl;
-
-  WatchProvider({required this.providerName, required this.logoUrl});
-    factory WatchProvider.fromJson(Map<String, dynamic> json) {
-    return WatchProvider(
-      providerName: json['provider_name'] ?? "",
-      logoUrl: 'https://image.tmdb.org/t/p/w92${json['logo_path']}',
-    );
-  }
-}
-
-class LastEpisodeInfo {
-  final String name;
-  final int seasonNumber;
-  final int episodeNumber;
-  final String airDate;
-
-  LastEpisodeInfo({required this.name, required this.seasonNumber, required this.episodeNumber, required this.airDate});
-   factory LastEpisodeInfo.fromJson(Map<String, dynamic> json) {
-    return LastEpisodeInfo(
-      name: json['name'] ?? "Unknown Episode",
-      seasonNumber: json['season_number'] ?? 0,
-      episodeNumber: json['episode_number'] ?? 0,
-      airDate: json['air_date'] ?? "N/A",
-    );
-  }
-}

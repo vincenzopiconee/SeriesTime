@@ -80,8 +80,6 @@ const Map<int, String> tmdbGenres = {
   37: "Western",
 };
 
-// --- HELPER CLASSES ---
-
 class Genre {
   final int id;
   final String name;

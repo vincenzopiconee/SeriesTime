@@ -2,11 +2,13 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:seriestime/models/appdata.dart';
-import 'package:seriestime/models/tv_show_details.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; // Import necessario
+import 'package:seriestime/data/app_data.dart';
+import 'package:seriestime/models/episode.dart';
+import 'package:seriestime/models/season.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:seriestime/screens/episode_detail_screen.dart';
+import 'package:seriestime/services/series_logic.dart';
 
 const String apiKey = "0cbb1da4932d8722fcddf451692e1b2e"; 
 
@@ -233,7 +235,7 @@ class _SeasonTileState extends State<SeasonTile> {
               else
                 InkWell(
                   onTap: () {                  
-                    AppData.toggleEpisodeWatched(
+                    SeriesLogic.toggleEpisodeWatched(
                       seriesName: widget.seriesName,
                       seriesId: widget.seriesId,
                       seasonNum: widget.season.seasonNumber,

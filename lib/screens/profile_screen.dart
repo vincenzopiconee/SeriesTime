@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:seriestime/data/badge_definitions.dart';
+import 'package:seriestime/services/stats_logic.dart';
 
 import 'settings_screen.dart';
 import 'series_progress_screen.dart';
-import '../models/appdata.dart';
+import '../data/app_data.dart';
 import '../models/series.dart';
-import '../models/userbadge.dart';
+import '../models/user_badge.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as auth;
 import '../models/user.dart';
@@ -27,10 +29,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    //get first the Year Data then the others
-    _initialLoadFuture = AppData.getChartData(ChartPeriod.year).then((data) {
+    _initialLoadFuture = StatsLogic.getChartData(ChartPeriod.year).then((data) {
       _cachedChartData[ChartPeriod.year] = data;
-      //then load also Month and Days
       _loadRemainingData();
       return data;
     });
@@ -39,8 +39,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _loadRemainingData() async {
     try {
       final results = await Future.wait([
-        AppData.getChartData(ChartPeriod.month),
-        AppData.getChartData(ChartPeriod.week),
+        StatsLogic.getChartData(ChartPeriod.month),
+        StatsLogic.getChartData(ChartPeriod.week),
       ]);
 
       if (mounted) {
@@ -62,9 +62,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         return StreamBuilder<QuerySnapshot>(
           stream: AppData.seriesStream(),
           builder: (context, seriesSnapshot) {
-            //----------------------------------------------------------------
-            //------------------ IN CASE OF NO DATA --------------------------
-            //----------------------------------------------------------------
             if (!userSnapshot.hasData || !seriesSnapshot.hasData) {
               return Scaffold(
                 appBar: AppBar(
@@ -86,7 +83,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               );
             }
 
-            // Controllo di sicurezza: se i dati sono nulli (es. logout in corso), mostra caricamento
             if (userSnapshot.data!.data() == null) {
               return const Scaffold(
                 body: Center(
@@ -94,9 +90,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               );
             }
-            //---------------------------------------------------------------------------------------------------
-            //------------------ IN CASE OF DATA Acquired, we get Series and User Data from AppData--------------
-            //---------------------------------------------------------------------------------------------------
             final userData = userSnapshot.data!.data() as Map<String, dynamic>;
             if (AppData.currentUser != null) {
               AppData.currentUser!.claimedBadgeIds = List<String>.from(
@@ -134,13 +127,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   userData['photoUrl'] ??
                   auth.FirebaseAuth.instance.currentUser?.photoURL,
             );
-            //------------------------ computing Watch Time Data and taking the max 6 series -------------------
             final timeData = AppData.getTotalWatchTimeSplit();
             final int days = timeData["days"]!;
             final int remainingHours = timeData["hours"]!;
             final int minutes = timeData["minutes"]!;
 
-            AppData.generateUserBadges();
+            StatsLogic.generateUserBadges(AppData.currentUser, AppData.userSeries);
 
             final List<Series> filteredSeries = AppData.userSeries
                 .where((s) => s.percentage < 1.0 && s.percentage > 0.0)
@@ -149,11 +141,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             final List<Series> displaySeries = filteredSeries.take(6).toList();
 
             final currentUser = AppData.currentUser!;
-            //-----------------------------------------------------------------------------------------------------------
-            //------------------------------------------GUI Layout ------------------------------------------------------
-            //-----------------------------------------------------------------------------------------------------------
             return Scaffold(
-              //------- AppBar----
               appBar: AppBar(
                 backgroundColor: AppData.primaryColor,
                 elevation: 0,
@@ -170,7 +158,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 centerTitle: true,
                 actions: [
                   IconButton(
-                    // settings icon
                     icon: const Icon(Icons.settings, color: AppData.whiteColor),
                     onPressed: () {
                       Navigator.push(
@@ -184,14 +171,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ],
               ),
               body: SingleChildScrollView(
-                // body of the page
                 padding: const EdgeInsets.symmetric(
                   horizontal: 15,
                   vertical: 20,
                 ),
                 child: Column(
                   children: [
-                    // ---------------------------Profile Image and name -------------------------------
                     CircleAvatar(
                       radius: 45,
                       backgroundColor: AppData.avatarColor,
@@ -217,7 +202,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                     const SizedBox(height: 25),
-                    //------------------------ statistics container -------------------------------
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(15),
@@ -249,7 +233,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                     const SizedBox(height: 30),
 
-                    // ----------------- MY BADGES SECTION (SYNC WITH BINGE MODE) -----------------
                     const Align(
                       alignment: Alignment.centerLeft,
                       child: Text(
@@ -263,24 +246,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     const SizedBox(height: 15),
 
                     SizedBox(
-                      //height: 115,
                       child: Builder(
                         builder: (context) {
-                          //taking claimedIds
                           final List<String> claimedIds = List<String>.from(
                             userData['claimedBadgeIds'] ?? [],
                           );
 
-                          //list of all the claimed badges And putting them into a list
                           final List<UserBadge> allClaimed =
                               [
-                                    ...AppData.marathonerMilestones,
-                                    ...AppData.obsessionMilestones,
-                                    ...AppData.weekendMilestones,
-                                    ...AppData.streakMilestones,
-                                    ...AppData.completionistMilestones,
-                                    ...AppData.nightOwlMilestones,
-                                    ...AppData.genreMilestones,
+                                    ...BadgeDefinitions.marathonerMilestones,
+                                    ...BadgeDefinitions.obsessionMilestones,
+                                    ...BadgeDefinitions.weekendMilestones,
+                                    ...BadgeDefinitions.streakMilestones,
+                                    ...BadgeDefinitions.completionistMilestones,
+                                    ...BadgeDefinitions.nightOwlMilestones,
+                                    ...BadgeDefinitions.genreMilestones,
                                   ]
                                   .where(
                                     (badge) => claimedIds.contains(badge.id),
@@ -303,10 +283,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       double currentValue = 0;
                                       String unit = "h";
 
-                                      // Mappatura identica a quella usata in AllBadges e BingeMode
                                       if (badge.title == "Marathoner") {
                                         milestones =
-                                            AppData.marathonerMilestones;
+                                            BadgeDefinitions.marathonerMilestones;
                                         currentValue =
                                             AppData
                                                 .currentUser
@@ -316,7 +295,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       } else if (badge.title ==
                                           "Pure Obsession") {
                                         milestones =
-                                            AppData.obsessionMilestones;
+                                            BadgeDefinitions.obsessionMilestones;
                                         currentValue =
                                             AppData
                                                 .currentUser
@@ -325,13 +304,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         unit = "h";
                                       } else if (badge.title ==
                                           "Weekend Warrior") {
-                                        milestones = AppData.weekendMilestones;
+                                        milestones = BadgeDefinitions.weekendMilestones;
                                         currentValue =
                                             AppData.currentUser?.weekendHours ??
                                             0;
                                         unit = "h";
                                       } else if (badge.title == "Streak") {
-                                        milestones = AppData.streakMilestones;
+                                        milestones = BadgeDefinitions.streakMilestones;
                                         currentValue =
                                             (AppData
                                                         .currentUser
@@ -342,7 +321,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       } else if (badge.title ==
                                           "The Perfectionist") {
                                         milestones =
-                                            AppData.completionistMilestones;
+                                            BadgeDefinitions.completionistMilestones;
                                         currentValue = AppData.userSeries
                                             .where((s) => s.percentage >= 1.0)
                                             .length
@@ -350,7 +329,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         unit = "S";
                                       } else if (badge.title ==
                                           "The Night Owl") {
-                                        milestones = AppData.nightOwlMilestones;
+                                        milestones = BadgeDefinitions.nightOwlMilestones;
                                         currentValue =
                                             AppData
                                                 .currentUser
@@ -359,7 +338,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         unit = "h";
                                       } else if (badge.title ==
                                           "Genre Explorer") {
-                                        milestones = AppData.genreMilestones;
+                                        milestones = BadgeDefinitions.genreMilestones;
                                         currentValue =
                                             (AppData
                                                         .currentUser
@@ -386,7 +365,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   );
                                 }).toList(),
                               ),
-                              if (allClaimed.length > 3) ...[
+                              if (allClaimed.length > 4) ...[
                                 const SizedBox(height: 15),
                                 ElevatedButton(
                                   onPressed: () {
@@ -425,7 +404,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                     const SizedBox(height: 30),
 
-                    // -----------------------------------SERIES PROGRESS SECTION-----------------------------------------------
                     const Align(
                       alignment: Alignment.centerLeft,
                       child: Text(
@@ -461,7 +439,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                     displaySeries.isEmpty
                         ? const SizedBox(height: 1)
-                        //view more botton
                         : ElevatedButton(
                             onPressed: () {
                               Navigator.push(
@@ -498,11 +475,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       },
     );
   }
-  //----------------------------------------------------------------------------------
-  //----------------------------------------WIDGETS-----------------------------------
-  //----------------------------------------------------------------------------------
-
-  //----------------------- STATISTICS CONTAINER WIDGETS------------------------------
 
   Widget _buildWatchTimeCard(int d, int h, int m) {
     return Container(
@@ -535,11 +507,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildActivityChart() {
-    //check if the datas are contained in the cache yet
     if (_cachedChartData.containsKey(_selectedPeriod)) {
       return _drawChartContent(_cachedChartData[_selectedPeriod]!);
     }
-    //else, get the Data
     return FutureBuilder<List<double>>(
       future: _initialLoadFuture,
       builder: (context, snapshot) {
@@ -568,13 +538,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _drawChartContent(List<double> chartData) {
-    //maxVal is the max val seen in the Chart, if is empty, maxVal it's 1'
-    // otherwise
-    final double maxVal = chartData.isEmpty
-        ? 10.0
-        : chartData.reduce((a, b) => a > b ? a : b).clamp(5.0, double.infinity);
-    //reduce--> for each of the component of the list, a is the current higher (between a and b)
-    // clamp forces to maxVal to be min. 5
+
+    final double maxVal = chartData.isEmpty ? 10.0 : chartData.reduce((a, b) => a > b ? a : b).clamp(5.0, double.infinity);
 
     String subTitle = "";
     if (_selectedPeriod == ChartPeriod.week) {
@@ -622,7 +587,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const Text(
                     "Watch Activity",
                     style: TextStyle(
-                      color: AppData.accentColor,
+                      color: AppData.primaryColor,
                       fontSize: 18,
                       fontWeight: FontWeight.w900,
                     ),
@@ -787,7 +752,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
-  //------------------------------------ BADGES WIDGET--------------------------------
 
   Widget _buildEmptyBadgesMessage() {
     return const Center(child: Text("Keep watching to unlock badges!"));
@@ -796,8 +760,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildBadgeItem(UserBadge badge) {
     return Container(
       width: 80,
-      height: 105, // Aggiungi un'altezza fissa se necessario per uniformità
-      // Margine laterale per spaziarli
+      height: 105, 
       decoration: BoxDecoration(
         color: AppData.whiteColor,
         borderRadius: BorderRadius.circular(12),
@@ -827,11 +790,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
-  //------------------------ Series Progress Card ----------------------
 
   Widget _buildSeriesCard(Series series) {
     String formattedTime = formatHours(series.totalHours);
-    // --- 2. WRAP CON GESTURE DETECTOR ---
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -939,7 +900,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  //utility functions (can be moved??)
   String formatHours(double totalHours) {
     if (totalHours <= 0) return "0m";
     int h = totalHours.toInt();

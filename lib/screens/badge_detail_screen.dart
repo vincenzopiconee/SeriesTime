@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../models/appdata.dart';
-import '../models/userbadge.dart';
+import '../data/app_data.dart';
+import '../models/user_badge.dart';
 
 class BadgeDetailScreen extends StatelessWidget {
   final String categoryTitle;
@@ -37,6 +37,39 @@ class BadgeDetailScreen extends StatelessWidget {
     }
   }
 
+  String _formatDisplayValue() {
+    if (unit == 'S') {
+      return "${currentValue.toInt()} Series";
+    }
+
+    if (unit == 'G') {
+      return "${currentValue.toInt()} Genres";
+    }
+
+    if (unit == 'd') {
+      int d = currentValue.toInt();
+      return "${d}d";
+    }
+
+    if (unit == 'dh') {
+      int d = (currentValue / 24).floor();
+      int h = (currentValue % 24).floor(); 
+      return "${d}d ${h}h";
+    }
+
+    if (unit == 'h') {
+      if (currentValue <= 0) return "0m";
+      int h = currentValue.toInt();
+      int m = ((currentValue - h) * 60).round();
+
+      if (h > 0 && m > 0) return "${h}h ${m}m";
+      if (h > 0) return "${h}h";
+      return "${m}m";
+    }
+
+    return "${currentValue.toStringAsFixed(1)} $unit";
+  }
+
   @override
   Widget build(BuildContext context) {
     final List<String> claimedIds = AppData.currentUser?.claimedBadgeIds ?? [];
@@ -69,12 +102,6 @@ class BadgeDetailScreen extends StatelessWidget {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(25),
-              decoration: const BoxDecoration(
-                color: AppData.whiteColor,
-                borderRadius: BorderRadius.vertical(
-                  bottom: Radius.circular(30),
-                ),
-              ),
               child: Column(
                 children: [
                   Transform.scale(
@@ -86,14 +113,16 @@ class BadgeDetailScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 20),
+                  
                   Text(
-                    "${currentValue.toStringAsFixed(1)}$unit",
+                    _formatDisplayValue(),
                     style: const TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
                       color: AppData.primaryColor,
                     ),
                   ),
+                  
                   Text(
                     "Total Progress",
                     style: TextStyle(color: Colors.grey[600], fontSize: 16),
@@ -102,7 +131,6 @@ class BadgeDetailScreen extends StatelessWidget {
               ),
             ),
 
-            const SizedBox(height: 25),
 
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -150,7 +178,6 @@ class BadgeDetailScreen extends StatelessWidget {
 
             const SizedBox(height: 25),
 
-            // --- LISTA LIVELLI (Milestones) ---
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
@@ -231,7 +258,7 @@ class BadgeDetailScreen extends StatelessWidget {
                         ],
                       ),
                     );
-                  }).toList(),
+                  }),
                 ],
               ),
             ),

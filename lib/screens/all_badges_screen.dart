@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/appdata.dart';
-import '../models/userbadge.dart';
+import 'package:seriestime/data/badge_definitions.dart';
+import '../data/app_data.dart';
+import '../models/user_badge.dart';
 import 'badge_detail_screen.dart';
 
 class AllBadgesScreen extends StatefulWidget {
@@ -22,11 +23,7 @@ class _AllBadgesScreenState extends State<AllBadgesScreen> {
         backgroundColor: AppData.primaryColor,
         elevation: 0,
         centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          color: AppData.whiteColor,
-          onPressed: () => Navigator.pop(context),
-        ),
+        iconTheme: IconThemeData(color: AppData.whiteColor),
         title: const Text(
           "My Badges",
           style: TextStyle(
@@ -53,13 +50,13 @@ class _AllBadgesScreenState extends State<AllBadgesScreen> {
           );
 
           final List<UserBadge> allUnlocked = [
-            ...AppData.marathonerMilestones,
-            ...AppData.obsessionMilestones,
-            ...AppData.weekendMilestones,
-            ...AppData.streakMilestones,
-            ...AppData.completionistMilestones,
-            ...AppData.nightOwlMilestones,
-            ...AppData.genreMilestones,
+            ...BadgeDefinitions.marathonerMilestones,
+            ...BadgeDefinitions.obsessionMilestones,
+            ...BadgeDefinitions.weekendMilestones,
+            ...BadgeDefinitions.streakMilestones,
+            ...BadgeDefinitions.completionistMilestones,
+            ...BadgeDefinitions.nightOwlMilestones,
+            ...BadgeDefinitions.genreMilestones,
           ].where((badge) => claimedIds.contains(badge.id)).toList();
 
           if (allUnlocked.isEmpty) {
@@ -80,10 +77,10 @@ class _AllBadgesScreenState extends State<AllBadgesScreen> {
               controller: _scrollController,
               padding: const EdgeInsets.all(16),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
+                crossAxisCount: 4,
                 childAspectRatio: 0.65,
                 crossAxisSpacing: 10,
-                mainAxisSpacing: 16,
+                mainAxisSpacing: 10,
               ),
               itemCount: allUnlocked.length,
               itemBuilder: (context, index) {
@@ -94,43 +91,42 @@ class _AllBadgesScreenState extends State<AllBadgesScreen> {
 
                 return GestureDetector(
                   onTap: () {
-                    // Determiniamo i dati da passare in base al titolo della categoria
                     List<UserBadge> milestones = [];
                     double currentValue = 0;
                     String unit = "h";
 
                     if (badge.title == "Marathoner") {
-                      milestones = AppData.marathonerMilestones;
+                      milestones = BadgeDefinitions.marathonerMilestones;
                       currentValue =
                           AppData.currentUser?.totalHoursWatched ?? 0;
                       unit = "h";
                     } else if (badge.title == "Pure Obsession") {
-                      milestones = AppData.obsessionMilestones;
+                      milestones = BadgeDefinitions.obsessionMilestones;
                       currentValue =
                           AppData.currentUser?.maxConsecutiveHours ?? 0;
                       unit = "h";
                     } else if (badge.title == "Weekend Warrior") {
-                      milestones = AppData.weekendMilestones;
+                      milestones = BadgeDefinitions.weekendMilestones;
                       currentValue = AppData.currentUser?.weekendHours ?? 0;
                       unit = "h";
                     } else if (badge.title == "Streak") {
-                      milestones = AppData.streakMilestones;
+                      milestones = BadgeDefinitions.streakMilestones;
                       currentValue = (AppData.currentUser?.seriesStreak ?? 0)
                           .toDouble();
                       unit = "d";
                     } else if (badge.title == "The Perfectionist") {
-                      milestones = AppData.completionistMilestones;
+                      milestones = BadgeDefinitions.completionistMilestones;
                       currentValue = AppData.userSeries
                           .where((s) => s.percentage >= 1.0)
                           .length
                           .toDouble();
                       unit = "S";
                     } else if (badge.title == "The Night Owl") {
-                      milestones = AppData.nightOwlMilestones;
+                      milestones = BadgeDefinitions.nightOwlMilestones;
                       currentValue = AppData.currentUser?.nightOwlHours ?? 0;
                       unit = "h";
                     } else if (badge.title == "Genre Explorer") {
-                      milestones = AppData.genreMilestones;
+                      milestones = BadgeDefinitions.genreMilestones;
                       currentValue =
                           (AppData.currentUser?.uniqueGenresCount ?? 0)
                               .toDouble();
@@ -188,19 +184,11 @@ class _AllBadgesScreenState extends State<AllBadgesScreen> {
                             fontWeight: FontWeight.bold,
                             color: AppData.primaryColor,
                           ),
-                          maxLines: 1,
+                          maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           textAlign: TextAlign.center,
                         ),
-                        const SizedBox(height: 2),
-                        Text(
-                          badge.iconLabel,
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: Colors.grey[600],
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
+                        const SizedBox(height: 4),
                       ],
                     ),
                   ),
