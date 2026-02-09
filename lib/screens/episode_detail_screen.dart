@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:seriestime/models/actor.dart';
-import 'package:seriestime/models/app_data.dart';
+import 'package:seriestime/data/app_data.dart';
 import 'package:seriestime/models/episode.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as auth;
 import 'package:seriestime/models/user.dart';
+import 'package:seriestime/services/series_logic.dart';
 import 'series_detail_screen.dart'; 
 
 class EpisodeDetailScreen extends StatelessWidget {
@@ -272,7 +273,7 @@ class EpisodeDetailScreen extends StatelessWidget {
               const SizedBox(width: 8),
               InkWell(
                 onTap: () {
-                  AppData.toggleEpisodeWatched(
+                  SeriesLogic.toggleEpisodeWatched(
                     seriesName: seriesName,
                     seriesId: seriesId,
                     seasonNum: seasonNumber,

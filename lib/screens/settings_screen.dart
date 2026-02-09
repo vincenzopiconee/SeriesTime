@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'login_screen.dart';
-import '../models/app_data.dart';
+import '../data/app_data.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
@@ -381,24 +381,81 @@ class _SettingsScreenState extends State<SettingsScreen> {
             context: context,
             barrierDismissible: false,
             builder: (ctx) => Dialog(
+              backgroundColor: Colors.transparent,
+              insetPadding: const EdgeInsets.all(20),
               child: Container(
                 padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(25)),
+                decoration: BoxDecoration(
+                  color: AppData.whiteColor,
+                  borderRadius: BorderRadius.circular(25),
+                  border: Border.all(color: AppData.accentColor, width: 2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withAlpha(40),
+                      blurRadius: 10,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+                ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text("Security Check", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 15),
-                    const Text("Please log in again to delete your account.", textAlign: TextAlign.center),
-                    const SizedBox(height: 25),
-                    ElevatedButton(
-                      onPressed: () {
-                        Navigator.of(ctx).pop();
-                        _handleLogout();
-                      },
-                      child: const Text("Log Out & Retry"),
+                    const Text(
+                      "Security Check",
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: AppData.primaryColor,
+                      ),
                     ),
-                    TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text("Cancel"))
+                    const SizedBox(height: 15),
+                    const Text(
+                      "Please log in again to delete your account.",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: Colors.black87,
+                        height: 1.4,
+                      ),
+                    ),
+                    const SizedBox(height: 25),
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        ElevatedButton(
+                          onPressed: () {
+                            Navigator.of(ctx).pop();
+                            _handleLogout();
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppData.primaryColor,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 20, vertical: 10),
+                            elevation: 0,
+                          ),
+                          child: const Text(
+                            "Log Out & Retry",
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 16),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.of(ctx).pop(),
+                          child: Text(
+                            "Cancel",
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ),
+                      ],
+                    )
                   ],
                 ),
               ),

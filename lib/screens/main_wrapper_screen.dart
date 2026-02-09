@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import '../models/app_data.dart';
+import '../data/app_data.dart';
 import '../models/user_badge.dart';
+import '../services/stats_logic.dart';
 import '../widgets/notification_banner.dart';
 import 'explore_screen.dart';
 import 'my_series_screen.dart';
@@ -80,7 +81,7 @@ class _MainWrapperState extends State<MainWrapper> {
             );
           }
 
-          final allUnclaimed = AppData.getAllUnclaimedBadges();
+          final allUnclaimed = StatsLogic.getAllUnclaimedBadges(AppData.currentUser, AppData.userSeries);
 
           for (var badge in allUnclaimed) {
             if (!_notifiedBadgeIds.contains(badge.id)) {

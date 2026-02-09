@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../models/app_data.dart';
+import '../data/app_data.dart';
 import '../models/series.dart';
 import 'series_detail_screen.dart'; 
 

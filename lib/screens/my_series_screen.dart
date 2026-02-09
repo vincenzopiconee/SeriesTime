@@ -8,7 +8,9 @@ import 'package:seriestime/models/series.dart';
 import 'package:seriestime/screens/episode_detail_screen.dart'; 
 import 'package:seriestime/models/user.dart';
 import 'package:firebase_auth/firebase_auth.dart' as auth;
-import '../models/app_data.dart';
+import 'package:seriestime/services/series_logic.dart';
+import '../data/app_data.dart';
+import '../services/tmdb_service.dart';
 import 'series_detail_screen.dart'; 
 
 class MySeriesScreen extends StatefulWidget {
@@ -37,7 +39,7 @@ class _MySeriesScreenState extends State<MySeriesScreen> {
     }).toList();
 
     for (var series in currentList) {
-      tasks.add(AppData.fetchNextEpisode(series.id).then((info) {
+      tasks.add(TmdbService.fetchNextEpisode(series.id).then((info) {
         if (info != null && info.daysLeft >= 0) {
           upcomingMap[series.name] = info;
         }
@@ -292,7 +294,7 @@ class _MySeriesScreenState extends State<MySeriesScreen> {
             }
           },
           onCheckTap: isFuture ? null : () { 
-            AppData.toggleEpisodeWatched(
+            SeriesLogic.toggleEpisodeWatched(
               seriesName: series.name,
               seriesId: series.id,
               seasonNum: sNum,

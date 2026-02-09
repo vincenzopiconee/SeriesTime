@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../models/app_data.dart';
+import '../data/app_data.dart';
 import '../models/user_badge.dart';
 
 class NotificationBanner extends StatefulWidget {
@@ -73,7 +73,7 @@ class _NotificationBannerState extends State<NotificationBanner>
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.3),
+                color: Colors.black.withAlpha(77),
                 blurRadius: 15,
                 offset: const Offset(0, 8),
               ),

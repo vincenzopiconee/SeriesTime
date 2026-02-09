@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../models/app_data.dart';
+import '../data/app_data.dart';
 import '../models/user_badge.dart';
 
 class BadgeDetailScreen extends StatelessWidget {
@@ -258,7 +258,7 @@ class BadgeDetailScreen extends StatelessWidget {
                         ],
                       ),
                     );
-                  }).toList(),
+                  }),
                 ],
               ),
             ),

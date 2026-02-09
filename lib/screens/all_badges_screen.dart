@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/app_data.dart';
+import 'package:seriestime/data/badge_definitions.dart';
+import '../data/app_data.dart';
 import '../models/user_badge.dart';
 import 'badge_detail_screen.dart';
 
@@ -49,13 +50,13 @@ class _AllBadgesScreenState extends State<AllBadgesScreen> {
           );
 
           final List<UserBadge> allUnlocked = [
-            ...AppData.marathonerMilestones,
-            ...AppData.obsessionMilestones,
-            ...AppData.weekendMilestones,
-            ...AppData.streakMilestones,
-            ...AppData.completionistMilestones,
-            ...AppData.nightOwlMilestones,
-            ...AppData.genreMilestones,
+            ...BadgeDefinitions.marathonerMilestones,
+            ...BadgeDefinitions.obsessionMilestones,
+            ...BadgeDefinitions.weekendMilestones,
+            ...BadgeDefinitions.streakMilestones,
+            ...BadgeDefinitions.completionistMilestones,
+            ...BadgeDefinitions.nightOwlMilestones,
+            ...BadgeDefinitions.genreMilestones,
           ].where((badge) => claimedIds.contains(badge.id)).toList();
 
           if (allUnlocked.isEmpty) {
@@ -95,37 +96,37 @@ class _AllBadgesScreenState extends State<AllBadgesScreen> {
                     String unit = "h";
 
                     if (badge.title == "Marathoner") {
-                      milestones = AppData.marathonerMilestones;
+                      milestones = BadgeDefinitions.marathonerMilestones;
                       currentValue =
                           AppData.currentUser?.totalHoursWatched ?? 0;
                       unit = "h";
                     } else if (badge.title == "Pure Obsession") {
-                      milestones = AppData.obsessionMilestones;
+                      milestones = BadgeDefinitions.obsessionMilestones;
                       currentValue =
                           AppData.currentUser?.maxConsecutiveHours ?? 0;
                       unit = "h";
                     } else if (badge.title == "Weekend Warrior") {
-                      milestones = AppData.weekendMilestones;
+                      milestones = BadgeDefinitions.weekendMilestones;
                       currentValue = AppData.currentUser?.weekendHours ?? 0;
                       unit = "h";
                     } else if (badge.title == "Streak") {
-                      milestones = AppData.streakMilestones;
+                      milestones = BadgeDefinitions.streakMilestones;
                       currentValue = (AppData.currentUser?.seriesStreak ?? 0)
                           .toDouble();
                       unit = "d";
                     } else if (badge.title == "The Perfectionist") {
-                      milestones = AppData.completionistMilestones;
+                      milestones = BadgeDefinitions.completionistMilestones;
                       currentValue = AppData.userSeries
                           .where((s) => s.percentage >= 1.0)
                           .length
                           .toDouble();
                       unit = "S";
                     } else if (badge.title == "The Night Owl") {
-                      milestones = AppData.nightOwlMilestones;
+                      milestones = BadgeDefinitions.nightOwlMilestones;
                       currentValue = AppData.currentUser?.nightOwlHours ?? 0;
                       unit = "h";
                     } else if (badge.title == "Genre Explorer") {
-                      milestones = AppData.genreMilestones;
+                      milestones = BadgeDefinitions.genreMilestones;
                       currentValue =
                           (AppData.currentUser?.uniqueGenresCount ?? 0)
                               .toDouble();
