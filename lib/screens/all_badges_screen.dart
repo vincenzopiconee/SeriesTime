@@ -90,7 +90,6 @@ class _AllBadgesScreenState extends State<AllBadgesScreen> {
 
                 return GestureDetector(
                   onTap: () {
-                    // Determiniamo i dati da passare in base al titolo della categoria
                     List<UserBadge> milestones = [];
                     double currentValue = 0;
                     String unit = "h";

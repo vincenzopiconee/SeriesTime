@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/appdata.dart';
 import '../models/series.dart';
-import 'series_detail_screen.dart'; // <--- 1. IMPORT AGGIUNTO
+import 'series_detail_screen.dart'; 
 
 class SeriesProgressScreen extends StatelessWidget {
   const SeriesProgressScreen({super.key});
@@ -20,7 +20,7 @@ class SeriesProgressScreen extends StatelessWidget {
         .toList();
     progressList.sort(
       (a, b) => b.percentage.compareTo(a.percentage),
-    ); //List sorted by percentage
+    ); 
 
     return GestureDetector(
       onHorizontalDragUpdate: (details) {
@@ -60,20 +60,16 @@ class SeriesProgressScreen extends StatelessWidget {
 
           double hoursSeen = series.totalHours;
 
-          // --- CALCOLO NUOVO E CORRETTO ---
-          // Se seriesDuration è 0 (magari vecchi dati), usiamo hoursSeen per non rompere l'app
           double totalSeriesDuration = series.seriesDuration > 0 
               ? series.seriesDuration 
               : (series.percentage > 0 ? hoursSeen / series.percentage : 0);
 
           double hoursLeft = totalSeriesDuration - hoursSeen;
-          if (hoursLeft < 0) hoursLeft = 0; // Evita numeri negativi
-          // --------------------------------
+          if (hoursLeft < 0) hoursLeft = 0; 
 
           String seenText = "${formatHours(hoursSeen)} seen";
           String leftText = "${formatHours(hoursLeft)} left";
 
-          // --- 2. WRAP CON GESTURE DETECTOR ---
           return GestureDetector(
             onTap: () {
               Navigator.push(

@@ -3,8 +3,9 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:seriestime/models/appdata.dart';
-import 'package:seriestime/models/tv_show_details.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; // Import necessario
+import 'package:seriestime/models/episode.dart';
+import 'package:seriestime/models/season.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:seriestime/screens/episode_detail_screen.dart';
 

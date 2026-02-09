@@ -5,13 +5,10 @@ import 'package:seriestime/widgets/season_tile.dart';
 import 'package:seriestime/models/tv_show_details.dart';
 import '../models/appdata.dart'; 
 import 'all_cast_screen.dart';
-// --- IMPORT AGGIUNTI ---
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as auth;
 import 'package:seriestime/models/user.dart';
-// -----------------------
 
-// --- CONFIGURATION ---
 const String apiKey = "0cbb1da4932d8722fcddf451692e1b2e";
 
 class SeriesDetailScreen extends StatefulWidget {
@@ -104,7 +101,6 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> with SingleTick
     final double screenWidth = MediaQuery.of(context).size.width;
     final double headerHeight = screenWidth * 0.7;
 
-    // --- STREAM AGGIUNTO: Aggiorna AppData.currentUser per attivare notifica nel Main ---
     return StreamBuilder<DocumentSnapshot>(
       stream: AppData.userStream(),
       builder: (context, userSnapshot) {
@@ -195,7 +191,6 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> with SingleTick
     );
   }
 
-  // --- HEADER WIDGET ---
   Widget _buildHeader(Color primary, Color accent, double height, double width) {
     final double posterHeight = height * 0.55; 
     final double posterWidth = posterHeight * 0.66; 

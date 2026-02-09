@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:seriestime/models/tv_show_details.dart';
+import 'package:seriestime/models/actor.dart';
 import '../models/appdata.dart';
 
 class AllCastScreen extends StatefulWidget {
@@ -22,9 +22,9 @@ class _AllCastScreenState extends State<AllCastScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppData.backgroundColor, // Usiamo lo sfondo dell'app
+      backgroundColor: AppData.backgroundColor,
       appBar: AppBar(
-        backgroundColor: AppData.primaryColor, // AppBar trasparente/colore sfondo
+        backgroundColor: AppData.primaryColor,
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
@@ -49,19 +49,17 @@ class _AllCastScreenState extends State<AllCastScreen> {
           padding: const EdgeInsets.all(16),
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 3, 
-            childAspectRatio: 0.53, // Leggermente ridotto per compensare il padding della card
+            childAspectRatio: 0.53, 
             crossAxisSpacing: 10,
             mainAxisSpacing: 16,
           ),
           itemCount: widget.fullCast.length,
           itemBuilder: (context, index) {
             final actor = widget.fullCast[index];
-            
-            // --- INIZIO CARD BIANCA ---
             return Container(
-              padding: const EdgeInsets.all(4), // Spazio interno
+              padding: const EdgeInsets.all(4), 
               decoration: BoxDecoration(
-                color: AppData.whiteColor, // Sfondo Bianco
+                color: AppData.whiteColor,
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(color: Colors.black.withAlpha(13), blurRadius: 4, offset: const Offset(0, 2))
@@ -104,9 +102,6 @@ class _AllCastScreenState extends State<AllCastScreen> {
                 ],
               ),
             );
-
-            
-            // --- FINE CARD BIANCA ---
           },
         ),
       ),

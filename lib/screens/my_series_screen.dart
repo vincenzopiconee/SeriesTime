@@ -1,15 +1,13 @@
 import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart'; 
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http; 
+import 'package:http/http.dart' as http;
+import 'package:seriestime/models/episode.dart'; 
 import 'package:seriestime/models/next_episode_info.dart';
 import 'package:seriestime/models/series.dart';
-import 'package:seriestime/models/tv_show_details.dart'; 
 import 'package:seriestime/screens/episode_detail_screen.dart'; 
-// --- IMPORT AGGIUNTI PER L'AGGIORNAMENTO UTENTE ---
 import 'package:seriestime/models/user.dart';
 import 'package:firebase_auth/firebase_auth.dart' as auth;
-// --------------------------------------------------
 import '../models/appdata.dart';
 import 'series_detail_screen.dart'; 
 
@@ -94,12 +92,10 @@ class _MySeriesScreenState extends State<MySeriesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // --- STREAM AGGIUNTO: Ascolta e aggiorna i dati utente ---
     return StreamBuilder<DocumentSnapshot>(
       stream: AppData.userStream(),
       builder: (context, userSnapshot) {
         
-        // Aggiorna AppData.currentUser per sincronizzare i badge con il Main
         if (userSnapshot.hasData && userSnapshot.data!.data() != null) {
           final userData = userSnapshot.data!.data() as Map<String, dynamic>;
           
@@ -140,7 +136,6 @@ class _MySeriesScreenState extends State<MySeriesScreen> {
               );
             }
 
-            // --- ORDINAMENTO ---
             var docList = snapshot.data!.docs.toList();
             
             docList.sort((a, b) {
@@ -407,10 +402,6 @@ class _MySeriesScreenState extends State<MySeriesScreen> {
     );
   }
 }
-
-// -----------------------------------------------------------------------------
-// --- WIDGETS UI ---
-// -----------------------------------------------------------------------------
 
 class SeriesListCard extends StatelessWidget {
   final Series series;

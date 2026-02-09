@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/appdata.dart';
 import '../models/userbadge.dart';
-import '../widgets/notification_banner.dart'; // Importa il banner
+import '../widgets/notification_banner.dart';
 import 'explore_screen.dart';
 import 'my_series_screen.dart';
 import 'binge_mode_screen.dart';
@@ -43,7 +43,6 @@ class _MainWrapperState extends State<MainWrapper> {
         top: MediaQuery.of(context).padding.top + 10,
         left: 15,
         right: 15,
-        // Usa il widget importato
         child: NotificationBanner(
           badge: badge,
           onDismissed: () {

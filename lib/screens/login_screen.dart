@@ -75,7 +75,6 @@ class _LoginScreenState extends State<LoginScreen> {
               })
               .where((url) => url.isNotEmpty)
               .toList();
-
           _posters = [..._posters, ..._posters];
         });
       }
@@ -88,11 +87,7 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
     try {
       final GoogleSignIn googleSignIn = GoogleSignIn(
-        clientId:
-            Platform
-                .isIOS // for Ios (android uses the SHA-1)
-            ? '192989615567-ceb6bb8lrdr2vovmraf4lrgsitptb5qr.apps.googleusercontent.com'
-            : null,
+        clientId: Platform.isIOS ? '192989615567-ceb6bb8lrdr2vovmraf4lrgsitptb5qr.apps.googleusercontent.com' : null,
       );
       final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
       if (googleUser == null) {
@@ -114,7 +109,10 @@ class _LoginScreenState extends State<LoginScreen> {
         await AppData.initializeData();
 
         if (!mounted) return;
+
         await Future.delayed(const Duration(seconds: 1));
+
+        if (!mounted) return;
 
         Navigator.pushReplacement(
           context,
@@ -122,7 +120,6 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       }
     } catch (e) {
-      print("login error occured: $e");
       if (mounted) {
         ScaffoldMessenger.of(
           context,
@@ -135,7 +132,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   void dispose() {
-    // to stop the scrolling
     _scrollTimer?.cancel();
     _scrollController.dispose();
     super.dispose();

@@ -16,9 +16,9 @@ class AppData {
   static List<Series> userSeries = [];
   static List<UserBadge> userBadges = [];
   static User? currentUser;
-  static const Color primaryColor = Color(0xFF791209); // Bordeaux
-  static const Color accentColor = Color(0xFF364156); // Blu
-  static const Color backgroundColor = Color(0xFFEEF0E9); // White like
+  static const Color primaryColor = Color(0xFF791209);
+  static const Color accentColor = Color(0xFF364156); 
+  static const Color backgroundColor = Color(0xFFEEF0E9);
   static const Color avatarColor = Color(0xFF4A5568);
   static const Color whiteColor = Colors.white;
 
@@ -321,7 +321,6 @@ class AppData {
     ),
   ];
 
-  // --- NUOVA FUNZIONE: RESET DATI LOCALI ---
   static void resetData() {
     userSeries.clear();
     userBadges.clear();
@@ -456,7 +455,6 @@ class AppData {
     return target;
   }
 
-  // --- FIX BUG INITIALIZE DATA ---
   static Future<void> initializeData() async {
     userSeries.clear();
     final firebaseUser = auth.FirebaseAuth.instance.currentUser;
@@ -465,15 +463,11 @@ class AppData {
     final userDoc = _db.collection('users').doc(firebaseUser.uid);
     var snapshot = await userDoc.get();
 
-    // Se l'utente non esiste, lo creiamo
     if (!snapshot.exists) {
       await _populateFirstTime(firebaseUser, userDoc);
-      // DOPO la creazione, scarichiamo di nuovo lo snapshot aggiornato
-      // Altrimenti currentUser rimane null o vecchio
       snapshot = await userDoc.get(); 
     }
 
-    // Ora carichiamo i dati (sia per utente vecchio che nuovo)
     final data = snapshot.data()!;
 
     String? originalPhotoUrl = data['photoUrl'] ?? firebaseUser.photoURL;
@@ -492,7 +486,8 @@ class AppData {
       uniqueGenresCount: (data['uniqueGenresCount'] ?? 0).toInt(),
       claimedBadgeIds: List<String>.from(data['claimedBadgeIds'] ?? []),
       photoUrl: highResPhotoUrl,
-      // seriesStreak etc...
+      seriesStreak: data['seriesStreak'] ?? 0,
+      lastViewDate: (data['lastViewDate'] as Timestamp?)?.toDate(),
     );
 
     final seriesSnap = await userDoc.collection('series').get();
@@ -631,7 +626,6 @@ class AppData {
     return all.isNotEmpty ? all.first : null;
   }
 
-  // --- NUOVA FUNZIONE PER OTTENERE TUTTI I BADGE SBLOCCATI ---
   static List<UserBadge> getAllUnclaimedBadges() {
     if (currentUser == null) return [];
 
@@ -662,7 +656,6 @@ class AppData {
 
     for (var badge in allMilestones) {
       double currentVal = stats[badge.title] ?? 0.0;
-      // Se il badge è raggiunto E non è ancora nella lista dei reclamati
       if (currentVal > 0.0 &&
           currentVal >= badge.targetHours &&
           !currentUser!.claimedBadgeIds.contains(badge.id)) {

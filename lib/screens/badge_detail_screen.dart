@@ -37,33 +37,26 @@ class BadgeDetailScreen extends StatelessWidget {
     }
   }
 
-  // --- FUNZIONE DI FORMATTAZIONE AGGIORNATA ---
   String _formatDisplayValue() {
-    // 1. Serie (S) -> "Series"
     if (unit == 'S') {
       return "${currentValue.toInt()} Series";
     }
 
-    // 2. Generi (G) -> "Genres"
     if (unit == 'G') {
       return "${currentValue.toInt()} Genres";
     }
 
-    // 3. Giorni (d): Input in Giorni. Mostra Xd
     if (unit == 'd') {
       int d = currentValue.toInt();
       return "${d}d";
     }
 
-    // 4. Ore come Giorni/Ore (dh): Input in Ore. Mostra Xd Yh
-    // Usato per Marathoner. Usa .floor() sulle ore rimanenti per coerenza con BingeModeScreen
     if (unit == 'dh') {
       int d = (currentValue / 24).floor();
       int h = (currentValue % 24).floor(); 
       return "${d}d ${h}h";
     }
 
-    // 5. Ore (h): Input in Ore. Mostra Xh Ym
     if (unit == 'h') {
       if (currentValue <= 0) return "0m";
       int h = currentValue.toInt();
@@ -74,7 +67,6 @@ class BadgeDetailScreen extends StatelessWidget {
       return "${m}m";
     }
 
-    // Fallback generico
     return "${currentValue.toStringAsFixed(1)} $unit";
   }
 
@@ -122,7 +114,6 @@ class BadgeDetailScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 20),
                   
-                  // --- VALORE FORMATTATO ---
                   Text(
                     _formatDisplayValue(),
                     style: const TextStyle(
@@ -187,7 +178,6 @@ class BadgeDetailScreen extends StatelessWidget {
 
             const SizedBox(height: 25),
 
-            // --- LISTA LIVELLI (Milestones) ---
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(

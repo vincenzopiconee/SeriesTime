@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:seriestime/models/actor.dart';
 import 'package:seriestime/models/appdata.dart';
-import 'package:seriestime/models/tv_show_details.dart';
-// --- IMPORT AGGIUNTI PER L'AGGIORNAMENTO UTENTE ---
+import 'package:seriestime/models/episode.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as auth;
 import 'package:seriestime/models/user.dart';
-// --------------------------------------------------
 import 'series_detail_screen.dart'; 
 
 class EpisodeDetailScreen extends StatelessWidget {
@@ -24,7 +23,6 @@ class EpisodeDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // --- STREAM AGGIUNTO: Aggiorna AppData.currentUser per attivare notifica nel Main ---
     return StreamBuilder<DocumentSnapshot>(
       stream: AppData.userStream(),
       builder: (context, userSnapshot) {
@@ -220,16 +218,12 @@ class EpisodeDetailScreen extends StatelessWidget {
 
     bool isFuture = false;
     if (episode.airDate != null && episode.airDate!.isNotEmpty) {
-      try {
-        DateTime airDate = DateTime.parse(episode.airDate!);
+      DateTime airDate = DateTime.parse(episode.airDate!);
         DateTime now = DateTime.now();
         DateTime today = DateTime(now.year, now.month, now.day);
         if (airDate.isAfter(today)) {
           isFuture = true;
         }
-      } catch (e) {
-        // ignore error
-      }
     }
 
     if (isFuture) {

@@ -9,7 +9,6 @@ import 'badge_detail_screen.dart';
 class BingeModeScreen extends StatelessWidget {
   const BingeModeScreen({super.key});
 
-  // Funzione helper per formattare la durata (da 1.5 a "1h 30m")
   String _formatDuration(double totalHours) {
     if (totalHours <= 0) return "0m";
     int h = totalHours.toInt();
@@ -50,10 +49,8 @@ class BingeModeScreen extends StatelessWidget {
             final userData = userSnapshot.data!.data() as Map<String, dynamic>;
             AppData.currentUser = User(
               name: userData['name'] ?? "User",
-              totalHoursWatched: (userData['totalHoursWatched'] ?? 0)
-                  .toDouble(),
-              maxConsecutiveHours: (userData['maxConsecutiveHours'] ?? 0)
-                  .toDouble(),
+              totalHoursWatched: (userData['totalHoursWatched'] ?? 0).toDouble(),
+              maxConsecutiveHours: (userData['maxConsecutiveHours'] ?? 0).toDouble(),
               weekendHours: (userData['weekendHours'] ?? 0).toDouble(),
               nightOwlHours: (userData['nightOwlHours'] ?? 0).toDouble(),
               uniqueGenresCount: (userData['uniqueGenresCount'] ?? 0).toInt(),
@@ -178,7 +175,6 @@ class BingeModeScreen extends StatelessWidget {
     );
   }
 
-  // -------widget for the completed achievements--------
 
   Widget _buildCompletedTab(User user, double totalHours, int completedCount) {
     final allPossibleBadges = [
@@ -191,7 +187,6 @@ class BingeModeScreen extends StatelessWidget {
       ...AppData.genreMilestones,
     ];
 
-    //list that take only the claimed ones
     final List<UserBadge> allClaimed = allPossibleBadges
         .where((badge) => user.claimedBadgeIds.contains(badge.id))
         .toList();
@@ -217,12 +212,11 @@ class BingeModeScreen extends StatelessWidget {
         double currentProgressValue = 0;
         String unit = "h";
 
-        // -------- TAKE THE DATA OF ALL THE BADGES -------
 
         if (badge.title == "Marathoner") {
           categoryMilestones = AppData.marathonerMilestones;
           currentProgressValue = totalHours;
-          unit = "dh"; // Usa Days+Hours
+          unit = "dh"; 
         } else if (badge.title == "Pure Obsession") {
           categoryMilestones = AppData.obsessionMilestones;
           currentProgressValue = user.maxConsecutiveHours;
@@ -234,7 +228,7 @@ class BingeModeScreen extends StatelessWidget {
         } else if (badge.title == "Streak") {
           categoryMilestones = AppData.streakMilestones;
           currentProgressValue = user.seriesStreak.toDouble();
-          unit = "d"; // Days (formatted as Xd Yh)
+          unit = "d"; 
         } else if (badge.title == "The Perfectionist") {
           categoryMilestones = AppData.completionistMilestones;
           currentProgressValue = completedCount.toDouble();
@@ -286,7 +280,7 @@ class BingeModeScreen extends StatelessWidget {
     int completedCount,
     BuildContext context,
   ) {
-    UserBadge _findCurrentTarget(
+    UserBadge findCurrentTarget(
       List<UserBadge> milestones,
       double currentVal,
     ) {
@@ -296,44 +290,45 @@ class BingeModeScreen extends StatelessWidget {
       );
     }
 
-    final targetM = _findCurrentTarget(
+    final targetM = findCurrentTarget(
       AppData.marathonerMilestones,
       realTotalHours,
     );
-    final targetO = _findCurrentTarget(
+    final targetO = findCurrentTarget(
       AppData.obsessionMilestones,
       user.maxConsecutiveHours,
     );
-    final targetW = _findCurrentTarget(
+    final targetW = findCurrentTarget(
       AppData.weekendMilestones,
       user.weekendHours,
     );
-    final targetS = _findCurrentTarget(
+    final targetS = findCurrentTarget(
       AppData.streakMilestones,
       user.seriesStreak.toDouble(),
     );
-    final targetC = _findCurrentTarget(
+    final targetC = findCurrentTarget(
       AppData.completionistMilestones,
       completedCount.toDouble(),
     );
-    final targetNO = _findCurrentTarget(
+    final targetNO = findCurrentTarget(
       AppData.nightOwlMilestones,
       user.nightOwlHours,
     );
-    final targetG = _findCurrentTarget(
+    final targetG = findCurrentTarget(
       AppData.genreMilestones,
       user.uniqueGenresCount.toDouble(),
     );
 
-    Widget _questItem(
+    Widget questItem(
       UserBadge target,
       double currentProgress,
       String progressText,
       List<UserBadge> categoryMilestones,
       String unit,
     ) {
-      if (user.claimedBadgeIds.contains(target.id))
+      if (user.claimedBadgeIds.contains(target.id)) {
         return const SizedBox.shrink();
+      }
 
       bool canClaim = currentProgress >= target.targetHours;
       return GestureDetector(
@@ -372,51 +367,49 @@ class BingeModeScreen extends StatelessWidget {
       padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 100),
       child: Column(
         children: [
-          // Marathoner: usa 'dh' (Hours displayed as Days/Hours)
-          _questItem(
+          questItem(
             targetM,
             realTotalHours,
             "${timeData["days"]}d ${timeData["hours"]}h / ${targetM.iconLabel}",
             AppData.marathonerMilestones,
             "dh",
           ),
-          _questItem(
+          questItem(
             targetO,
             user.maxConsecutiveHours,
             "${_formatDuration(user.maxConsecutiveHours)} / ${targetO.iconLabel}",
             AppData.obsessionMilestones,
             "h",
           ),
-          _questItem(
+          questItem(
             targetW,
             user.weekendHours,
             "${_formatDuration(user.weekendHours)} / ${targetW.iconLabel}",
             AppData.weekendMilestones,
             "h",
           ),
-          // Streak: usa 'd' (Days), ma il testo lo mostriamo come "Xd 0h" per consistenza
-          _questItem(
+          questItem(
             targetS,
             user.seriesStreak.toDouble(),
             "${user.seriesStreak}d 0h / ${targetS.iconLabel}",
             AppData.streakMilestones,
             "d",
           ),
-          _questItem(
+          questItem(
             targetC,
             completedCount.toDouble(),
             "$completedCount / ${targetC.iconLabel}",
             AppData.completionistMilestones,
             "S",
           ),
-          _questItem(
+          questItem(
             targetNO,
             user.nightOwlHours,
             "${_formatDuration(user.nightOwlHours)} / ${targetNO.iconLabel}",
             AppData.nightOwlMilestones,
             "h",
           ),
-          _questItem(
+          questItem(
             targetG,
             user.uniqueGenresCount.toDouble(),
             "${user.uniqueGenresCount} / ${targetG.iconLabel}",

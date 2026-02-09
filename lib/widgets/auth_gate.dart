@@ -9,31 +9,24 @@ class AuthGate extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Ascolta i cambiamenti di stato dell'utente (Loggato / Non loggato)
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
         
-        // 1. Se Firebase sta ancora controllando lo stato iniziale
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
-            backgroundColor: Colors.black, // O AppData.backgroundColor
+            backgroundColor: Colors.black, 
             body: Center(child: CircularProgressIndicator(color: AppData.primaryColor)),
           );
         }
 
-        // 2. Se l'utente è Loggato (snapshot ha dati)
         if (snapshot.hasData) {
-          // Dobbiamo caricare i dati Firestore (Serie, Badge) prima di mostrare la Home
-          // altrimenti la ProfileScreen e MySeriesScreen sarebbero vuote.
           return FutureBuilder(
-            future: AppData.initializeData(), // Carica i dati
+            future: AppData.initializeData(),
             builder: (context, dataSnapshot) {
               if (dataSnapshot.connectionState == ConnectionState.done) {
-                // Dati caricati -> Vai all'App
                 return const MainWrapper();
               } else {
-                // Sta caricando i dati da Firestore -> Loading Screen
                 return const Scaffold(
                   backgroundColor: AppData.backgroundColor,
                   body: Center(child: CircularProgressIndicator(color: AppData.primaryColor)),
@@ -43,7 +36,6 @@ class AuthGate extends StatelessWidget {
           );
         }
 
-        // 3. Se l'utente NON è loggato -> Mostra LoginScreen
         return const LoginScreen();
       },
     );

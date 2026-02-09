@@ -25,8 +25,8 @@ class _NotificationBannerState extends State<NotificationBanner>
   void initState() {
     super.initState();
     _controller = AnimationController(
-      duration: const Duration(milliseconds: 800), // Entrata
-      reverseDuration: const Duration(milliseconds: 500), // Uscita
+      duration: const Duration(milliseconds: 800), 
+      reverseDuration: const Duration(milliseconds: 500),
       vsync: this,
     );
 
@@ -41,7 +41,6 @@ class _NotificationBannerState extends State<NotificationBanner>
 
     _controller.forward();
 
-    // Timer per chiusura automatica
     Future.delayed(const Duration(seconds: 4), () {
       if (mounted) {
         _controller.reverse();

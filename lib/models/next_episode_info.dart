@@ -13,7 +13,6 @@ class NextEpisodeInfo {
 
   int get daysLeft {
     final now = DateTime.now();
-    // Calcoliamo la differenza in giorni dalla mezzanotte di oggi
     final today = DateTime(now.year, now.month, now.day);
     final difference = airDate.difference(today);
     return difference.inDays;

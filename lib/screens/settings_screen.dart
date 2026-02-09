@@ -195,9 +195,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _handleLogout() async {
-    // --- MODIFICA: Pulisci i dati locali ---
     AppData.resetData();
-    // ---------------------------------------
     await FirebaseAuth.instance.signOut();
     await GoogleSignIn().signOut();
 
@@ -356,9 +354,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         debugPrint("Google SignOut error: $e");
       }
 
-      // --- MODIFICA: Pulisci i dati locali ---
       AppData.resetData();
-      // ---------------------------------------
 
       if (mounted) {
         Navigator.of(context).pushAndRemoveUntil(
@@ -385,7 +381,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             context: context,
             barrierDismissible: false,
             builder: (ctx) => Dialog(
-              // ... (Logica Dialog invaiata)
               child: Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(25)),
