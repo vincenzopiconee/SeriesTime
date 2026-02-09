@@ -8,7 +8,7 @@ import 'package:seriestime/models/series.dart';
 import 'package:seriestime/screens/episode_detail_screen.dart'; 
 import 'package:seriestime/models/user.dart';
 import 'package:firebase_auth/firebase_auth.dart' as auth;
-import '../models/appdata.dart';
+import '../models/app_data.dart';
 import 'series_detail_screen.dart'; 
 
 class MySeriesScreen extends StatefulWidget {

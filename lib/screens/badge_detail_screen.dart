@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../models/appdata.dart';
-import '../models/userbadge.dart';
+import '../models/app_data.dart';
+import '../models/user_badge.dart';
 
 class BadgeDetailScreen extends StatelessWidget {
   final String categoryTitle;

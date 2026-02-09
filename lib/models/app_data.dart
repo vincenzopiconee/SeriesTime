@@ -2,7 +2,7 @@ import 'next_episode_info.dart';
 import 'series.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'userbadge.dart';
+import 'user_badge.dart';
 import 'user.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';

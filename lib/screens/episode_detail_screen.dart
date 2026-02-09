@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:seriestime/models/actor.dart';
-import 'package:seriestime/models/appdata.dart';
+import 'package:seriestime/models/app_data.dart';
 import 'package:seriestime/models/episode.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as auth;

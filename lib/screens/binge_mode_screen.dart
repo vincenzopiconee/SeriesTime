@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/appdata.dart';
-import '../models/userbadge.dart';
+import '../models/app_data.dart';
+import '../models/user_badge.dart';
 import '../models/user.dart';
 import '../models/series.dart';
 import 'badge_detail_screen.dart';

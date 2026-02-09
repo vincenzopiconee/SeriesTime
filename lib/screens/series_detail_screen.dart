@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:seriestime/widgets/season_tile.dart';
 import 'package:seriestime/models/tv_show_details.dart';
-import '../models/appdata.dart'; 
+import '../models/app_data.dart'; 
 import 'all_cast_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as auth;
