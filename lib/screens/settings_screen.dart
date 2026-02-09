@@ -17,11 +17,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _isDeleting = false;
 
   @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final user = AppData.currentUser;
     final String userEmail = FirebaseAuth.instance.currentUser?.email ?? "No email";
@@ -71,7 +66,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
             const SizedBox(height: 40),
 
-            // --- 2. SEZIONE ABOUT (Info App) ---
             _buildSectionCard(
               title: "About",
               children: [
@@ -83,7 +77,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
             const SizedBox(height: 50),
 
-            // Logout Button
             ElevatedButton(
               onPressed: _handleLogout,
               style: ElevatedButton.styleFrom(
@@ -103,7 +96,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
             const SizedBox(height: 15),
 
-            // Delete Account Button / Loading
             if (_isDeleting)
               const Column (
                 children: [
@@ -118,7 +110,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   SizedBox(height: 15),
                   Text(
-                    "Cleaning Database",
+                    "Cleaning Database...",
                     style: TextStyle(
                     color: AppData.primaryColor,
                     fontWeight: FontWeight.bold,
@@ -202,8 +194,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-
   Future<void> _handleLogout() async {
+    // --- MODIFICA: Pulisci i dati locali ---
+    AppData.resetData();
+    // ---------------------------------------
     await FirebaseAuth.instance.signOut();
     await GoogleSignIn().signOut();
 
@@ -299,7 +293,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  // --- FUNZIONE DI PULIZIA PROFONDA ---
   Future<void> _deleteFullSeriesData(String uid) async {
     try {
       final firestore = FirebaseFirestore.instance;
@@ -326,17 +319,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
         }
       }
     } catch (e) {
-      debugPrint("Data cleanup skipped (User doc probably missing): $e");
+      debugPrint("Data cleanup skipped: $e");
     }
   }
 
-  // --- FUNZIONE BLINDATA PER ELIMINARE ACCOUNT ---
   Future<void> _performDelete() async {
     setState(() => _isDeleting = true);
     
     final user = FirebaseAuth.instance.currentUser;
 
-    // Se l'utente non c'è, usciamo subito
     if (user == null) {
       if (mounted) {
         Navigator.of(context).pushAndRemoveUntil(
@@ -347,8 +338,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       return;
     }
 
-    // 1. PULIZIA DATABASE (Tentativo "Best Effort")
-    // Lo facciamo in un blocco isolato: se fallisce, non blocca l'eliminazione account
     try {
       await _deleteFullSeriesData(user.uid);
       await FirebaseFirestore.instance
@@ -359,18 +348,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
       debugPrint("Database cleanup skipped/failed: $dbError");
     }
 
-    // 2. ELIMINAZIONE ACCOUNT E NAVIGAZIONE
     try {
-      // Prova a eliminare l'utente Auth
       await user.delete();
-
-      // SE ARRIVIAMO QUI, l'eliminazione è riuscita.
-      // Procediamo con la pulizia locale e il logout.
       try {
         await GoogleSignIn().signOut();
       } catch (e) {
-        debugPrint("Google SignOut error (ignorable): $e");
+        debugPrint("Google SignOut error: $e");
       }
+
+      // --- MODIFICA: Pulisci i dati locali ---
+      AppData.resetData();
+      // ---------------------------------------
 
       if (mounted) {
         Navigator.of(context).pushAndRemoveUntil(
@@ -380,9 +368,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       }
 
     } catch (e) {
-      // --- GESTIONE ERRORI (Senza rethrow) ---
-      
-      // Identifichiamo il codice errore
       String errorCode = '';
       String errorMessage = e.toString();
 
@@ -394,80 +379,47 @@ class _SettingsScreenState extends State<SettingsScreen> {
         errorMessage = e.message ?? errorMessage;
       }
 
-      // Caso specifico: Serve Login Recente
       if (errorCode == 'requires-recent-login') {
         if (mounted) {
           showDialog(
             context: context,
             barrierDismissible: false,
             builder: (ctx) => Dialog(
-              backgroundColor: Colors.transparent,
-              insetPadding: const EdgeInsets.all(20),
+              // ... (Logica Dialog invaiata)
               child: Container(
                 padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: AppData.whiteColor,
-                  borderRadius: BorderRadius.circular(25),
-                  border: Border.all(color: AppData.accentColor, width: 2),
-                ),
+                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(25)),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text(
-                      "Security Check",
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: AppData.primaryColor,
-                      ),
-                    ),
+                    const Text("Security Check", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 15),
-                    const Text(
-                      "For security reasons, this sensitive operation requires a recent login.\n\nPlease tap 'Log Out' below, sign in again, and then try deleting your account immediately.",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 15, color: Colors.black87),
-                    ),
+                    const Text("Please log in again to delete your account.", textAlign: TextAlign.center),
                     const SizedBox(height: 25),
                     ElevatedButton(
                       onPressed: () {
                         Navigator.of(ctx).pop();
-                        _handleLogout(); // Questo porta al LoginScreen
+                        _handleLogout();
                       },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppData.primaryColor,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                      ),
                       child: const Text("Log Out & Retry"),
                     ),
-                    TextButton(
-                      onPressed: () => Navigator.of(ctx).pop(),
-                      child: const Text("Cancel"),
-                    )
+                    TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text("Cancel"))
                   ],
                 ),
               ),
             ),
           );
         }
-      } 
-      // Caso specifico: Utente già non trovato (è già cancellato)
-      else if (errorCode == 'user-not-found') {
-        // Consideriamolo un successo e mandiamo al login
+      } else if (errorCode == 'user-not-found') {
         if (mounted) {
            Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(builder: (context) => const LoginScreen()),
             (Route<dynamic> route) => false,
           );
         }
-      }
-      // Altri errori
-      else {
-        debugPrint("Generic delete error: $e");
+      } else {
         if (mounted) {
-          _showErrorDialog("Error", "Could not delete account. Please try logging out and back in manually.\n\nError: $errorMessage");
+          _showErrorDialog("Error", "Could not delete account: $errorMessage");
         }
       }
     } finally {
@@ -481,12 +433,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       builder: (ctx) => AlertDialog(
         title: Text(title),
         content: Text(content),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("OK"),
-          )
-        ],
+        actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("OK"))],
       ),
     );
   }

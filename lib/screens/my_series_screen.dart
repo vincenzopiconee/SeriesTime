@@ -1,11 +1,15 @@
 import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart'; 
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http; // Aggiunto per chiamate API
+import 'package:http/http.dart' as http; 
 import 'package:seriestime/models/next_episode_info.dart';
 import 'package:seriestime/models/series.dart';
-import 'package:seriestime/models/tv_show_details.dart'; // Per il modello Episode
-import 'package:seriestime/screens/episode_detail_screen.dart'; // Per la navigazione
+import 'package:seriestime/models/tv_show_details.dart'; 
+import 'package:seriestime/screens/episode_detail_screen.dart'; 
+// --- IMPORT AGGIUNTI PER L'AGGIORNAMENTO UTENTE ---
+import 'package:seriestime/models/user.dart';
+import 'package:firebase_auth/firebase_auth.dart' as auth;
+// --------------------------------------------------
 import '../models/appdata.dart';
 import 'series_detail_screen.dart'; 
 
@@ -45,11 +49,9 @@ class _MySeriesScreenState extends State<MySeriesScreen> {
     return upcomingMap;
   }
 
-  // --- NUOVA FUNZIONE: Scarica dettagli e naviga ---
   Future<void> _fetchAndNavigateToEpisode(
       BuildContext context, int seriesId, String seriesName, int seasonNum, int episodeNum) async {
     
-    // Mostra indicatore di caricamento
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -62,12 +64,11 @@ class _MySeriesScreenState extends State<MySeriesScreen> {
       
       final response = await http.get(url);
 
-      // Chiudi il caricamento
       if (context.mounted) Navigator.pop(context);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        final episode = Episode.fromJson(data); // Usa il costruttore esistente in tv_show_details.dart
+        final episode = Episode.fromJson(data); 
 
         if (context.mounted) {
           Navigator.push(
@@ -86,101 +87,142 @@ class _MySeriesScreenState extends State<MySeriesScreen> {
         debugPrint("Error fetching episode details: ${response.statusCode}");
       }
     } catch (e) {
-      if (context.mounted) Navigator.pop(context); // Chiudi dialog in caso di errore
+      if (context.mounted) Navigator.pop(context); 
       debugPrint("Exception fetching episode: $e");
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<QuerySnapshot>(
-      stream: AppData.seriesStream(),
-      builder: (context, snapshot) {
+    // --- STREAM AGGIUNTO: Ascolta e aggiorna i dati utente ---
+    return StreamBuilder<DocumentSnapshot>(
+      stream: AppData.userStream(),
+      builder: (context, userSnapshot) {
         
-        if (!snapshot.hasData) {
-          return Scaffold(
-            backgroundColor: AppData.backgroundColor,
-            appBar: AppBar(
-              backgroundColor: AppData.primaryColor,
-              elevation: 0,
-              title: const Text(
-                "My Series",
-                style: TextStyle(
-                  fontSize: 24, 
-                  fontWeight: FontWeight.w600, 
-                  color: AppData.whiteColor
-                ),
-              ),
-              centerTitle: true,
-            ),
-            body: const Center(child: CircularProgressIndicator(color: AppData.primaryColor)),
+        // Aggiorna AppData.currentUser per sincronizzare i badge con il Main
+        if (userSnapshot.hasData && userSnapshot.data!.data() != null) {
+          final userData = userSnapshot.data!.data() as Map<String, dynamic>;
+          
+          AppData.currentUser = User(
+            name: userData['name'] ?? "User",
+            totalHoursWatched: (userData['totalHoursWatched'] ?? 0).toDouble(),
+            maxConsecutiveHours: (userData['maxConsecutiveHours'] ?? 0).toDouble(),
+            weekendHours: (userData['weekendHours'] ?? 0).toDouble(),
+            nightOwlHours: (userData['nightOwlHours'] ?? 0).toDouble(),
+            uniqueGenresCount: (userData['uniqueGenresCount'] ?? 0).toInt(),
+            seriesStreak: userData['seriesStreak'] ?? 0,
+            claimedBadgeIds: List<String>.from(userData['claimedBadgeIds'] ?? []),
+            photoUrl: userData['photoUrl'] ?? auth.FirebaseAuth.instance.currentUser?.photoURL,
           );
         }
 
-        AppData.userSeries = snapshot.data!.docs.map((doc) {
-          final sData = doc.data() as Map<String, dynamic>;
-          
-          return Series(
-            id: sData['id'] ?? 0, 
-            name: doc.id,
-            imageUrl: sData['imageUrl'] ?? "",
-            percentage: (sData['percentage'] ?? 0).toDouble(),
-            totalHours: (sData['totalHours'] ?? 0).toDouble(),
-            episode: sData['episode'] ?? "",
-            lastEpisodeTitle: sData['lastEpisodeTitle'] ?? "",
-            seriesDuration: (sData['seriesDuration'] ?? 0).toDouble(),
-            isFavorite: sData['isFavorite'] ?? false, 
-            completed: sData['completed'] ?? false,
-            nextEpisodeAirDate: sData['nextEpisodeAirDate'],
-          );
-        }).toList();
-
-        final favoriteSeries = AppData.userSeries.where((s) => s.isFavorite).toList();
-        final watchingSeries = AppData.userSeries
-            .where((s) => s.percentage > 0.0 && s.percentage < 1.0 && !s.completed) 
-            .toList();
-        
-        return DefaultTabController(
-          length: 3, 
-          child: Scaffold(
-            backgroundColor: AppData.backgroundColor,
-            appBar: AppBar(
-              backgroundColor: AppData.primaryColor,
-              elevation: 0,
-              title: const Text(
-                "My Series",
-                style: TextStyle(
-                  fontSize: 24, 
-                  fontWeight: FontWeight.w600, 
-                  color: AppData.whiteColor
+        return StreamBuilder<QuerySnapshot>(
+          stream: AppData.seriesStream(),
+          builder: (context, snapshot) {
+            
+            if (!snapshot.hasData) {
+              return Scaffold(
+                backgroundColor: AppData.backgroundColor,
+                appBar: AppBar(
+                  backgroundColor: AppData.primaryColor,
+                  elevation: 0,
+                  title: const Text(
+                    "My Series",
+                    style: TextStyle(
+                      fontSize: 24, 
+                      fontWeight: FontWeight.w600, 
+                      color: AppData.whiteColor
+                    ),
+                  ),
+                  centerTitle: true,
                 ),
-              ),
-              centerTitle: true,
-              bottom: PreferredSize(
-                preferredSize: const Size.fromHeight(48.0), 
-                child: Container(
-                  color: AppData.whiteColor, 
-                  child: const TabBar(
-                    labelColor: AppData.primaryColor, 
-                    unselectedLabelColor: Colors.grey,
-                    indicatorColor: AppData.accentColor, 
-                    tabs: [
-                      Tab(text: "Favorites"),
-                      Tab(text: "Watching"),
-                      Tab(text: "Upcoming"),
-                    ],
+                body: const Center(child: CircularProgressIndicator(color: AppData.primaryColor)),
+              );
+            }
+
+            // --- ORDINAMENTO ---
+            var docList = snapshot.data!.docs.toList();
+            
+            docList.sort((a, b) {
+              final aData = a.data() as Map<String, dynamic>;
+              final bData = b.data() as Map<String, dynamic>;
+              
+              final aTime = aData['lastWatched'] as Timestamp?;
+              final bTime = bData['lastWatched'] as Timestamp?;
+
+              if (aTime == null && bTime == null) return 0;
+              if (aTime == null) return 1; 
+              if (bTime == null) return -1;
+
+              return bTime.compareTo(aTime);
+            });
+
+            AppData.userSeries = docList.map((doc) {
+              final sData = doc.data() as Map<String, dynamic>;
+              
+              return Series(
+                id: sData['id'] ?? 0, 
+                name: doc.id,
+                imageUrl: sData['imageUrl'] ?? "",
+                percentage: (sData['percentage'] ?? 0).toDouble(),
+                totalHours: (sData['totalHours'] ?? 0).toDouble(),
+                episode: sData['episode'] ?? "",
+                lastEpisodeTitle: sData['lastEpisodeTitle'] ?? "",
+                seriesDuration: (sData['seriesDuration'] ?? 0).toDouble(),
+                isFavorite: sData['isFavorite'] ?? false, 
+                completed: sData['completed'] ?? false,
+                nextEpisodeAirDate: sData['nextEpisodeAirDate'],
+              );
+            }).toList();
+
+            final favoriteSeries = AppData.userSeries.where((s) => s.isFavorite).toList();
+            final watchingSeries = AppData.userSeries
+                .where((s) => s.percentage > 0.0 && s.percentage < 1.0 && !s.completed) 
+                .toList();
+            
+            return DefaultTabController(
+              length: 3, 
+              child: Scaffold(
+                backgroundColor: AppData.backgroundColor,
+                appBar: AppBar(
+                  backgroundColor: AppData.primaryColor,
+                  elevation: 0,
+                  title: const Text(
+                    "My Series",
+                    style: TextStyle(
+                      fontSize: 24, 
+                      fontWeight: FontWeight.w600, 
+                      color: AppData.whiteColor
+                    ),
+                  ),
+                  centerTitle: true,
+                  bottom: PreferredSize(
+                    preferredSize: const Size.fromHeight(48.0), 
+                    child: Container(
+                      color: AppData.whiteColor, 
+                      child: const TabBar(
+                        labelColor: AppData.primaryColor, 
+                        unselectedLabelColor: Colors.grey,
+                        indicatorColor: AppData.accentColor, 
+                        tabs: [
+                          Tab(text: "Favorites"),
+                          Tab(text: "Watching"),
+                          Tab(text: "Upcoming"),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
+                body: TabBarView(
+                  children: [
+                    _buildFavoritesTab(favoriteSeries),
+                    _buildWatchingTab(watchingSeries),
+                    _buildUpcomingTab(), 
+                  ],
+                ),
               ),
-            ),
-            body: TabBarView(
-              children: [
-                _buildFavoritesTab(favoriteSeries),
-                _buildWatchingTab(watchingSeries),
-                _buildUpcomingTab(), 
-              ],
-            ),
-          ),
+            );
+          }
         );
       }
     );
@@ -216,7 +258,6 @@ class _MySeriesScreenState extends State<MySeriesScreen> {
       itemBuilder: (ctx, index) {
         final series = watchingSeries[index];
         
-        // --- LOGICA PARSING EPISODIO (S# E#) ---
         int sNum = 1;
         int eNum = 1;
         try {
@@ -244,19 +285,17 @@ class _MySeriesScreenState extends State<MySeriesScreen> {
         }
 
         return WatchingEpisodeCard(
-          key: ValueKey(series.episode), 
+          key: ValueKey(series.id), 
           imageUrl: series.imageUrl,
           mainText: series.lastEpisodeTitle.isNotEmpty ? series.lastEpisodeTitle : series.name,
           subText: series.name, 
           episodeLabel: series.episode, 
           isUpcoming: false,
-          // --- NUOVO: Navigazione al click ---
           onCardTap: () {
             if (series.id != 0) {
               _fetchAndNavigateToEpisode(context, series.id, series.name, sNum, eNum);
             }
           },
-          // ----------------------------------
           onCheckTap: isFuture ? null : () { 
             AppData.toggleEpisodeWatched(
               seriesName: series.name,
@@ -316,7 +355,6 @@ class _MySeriesScreenState extends State<MySeriesScreen> {
               final seriesName = sortedKeys[index];
               final info = upcomingMap[seriesName]!;
 
-              // Recupero l'ID della serie per la navigazione
               final series = AppData.userSeries.firstWhere(
                 (s) => s.name == seriesName, 
                 orElse: () => AppData.userSeries.isNotEmpty ? AppData.userSeries[0] : Series(id:0, name: "", imageUrl: "", percentage: 0, totalHours: 0, episode: "")
@@ -329,7 +367,6 @@ class _MySeriesScreenState extends State<MySeriesScreen> {
 
               String dateFormatted = "${info.airDate.year}-${info.airDate.month}-${info.airDate.day}";
 
-              // --- LOGICA PARSING EPISODIO UPCOMING (S# E#) ---
               int sNum = 1, eNum = 1;
               try {
                 final parts = info.episodeLabel.split(' ');
@@ -338,8 +375,7 @@ class _MySeriesScreenState extends State<MySeriesScreen> {
                   eNum = int.tryParse(parts[1].replaceAll(RegExp(r'[^0-9]'), '')) ?? 1;
                 }
               } catch (_) {}
-              // ------------------------------------------------
-
+              
               return WatchingEpisodeCard(
                 imageUrl: imageUrl,
                 mainText: info.name,
@@ -348,13 +384,11 @@ class _MySeriesScreenState extends State<MySeriesScreen> {
                 extraInfo: dateFormatted, 
                 isUpcoming: true,
                 daysLeft: info.daysLeft,
-                // --- NUOVO: Navigazione al click ---
                 onCardTap: () {
                    if (series.id != 0) {
                      _fetchAndNavigateToEpisode(context, series.id, series.name, sNum, eNum);
                    }
                 },
-                // ----------------------------------
               );
             },
           ),
@@ -421,7 +455,6 @@ class SeriesListCard extends StatelessWidget {
   }
 }
 
-// --- MODIFICA: Aggiunto onCardTap e InkWell separato per la navigazione ---
 class WatchingEpisodeCard extends StatefulWidget {
   final String imageUrl;
   final String mainText; 
@@ -431,7 +464,7 @@ class WatchingEpisodeCard extends StatefulWidget {
   final bool isUpcoming;
   final int? daysLeft;
   final VoidCallback? onCheckTap; 
-  final VoidCallback? onCardTap; // <--- NUOVO PARAMETRO
+  final VoidCallback? onCardTap; 
 
   const WatchingEpisodeCard({
     super.key,
@@ -443,17 +476,30 @@ class WatchingEpisodeCard extends StatefulWidget {
     this.isUpcoming = false,
     this.daysLeft,
     this.onCheckTap,
-    this.onCardTap, // <---
+    this.onCardTap, 
   });
 
   @override
   State<WatchingEpisodeCard> createState() => _WatchingEpisodeCardState();
 }
 
-class _WatchingEpisodeCardState extends State<WatchingEpisodeCard> {
+class _WatchingEpisodeCardState extends State<WatchingEpisodeCard> with AutomaticKeepAliveClientMixin {
   bool _isChecking = false;
 
-  void _handleCheck() async {
+  @override
+  bool get wantKeepAlive => true; 
+
+  @override
+  void didUpdateWidget(covariant WatchingEpisodeCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.episodeLabel != widget.episodeLabel) {
+      setState(() {
+        _isChecking = false;
+      });
+    }
+  }
+
+  void _handleCheck() {
     if (_isChecking) return;
     setState(() {
       _isChecking = true;
@@ -461,16 +507,12 @@ class _WatchingEpisodeCardState extends State<WatchingEpisodeCard> {
     if (widget.onCheckTap != null) {
       widget.onCheckTap!();
     }
-    await Future.delayed(const Duration(seconds: 1));
-    if (mounted) {
-      setState(() {
-        _isChecking = false;
-      });
-    }
   }
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
+
     return Container(
       height: 100, 
       decoration: BoxDecoration(
@@ -483,10 +525,9 @@ class _WatchingEpisodeCardState extends State<WatchingEpisodeCard> {
       ),
       child: Row(
         children: [
-          // --- PARTE 1: CONTENUTO CLICCABILE (Immagine + Testi) ---
           Expanded(
             child: InkWell(
-              onTap: widget.onCardTap, // Usa la callback passata per navigare
+              onTap: widget.onCardTap, 
               borderRadius: const BorderRadius.horizontal(left: Radius.circular(12)),
               child: Row(
                 children: [
@@ -557,7 +598,6 @@ class _WatchingEpisodeCardState extends State<WatchingEpisodeCard> {
             ),
           ),
 
-          // --- PARTE 2: AZIONE (Check o Giorni) ---
           if (widget.isUpcoming && widget.daysLeft != null)
             Padding(
               padding: const EdgeInsets.only(right: 16, left: 8),

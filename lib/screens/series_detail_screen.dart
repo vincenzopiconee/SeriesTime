@@ -1,17 +1,22 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:seriestime/screens/season_tile_screen.dart';
+import 'package:seriestime/widgets/season_tile.dart';
 import 'package:seriestime/models/tv_show_details.dart';
-import '../models/appdata.dart'; // Assicurati che il percorso sia corretto
+import '../models/appdata.dart'; 
 import 'all_cast_screen.dart';
+// --- IMPORT AGGIUNTI ---
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart' as auth;
+import 'package:seriestime/models/user.dart';
+// -----------------------
 
 // --- CONFIGURATION ---
 const String apiKey = "0cbb1da4932d8722fcddf451692e1b2e";
 
 class SeriesDetailScreen extends StatefulWidget {
   final int seriesId;
-  final String seriesName; // Utile per un titolo placeholder mentre carica
+  final String seriesName; 
 
   const SeriesDetailScreen({super.key, required this.seriesId, required this.seriesName});
 
@@ -31,11 +36,10 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> with SingleTick
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this); // 2 Tabs: Info e Episodes
+    _tabController = TabController(length: 2, vsync: this); 
     _fetchSeriesDetails();
     _checkTrackingStatus();
     _scrollController.addListener(() {
-      // Quando superiamo una certa soglia (es. 200 pixel), mostriamo il titolo
       if (_scrollController.offset > 180 && !_showTitle) {
         setState(() => _showTitle = true);
       } else if (_scrollController.offset <= 180 && _showTitle) {
@@ -45,7 +49,6 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> with SingleTick
   }
 
   Future<void> _checkTrackingStatus() async {
-    // Ora controlliamo se è PREFERITA, non solo se esiste
     bool status = await AppData.isSeriesFavorite(widget.seriesName);
     if (mounted) {
       setState(() {
@@ -56,22 +59,15 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> with SingleTick
 
   Future<void> _handleFavoriteToggle() async {
     if (_details == null) return;
-
-    // Aggiornamento ottimistico UI
     setState(() {
       _isFavorite = !_isFavorite;
     });
-
-    // Chiamiamo la nuova funzione unica passando true o false
     await AppData.setSeriesFavorite(widget.seriesName, widget.seriesId, _isFavorite);
-
-    
   }
 
   Future<void> _fetchSeriesDetails() async {
     setState(() => _isLoading = true);
     try {
-      // Chiamata API complessa: Dettagli + Credits (Cast) + Watch Providers (Dove guardarla)
       final url = Uri.parse(
         'https://api.themoviedb.org/3/tv/${widget.seriesId}?api_key=$apiKey&language=en-US&append_to_response=aggregate_credits,watch/providers'
       );
@@ -101,134 +97,143 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> with SingleTick
 
   @override
   Widget build(BuildContext context) {
-    // Colori da AppData
     final primary = AppData.primaryColor;
     final accent = AppData.accentColor;
     final bg = AppData.backgroundColor;
     
-    // --- CALCOLO PROPORZIONI ---
     final double screenWidth = MediaQuery.of(context).size.width;
-    // Calcoliamo l'altezza per avvicinarci al 16:9 (0.56) ma lasciando spazio per il testo (0.7)
-    // Su un iPhone standard sarà circa 270px invece di 400px
     final double headerHeight = screenWidth * 0.7;
 
-    if (_isLoading) {
-      return Scaffold(
-        backgroundColor: bg,
-        body: Center(child: CircularProgressIndicator(color: primary)),
-      );
-    }
+    // --- STREAM AGGIUNTO: Aggiorna AppData.currentUser per attivare notifica nel Main ---
+    return StreamBuilder<DocumentSnapshot>(
+      stream: AppData.userStream(),
+      builder: (context, userSnapshot) {
+        
+        if (userSnapshot.hasData && userSnapshot.data!.data() != null) {
+          final userData = userSnapshot.data!.data() as Map<String, dynamic>;
+          AppData.currentUser = User(
+            name: userData['name'] ?? "User",
+            totalHoursWatched: (userData['totalHoursWatched'] ?? 0).toDouble(),
+            maxConsecutiveHours: (userData['maxConsecutiveHours'] ?? 0).toDouble(),
+            weekendHours: (userData['weekendHours'] ?? 0).toDouble(),
+            nightOwlHours: (userData['nightOwlHours'] ?? 0).toDouble(),
+            uniqueGenresCount: (userData['uniqueGenresCount'] ?? 0).toInt(),
+            seriesStreak: userData['seriesStreak'] ?? 0,
+            claimedBadgeIds: List<String>.from(userData['claimedBadgeIds'] ?? []),
+            photoUrl: userData['photoUrl'] ?? auth.FirebaseAuth.instance.currentUser?.photoURL,
+          );
+        }
 
-    if (_details == null) {
-      return Scaffold(
-        backgroundColor: bg,
-        body: const Center(child: Text("Could not load series details.")),
-      );
-    }
+        if (_isLoading) {
+          return Scaffold(
+            backgroundColor: bg,
+            body: Center(child: CircularProgressIndicator(color: primary)),
+          );
+        }
 
-    return Scaffold(
-      backgroundColor: bg,
-      // Usiamo NestedScrollView per far scrollare l'header insieme al contenuto
-      body: NestedScrollView(
-        controller: _scrollController,
-        headerSliverBuilder: (context, innerBoxIsScrolled) {
-          return [
-            SliverAppBar(
-              expandedHeight: headerHeight,
-              floating: false,
-              pinned: true,
-              backgroundColor: primary,
-              elevation: 0,
-              title: _showTitle 
-                ? Text(
-                  widget.seriesName, 
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 20, 
-                    fontWeight: FontWeight.bold
-                  )
-                ) : null,
-              centerTitle: true,
-              iconTheme: const IconThemeData(color: AppData.whiteColor),
-              flexibleSpace: FlexibleSpaceBar(
-                background: _buildHeader(primary, accent, headerHeight, screenWidth),
-              ),
-            ),
-             SliverPersistentHeader(
-              delegate: _SliverAppBarDelegate(
-                TabBar(
-                  controller: _tabController,
-                  labelColor: primary,
-                  unselectedLabelColor: Colors.grey,
-                  indicatorColor: accent,
-                  tabs: const [
-                    Tab(text: "Info"),
-                    Tab(text: "Episodes"),
-                  ],
+        if (_details == null) {
+          return Scaffold(
+            backgroundColor: bg,
+            body: const Center(child: Text("Could not load series details.")),
+          );
+        }
+
+        return Scaffold(
+          backgroundColor: bg,
+          body: NestedScrollView(
+            controller: _scrollController,
+            headerSliverBuilder: (context, innerBoxIsScrolled) {
+              return [
+                SliverAppBar(
+                  expandedHeight: headerHeight,
+                  floating: false,
+                  pinned: true,
+                  backgroundColor: primary,
+                  elevation: 0,
+                  title: _showTitle 
+                    ? Text(
+                      widget.seriesName, 
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20, 
+                        fontWeight: FontWeight.bold
+                      )
+                    ) : null,
+                  centerTitle: true,
+                  iconTheme: const IconThemeData(color: AppData.whiteColor),
+                  flexibleSpace: FlexibleSpaceBar(
+                    background: _buildHeader(primary, accent, headerHeight, screenWidth),
+                  ),
                 ),
-              ),
-              pinned: true,
+                 SliverPersistentHeader(
+                  delegate: _SliverAppBarDelegate(
+                    TabBar(
+                      controller: _tabController,
+                      labelColor: primary,
+                      unselectedLabelColor: Colors.grey,
+                      indicatorColor: accent,
+                      tabs: const [
+                        Tab(text: "Info"),
+                        Tab(text: "Episodes"),
+                      ],
+                    ),
+                  ),
+                  pinned: true,
+                ),
+              ];
+            },
+            body: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildInfoTab(primary),
+                _buildEpisodesTab(),
+              ],
             ),
-          ];
-        },
-        body: TabBarView(
-          controller: _tabController,
-          children: [
-            // --- TAB 1: INFO ---
-            _buildInfoTab(primary),
-            // --- TAB 2: EPISODES (Placeholder) ---
-            _buildEpisodesTab(),
-          ],
-        ),
-      ),
+          ),
+        );
+      }
     );
   }
 
-  // --- HEADER WIDGET (Backdrop, Poster, Title, Button) ---
+  // --- HEADER WIDGET ---
   Widget _buildHeader(Color primary, Color accent, double height, double width) {
-    // Calcoliamo le dimensioni del poster in base all'altezza dell'header
-    // Il poster sarà circa il 55% dell'altezza dell'header
     final double posterHeight = height * 0.55; 
-    final double posterWidth = posterHeight * 0.66; // Rapporto standard poster 2:3
+    final double posterWidth = posterHeight * 0.66; 
 
     return Stack(
       fit: StackFit.expand,
       children: [
-        // 1. Backdrop Image (Sfondo Orizzontale)
         if (_details!.backdropUrl != null)
           Image.network(
             _details!.backdropUrl!, 
-            fit: BoxFit.cover, // Copre il box
-            alignment: Alignment.topCenter, // Mantiene la parte alta (spesso le teste degli attori)
+            fit: BoxFit.cover,
+            alignment: Alignment.topCenter,
           )
         else
           Container(color: primary.withAlpha(77)),
         
-        // 2. Gradiente Scuro (Migliorato per leggibilità su header più basso)
         Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
-                Colors.black.withAlpha(51), // Leggero scuro in alto per la freccia back
+                Colors.black.withAlpha(51),
                 Colors.transparent,
-                Colors.black.withAlpha(230), // Scuro in basso per i testi
+                Colors.black.withAlpha(230),
               ],
               stops: const [0.0, 0.4, 1.0],
             ),
           ),
         ),
 
-        // 3. Contenuto Header
         Positioned(
-          bottom: 16, // Margine dal basso
+          bottom: 16, 
           left: 16,
           right: 16,
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              // Poster Verticale (Con ombra per staccare dallo sfondo)
               Container(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(8),
@@ -246,18 +251,16 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> with SingleTick
               
               const SizedBox(width: 12),
               
-              // Titolo, Tagline e Bottone
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    // Titolo
                     Text(
                       _details!.name,
                       style: const TextStyle(
                         color: Colors.white, 
-                        fontSize: 20, // Leggermente ridotto per stare nel nuovo spazio
+                        fontSize: 20, 
                         fontWeight: FontWeight.bold,
                         shadows: [Shadow(color: Colors.black, blurRadius: 4)]
                       ),
@@ -265,7 +268,6 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> with SingleTick
                       overflow: TextOverflow.ellipsis,
                     ),
                     
-                    // Tagline (se c'è)
                     if (_details!.tagline != null && _details!.tagline!.isNotEmpty) ...[
                       const SizedBox(height: 4),
                       Text(
@@ -277,27 +279,23 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> with SingleTick
                     
                     const SizedBox(height: 12),
                     
-                    // Bottone "Aggiungi ai Preferiti"
                     SizedBox(
                       height: 36,
                       width: double.infinity,
                       child: ElevatedButton.icon(
-                        onPressed: _handleFavoriteToggle, // Chiama la nostra funzione
+                        onPressed: _handleFavoriteToggle,
                         style: ElevatedButton.styleFrom(
-                          // Se è preferito cambia colore (es. grigio o bianco), altrimenti usa Accent
                           backgroundColor: _isFavorite ? AppData.accentColor : Colors.grey, 
                           foregroundColor: AppData.whiteColor,
                           padding: EdgeInsets.zero,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
                           elevation: 0,
                         ),
-                        // Cambia icona: Stella piena se preferito, Bordo se non lo è
                         icon: Icon(
                           _isFavorite ? Icons.star : Icons.star_border, 
                           size: 18,
-                          color: _isFavorite ? Colors.amber : Colors.white, // Stella gialla se attivo
+                          color: _isFavorite ? Colors.amber : Colors.white,
                         ),
-                        // Cambia testo
                         label: Text(
                           _isFavorite ? "Favorited" : "Add to Favorites", 
                           style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppData.whiteColor),
@@ -314,14 +312,12 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> with SingleTick
     );
   }
 
-  // --- INFO TAB CONTENT ---
   Widget _buildInfoTab(Color primaryTextColor) {
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 1. ABOUT SECTION
           _buildSectionTitle("About", primaryTextColor),
           _buildInfoCard(
             children: [
@@ -335,7 +331,6 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> with SingleTick
             ],
           ),
 
-          // 2. OVERVIEW SECTION
           _buildSectionTitle("Overview", primaryTextColor),
           _buildInfoCard(
             children: [
@@ -343,22 +338,16 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> with SingleTick
             ]
           ),
 
-          // 3. CAST SECTION (Top Cast)
-          
-          
-
           if (_details!.cast.isNotEmpty) ... [
             _buildSectionTitle("Top Cast", primaryTextColor),
             SizedBox(
-              height: 215, // Definisce l'altezza totale della striscia (Card completa)
+              height: 215, 
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
                 physics: const BouncingScrollPhysics(),
-                // Se ci sono più di 10 attori, aggiungiamo 1 alla lunghezza per il tasto "View All"
                 itemCount: _details!.cast.take(10).length + (_details!.cast.length > 10 ? 1 : 0),
                 itemBuilder: (context, index) {
                   
-                  // --- TASTO VIEW ALL (Ultimo elemento) ---
                   if (index == 10 || index == _details!.cast.length) {
                     return GestureDetector(
                       onTap: () {
@@ -397,15 +386,10 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> with SingleTick
                     );
                   }
 
-                  // --- CARD ATTORE (Stile identico a AllCastScreen) ---
                   final actor = _details!.cast[index];
                   
                   return Container(
                     width: 115,
-                    // Aumentiamo leggermente l'altezza totale da 210 a 220 per stare comodi con 4 righe di testo totali
-                    // Ricordati di cambiare anche l'altezza del SizedBox padre a 220!
-                    // height: 220, 
-                    
                     margin: const EdgeInsets.only(right: 10, bottom: 4),
                     padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
@@ -418,7 +402,6 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> with SingleTick
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.start,
                       children: [
-                        // 1. FOTO (Fissa)
                         SizedBox( 
                           height: 135, 
                           width: double.infinity,
@@ -432,24 +415,21 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> with SingleTick
                         
                         const SizedBox(height: 4),
                         
-                        // 2. TESTI (Ottimizzati)
-                        // Nome Attore: Permettiamo 2 righe
                         Text(
                           actor.name,
-                          maxLines: 2, // <--- MODIFICA: Da 1 a 2 righe
+                          maxLines: 2, 
                           overflow: TextOverflow.ellipsis, 
                           style: const TextStyle(
                             fontSize: 12, 
                             fontWeight: FontWeight.bold, 
                             color: AppData.primaryColor,
-                            height: 1.1 // Line height stretto per risparmiare spazio
+                            height: 1.1 
                           ),
                           textAlign: TextAlign.center,
                         ),
                         
                         const SizedBox(height: 4),
 
-                        // Nome Personaggio: Permettiamo 2 righe
                         Text(
                           actor.characterName,
                           maxLines: 4, 
@@ -469,11 +449,9 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> with SingleTick
             ),
           ],
 
-          // 4. WHERE TO WATCH & RATING (Affiancati)
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Where to watch
               Expanded(
                 flex: 3,
                 child: Column(
@@ -499,7 +477,6 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> with SingleTick
                 ),
               ),
               const SizedBox(width: 16),
-              // Rating
               Expanded(
                 flex: 2,
                 child: Column(
@@ -525,8 +502,6 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> with SingleTick
             ],
           ),
           
-
-          // 5. LAST EPISODE SECTION
           if (_details!.lastEpisode != null) ...[
             _buildSectionTitle("Last Episode Aired", primaryTextColor),
              _buildInfoCard(
@@ -543,7 +518,6 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> with SingleTick
     );
   }
 
-  // --- HELPER WIDGETS FOR UI ---
   Widget _buildSectionTitle(String title, Color color) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12.0, top: 15.0),
@@ -600,7 +574,6 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen> with SingleTick
   }
 }
 
-// Classe necessaria per far funzionare la TabBar dentro una NestedScrollView
 class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
   _SliverAppBarDelegate(this._tabBar);
   final TabBar _tabBar;
@@ -611,7 +584,7 @@ class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
     return Container(
-      color: AppData.whiteColor, // Colore sfondo della tab bar quando pinnata
+      color: AppData.whiteColor, 
       child: _tabBar,
     );
   }

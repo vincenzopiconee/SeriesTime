@@ -321,13 +321,20 @@ class AppData {
     ),
   ];
 
+  // --- NUOVA FUNZIONE: RESET DATI LOCALI ---
+  static void resetData() {
+    userSeries.clear();
+    userBadges.clear();
+    currentUser = null;
+  }
+
   static void generateUserBadges() {
     userBadges.clear();
     if (currentUser == null) return;
     UserBadge? currentM;
     for (var badge in marathonerMilestones) {
       if (currentUser!.totalHoursWatched >= badge.targetHours) {
-        currentM = badge; //currentUser cannot be null
+        currentM = badge; 
       }
     }
     if (currentM != null) userBadges.add(currentM);
@@ -373,12 +380,10 @@ class AppData {
   static UserBadge getMarathonerTarget() {
     double totalHours = getTotalWatchTimeHours();
     UserBadge target =
-        marathonerMilestones.first; //considering 24h as the first target
+        marathonerMilestones.first; 
     for (var badge in marathonerMilestones) {
-      //if the target is reached, change the target to the next one
       if (totalHours >= badge.targetHours) {
         if (badge.nextId != null) {
-          //take the first element of the list (.firstWhere) whith the corresponfing badge Id
           target = marathonerMilestones.firstWhere((b) => b.id == badge.nextId);
         } else {
           target = badge;
@@ -396,7 +401,6 @@ class AppData {
     for (var badge in obsessionMilestones) {
       if (currentObsessionHours >= badge.targetHours) {
         if (badge.nextId != null) {
-          //orElse: () => badge indicates to take the "badge" if badge.nextId doesn't exist
           target = obsessionMilestones.firstWhere(
             (b) => b.id == badge.nextId,
             orElse: () => badge,
@@ -452,61 +456,65 @@ class AppData {
     return target;
   }
 
+  // --- FIX BUG INITIALIZE DATA ---
   static Future<void> initializeData() async {
     userSeries.clear();
     final firebaseUser = auth.FirebaseAuth.instance.currentUser;
     if (firebaseUser == null) return;
 
     final userDoc = _db.collection('users').doc(firebaseUser.uid);
-    final snapshot = await userDoc.get();
+    var snapshot = await userDoc.get();
 
+    // Se l'utente non esiste, lo creiamo
     if (!snapshot.exists) {
       await _populateFirstTime(firebaseUser, userDoc);
-    } else {
-      final data = snapshot.data()!;
-
-      String? originalPhotoUrl = data['photoUrl'] ?? firebaseUser.photoURL;
-      String? highResPhotoUrl = originalPhotoUrl;
-
-      // Se l'URL proviene da Google, aumentiamo la risoluzione
-      if (originalPhotoUrl != null &&
-          originalPhotoUrl.contains('googleusercontent.com')) {
-        // Sostituisce la dimensione s96-c (o simili) con s400-c (400px)
-        highResPhotoUrl = originalPhotoUrl.replaceFirst('s96-c', 's400-c');
-      }
-
-      currentUser = User(
-        name: data['name'] ?? firebaseUser.displayName ?? "User",
-        totalHoursWatched: (data['totalHoursWatched'] ?? 0).toDouble(),
-        maxConsecutiveHours: (data['maxConsecutiveHours'] ?? 0).toDouble(),
-        weekendHours: (data['weekendHours'] ?? 0).toDouble(),
-        nightOwlHours: (data['nightOwlHours'] ?? 0).toDouble(),
-        uniqueGenresCount: (data['uniqueGenresCount'] ?? 0).toInt(),
-        claimedBadgeIds: List<String>.from(data['claimedBadgeIds'] ?? []),
-        photoUrl: highResPhotoUrl,
-      );
-
-      final seriesSnap = await userDoc.collection('series').get();
-      for (var doc in seriesSnap.docs) {
-        final sData = doc.data();
-
-        userSeries.add(
-          Series(
-            id: sData['id'] ?? 0,
-            name: doc.id,
-            imageUrl: doc['imageUrl'],
-            percentage: (doc['percentage'] ?? 0).toDouble(),
-            totalHours: (doc['totalHours'] ?? 0).toDouble(),
-            episode: doc['episode'] ?? "",
-            lastEpisodeTitle: sData['lastEpisodeTitle'] ?? "",
-            nextEpisodeAirDate: sData['nextEpisodeAirDate'],
-            seriesDuration: (doc['seriesDuration'] ?? 0).toDouble(),
-            isFavorite: doc['isFavorite'] ?? false,
-            completed: sData['completed'] ?? false,
-          ),
-        );
-      }
+      // DOPO la creazione, scarichiamo di nuovo lo snapshot aggiornato
+      // Altrimenti currentUser rimane null o vecchio
+      snapshot = await userDoc.get(); 
     }
+
+    // Ora carichiamo i dati (sia per utente vecchio che nuovo)
+    final data = snapshot.data()!;
+
+    String? originalPhotoUrl = data['photoUrl'] ?? firebaseUser.photoURL;
+    String? highResPhotoUrl = originalPhotoUrl;
+
+    if (originalPhotoUrl != null && originalPhotoUrl.contains('googleusercontent.com')) {
+      highResPhotoUrl = originalPhotoUrl.replaceFirst('s96-c', 's400-c');
+    }
+
+    currentUser = User(
+      name: data['name'] ?? firebaseUser.displayName ?? "User",
+      totalHoursWatched: (data['totalHoursWatched'] ?? 0).toDouble(),
+      maxConsecutiveHours: (data['maxConsecutiveHours'] ?? 0).toDouble(),
+      weekendHours: (data['weekendHours'] ?? 0).toDouble(),
+      nightOwlHours: (data['nightOwlHours'] ?? 0).toDouble(),
+      uniqueGenresCount: (data['uniqueGenresCount'] ?? 0).toInt(),
+      claimedBadgeIds: List<String>.from(data['claimedBadgeIds'] ?? []),
+      photoUrl: highResPhotoUrl,
+      // seriesStreak etc...
+    );
+
+    final seriesSnap = await userDoc.collection('series').get();
+    for (var doc in seriesSnap.docs) {
+      final sData = doc.data();
+      userSeries.add(
+        Series(
+          id: sData['id'] ?? 0,
+          name: doc.id,
+          imageUrl: sData['imageUrl'],
+          percentage: (sData['percentage'] ?? 0).toDouble(),
+          totalHours: (sData['totalHours'] ?? 0).toDouble(),
+          episode: sData['episode'] ?? "",
+          lastEpisodeTitle: sData['lastEpisodeTitle'] ?? "",
+          nextEpisodeAirDate: sData['nextEpisodeAirDate'],
+          seriesDuration: (sData['seriesDuration'] ?? 0).toDouble(),
+          isFavorite: sData['isFavorite'] ?? false,
+          completed: sData['completed'] ?? false,
+        ),
+      );
+    }
+    
     generateUserBadges();
   }
 
@@ -515,7 +523,6 @@ class AppData {
     if (firebaseUser == null) return const Stream.empty();
 
     return _db.collection('users').doc(firebaseUser.uid).snapshots();
-    // differently from get(), the snapshot keep the data updated
   }
 
   static Stream<QuerySnapshot> seriesStream() {
@@ -620,7 +627,13 @@ class AppData {
   }
 
   static UserBadge? getFirstUnclaimedBadge() {
-    if (currentUser == null) return null;
+    final all = getAllUnclaimedBadges();
+    return all.isNotEmpty ? all.first : null;
+  }
+
+  // --- NUOVA FUNZIONE PER OTTENERE TUTTI I BADGE SBLOCCATI ---
+  static List<UserBadge> getAllUnclaimedBadges() {
+    if (currentUser == null) return [];
 
     final allMilestones = [
       ...marathonerMilestones,
@@ -645,18 +658,20 @@ class AppData {
       "Genre Explorer": currentUser!.uniqueGenresCount.toDouble(),
     };
 
+    List<UserBadge> unlocked = [];
+
     for (var badge in allMilestones) {
       double currentVal = stats[badge.title] ?? 0.0;
+      // Se il badge è raggiunto E non è ancora nella lista dei reclamati
       if (currentVal > 0.0 &&
           currentVal >= badge.targetHours &&
           !currentUser!.claimedBadgeIds.contains(badge.id)) {
-        return badge;
+        unlocked.add(badge);
       }
     }
-    return null;
+    return unlocked;
   }
 
-  // --- FUNZIONE AGGIORNATA: Calcola totali, PROSSIMO episodio e STATO COMPLETATO ---
   static Future<void> syncSeriesTotalHours(String seriesName) async {
     final user = auth.FirebaseAuth.instance.currentUser;
     if (user == null) return;
@@ -668,19 +683,13 @@ class AppData {
         .doc(seriesName);
 
     double watchedMinutes = 0;
-
-    // Variabili per l'ultimo visto (Local DB)
     int maxSeason = -1;
     int maxEpisode = -1;
-
-    // Variabili per il prossimo da vedere (Output finale)
     String displayLabel = "S1 E1";
     String displayTitle = "";
     String? displayAirDate;
-
     bool isSeriesCompleted = false;
 
-    // 1. Recuperiamo ID Serie e Statistiche Viste
     final seriesDoc = await seriesRef.get();
     int seriesId = 0;
     if (seriesDoc.exists) {
@@ -714,13 +723,11 @@ class AppData {
       }
     }
 
-    // 2. LOGICA PROSSIMO EPISODIO: Interroghiamo TMDB
     if (seriesId != 0) {
       try {
         int targetSeason = maxSeason < 1 ? 1 : maxSeason;
         int lastWatchedEpInSeason = maxEpisode < 1 ? 0 : maxEpisode;
 
-        // Chiamata API per ottenere i dettagli della stagione corrente (o target)
         final urlSeason =
             "https://api.themoviedb.org/3/tv/$seriesId/season/$targetSeason?api_key=$tmdbApiKey&language=en-US";
         final resSeason = await http.get(Uri.parse(urlSeason));
@@ -729,21 +736,18 @@ class AppData {
           final sData = json.decode(resSeason.body);
           final List episodes = sData['episodes'] ?? [];
 
-          // Cerchiamo l'episodio successivo nella lista
           var nextEp = episodes.firstWhere(
             (e) => e['episode_number'] == lastWatchedEpInSeason + 1,
             orElse: () => null,
           );
 
           if (nextEp != null) {
-            // Caso A: C'è un episodio successivo in questa stagione
             displayLabel =
                 "S${nextEp['season_number']} E${nextEp['episode_number']}";
             displayTitle = nextEp['name'] ?? "";
             displayAirDate = nextEp['air_date'];
-            isSeriesCompleted = false; // C'è ancora da vedere
+            isSeriesCompleted = false; 
           } else {
-            // Caso B: Stagione finita? Proviamo la stagione successiva, Episodio 1
             final urlNextSeason =
                 "https://api.themoviedb.org/3/tv/$seriesId/season/${targetSeason + 1}?api_key=$tmdbApiKey&language=en-US";
             final resNextSeason = await http.get(Uri.parse(urlNextSeason));
@@ -752,25 +756,19 @@ class AppData {
               final nextSData = json.decode(resNextSeason.body);
               final List nextEpisodes = nextSData['episodes'] ?? [];
               if (nextEpisodes.isNotEmpty) {
-                final firstEp = nextEpisodes[0]; // Episodio 1
+                final firstEp = nextEpisodes[0]; 
                 displayLabel =
                     "S${firstEp['season_number']} E${firstEp['episode_number']}";
                 displayTitle = firstEp['name'] ?? "";
                 displayAirDate = firstEp['air_date'];
-                isSeriesCompleted = false; // C'è una nuova stagione
+                isSeriesCompleted = false; 
               } else {
-                // Stagione successiva esiste ma è vuota (raro, ma possibile) -> Completata
                 if (maxSeason > 0) isSeriesCompleted = true;
               }
             } else {
-              // Caso C: Serie finita (Nessuna stagione successiva trovata API 404)
               if (maxSeason > 0) {
-                // Manteniamo l'etichetta dell'ultimo visto perché non c'è un "prossimo"
                 displayLabel = "S$maxSeason E$maxEpisode";
-
-                // --- SETTIAMO A TRUE ---
                 isSeriesCompleted = true;
-                // -----------------------
               }
             }
           }
@@ -790,14 +788,11 @@ class AppData {
         ? watchedHours / totalSeriesHours
         : 0;
 
-    // Logica extra di sicurezza: se la percentuale è > 0.99, probabilmente è finita anche se l'API ha fallito
     if (newPercentage >= 0.99) {
       newPercentage = 1.0;
-      // Opzionale: puoi forzare isSeriesCompleted = true qui se ti fidi più della percentuale
     }
     if (newPercentage > 1.0) newPercentage = 1.0;
 
-    // Aggiorniamo il documento principale della serie
     await seriesRef.set({
       'totalHours': watchedHours,
       'percentage': newPercentage,
@@ -957,7 +952,7 @@ class AppData {
             if (date.weekday >= DateTime.friday &&
                 date.weekday <= DateTime.sunday) {
               String weekendId =
-                  "${date.year}-${_getIdWeekNumber(date)}"; // ex. 2023-43
+                  "${date.year}-${_getIdWeekNumber(date)}"; 
 
               double runtime = (data['runtime'] ?? 0).toDouble();
               weekendGroups[weekendId] =
@@ -981,12 +976,10 @@ class AppData {
   }
 
   static int _getIdWeekNumber(DateTime date) {
-    // return the weekend number from 1 to 52
     int daysSinceJan1 = date.difference(DateTime(date.year, 1, 1)).inDays;
     return ((daysSinceJan1 + DateTime(date.year, 1, 1).weekday - 1) / 7)
             .floor() +
         1;
-    //dateTime(..).weekday returns the day of the week as monday, Tuesday etc..
   }
 
   static Future<void> updateSeriesStreak() async {
@@ -1010,27 +1003,21 @@ class AppData {
       final diff = today.difference(lastView).inDays;
 
       if (diff == 1) {
-        // IERI: Incrementiamo
         currentStreak += 1;
       } else if (diff > 1) {
-        // PIÙ DI UN GIORNO FA: Reset a 1
         currentStreak = 1;
       } else if (diff == 0) {
-        // GIÀ VISTO OGGI: Non fare nulla, esci dalla funzione
         return;
       }
     } else {
-      // MAI VISTO NULLA: Inizia da 1
       currentStreak = 0;
     }
 
-    // AGGIORNAMENTO DB
     await userRef.update({
       'seriesStreak': currentStreak,
       'lastViewDate': Timestamp.fromDate(now),
     });
 
-    // Aggiorna anche l'oggetto locale per la UI
     if (currentUser != null) {
       currentUser!.seriesStreak = currentStreak;
       currentUser!.lastViewDate = now;
@@ -1100,7 +1087,6 @@ class AppData {
           final data = epDoc.data();
           if (data['timestamp'] != null) {
             DateTime date = (data['timestamp'] as Timestamp).toDate();
-            // Controllo: tra mezzanotte (0) e le 4:00 (escluse)
             if (date.hour >= 0 && date.hour < 4) {
               totalNightMinutes += (data['runtime'] ?? 0).toDouble();
             }
@@ -1144,15 +1130,11 @@ class AppData {
     });
   }
 
-  // 1. Controlla se la serie è già tracciata
   static Future<bool> isSeriesTracked(String seriesName) async {
     final user = auth.FirebaseAuth.instance.currentUser;
     if (user == null) return false;
 
     try {
-      // Verifica l'esistenza del documento nella raccolta 'series'
-      // Nota: Uso 'series' perché è la raccolta che ProfileScreen ascolta.
-      // Se vuoi cambiarla in 'favorites_series', cambia la stringa qui sotto.
       final doc = await _db
           .collection('users')
           .doc(user.uid)
@@ -1203,8 +1185,6 @@ class AppData {
     return [];
   }
 
-  // --- NUOVA FUNZIONE PRIVATA DI SUPPORTO (Logica API TMDB) ---
-  // Questa funzione è autonoma e non dipende da altri helper
   static Future<Map<String, dynamic>> _fetchAndCalculateSeriesData(
     int seriesId,
   ) async {
@@ -1213,7 +1193,7 @@ class AppData {
 
     double totalDurationHours = 0.0;
     String posterUrl = "";
-    int avgRuntime = 45; // Default
+    int avgRuntime = 45; 
 
     try {
       final response = await http.get(Uri.parse(url));
@@ -1227,7 +1207,6 @@ class AppData {
 
         int numberOfEpisodes = data['number_of_episodes'] ?? 0;
 
-        // Recuperiamo il tempo medio ufficiale della serie
         if (data['episode_run_time'] != null &&
             (data['episode_run_time'] as List).isNotEmpty) {
           avgRuntime = data['episode_run_time'][0];
@@ -1243,15 +1222,13 @@ class AppData {
     return {
       'imageUrl': posterUrl,
       'seriesDuration': totalDurationHours,
-      'averageRuntime': avgRuntime, // <--- NUOVO DATO
+      'averageRuntime': avgRuntime, 
     };
   }
 
-  // --- NUOVA FUNZIONE: Segna/Deseleziona episodio come visto ---
   static Future<void> toggleEpisodeWatched({
     required String seriesName,
-    required int
-    seriesId, // <--- Importante: Ora ci serve l'ID per crearla se non esiste
+    required int seriesId, 
     required int seasonNum,
     required int episodeNum,
     required String episodeTitle,
@@ -1266,12 +1243,10 @@ class AppData {
         .collection('series')
         .doc(seriesName);
 
-    // 1. Check preliminare: Se la serie non esiste nel DB, dobbiamo crearla come "Non Preferita"
     final seriesDoc = await seriesRef.get();
     int runtimeToSave = 45;
 
     if (!seriesDoc.exists) {
-      // CREAZIONE AUTOMATICA (Non preferita)
       final apiData = await _fetchAndCalculateSeriesData(seriesId);
       runtimeToSave = apiData['averageRuntime'];
 
@@ -1288,19 +1263,16 @@ class AppData {
         'completed': false,
       }, SetOptions(merge: true));
     } else {
-      // Se esiste, recuperiamo il runtime medio salvato
       final data = seriesDoc.data();
       if (data != null && data.containsKey('averageRuntime')) {
         runtimeToSave = (data['averageRuntime'] as num).toInt();
       } else {
-        // Fallback se manca il campo nel vecchio record
         final apiData = await _fetchAndCalculateSeriesData(seriesId);
         runtimeToSave = apiData['averageRuntime'];
         await seriesRef.update({'averageRuntime': runtimeToSave});
       }
     }
 
-    // 2. Procediamo normalmente a salvare l'episodio
     final seasonRef = seriesRef.collection('seasons').doc('Season $seasonNum');
     final episodeRef = seasonRef
         .collection('episodes')
@@ -1336,7 +1308,6 @@ class AppData {
           .doc(seriesName)
           .get();
 
-      // Se esiste, ritorniamo il valore del campo isFavorite, altrimenti false
       if (doc.exists) {
         return doc.data()?['isFavorite'] ?? false;
       }
@@ -1360,12 +1331,9 @@ class AppData {
         .collection('series')
         .doc(seriesName);
 
-    // Controlliamo se la serie esiste già
     final docSnapshot = await seriesRef.get();
 
     if (!docSnapshot.exists) {
-      // CASO A: La serie non esiste
-      // Se stiamo cercando di rimuovere dai preferiti una serie che non esiste, non facciamo nulla.
       if (!isFavorite) return;
 
       try {
@@ -1386,7 +1354,6 @@ class AppData {
           'completed': false,
         }, SetOptions(merge: true));
 
-        // Aggiorniamo lista locale
         userSeries.add(
           Series(
             id: seriesId,
@@ -1403,22 +1370,14 @@ class AppData {
         debugPrint("Errore creazione serie preferita: $e");
       }
     } else {
-      // CASO B: La serie esiste già nel DB
       final data = docSnapshot.data();
       double currentTotalHours = (data?['totalHours'] ?? 0).toDouble();
 
-      // --- NUOVA LOGICA DI CANCELLAZIONE ---
       if (isFavorite == false && currentTotalHours == 0) {
-        // Se rimuovo dai preferiti E non ho mai guardato nulla -> CANCELLO LA SERIE
         await seriesRef.delete();
-
-        // Rimuovo dalla lista locale per aggiornare la UI istantaneamente
         userSeries.removeWhere((s) => s.name == seriesName);
       } else {
-        // Altrimenti aggiorno solo lo stato (es. ho visto episodi, quindi rimane nel DB ma non è preferita)
         await seriesRef.update({'isFavorite': isFavorite});
-
-        // Aggiorniamo lista locale
         final index = userSeries.indexWhere((s) => s.name == seriesName);
         if (index != -1) {
           userSeries[index].isFavorite = isFavorite;
@@ -1428,7 +1387,6 @@ class AppData {
   }
 
   static Future<NextEpisodeInfo?> fetchNextEpisode(int seriesId) async {
-    // 1. Usiamo l'endpoint dei dettagli generali, NON un endpoint specifico che non esiste
     final String url =
         "https://api.themoviedb.org/3/tv/$seriesId?api_key=$tmdbApiKey&language=en-US";
 
@@ -1437,11 +1395,8 @@ class AppData {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-
-        // 2. Cerchiamo il campo specifico 'next_episode_to_air'
         final nextEpData = data['next_episode_to_air'];
 
-        // Se è null, la serie è finita o non ha date annunciate
         if (nextEpData == null) return null;
 
         final String? airDateStr = nextEpData['air_date'];
@@ -1450,8 +1405,6 @@ class AppData {
         final airDate = DateTime.parse(airDateStr);
         final now = DateTime.now();
 
-        // Controllo opzionale: mostriamo solo se è da oggi in poi
-        // (DateTime(now.year...) serve per azzerare l'ora e confrontare solo i giorni)
         if (airDate.isBefore(DateTime(now.year, now.month, now.day))) {
           return null;
         }
