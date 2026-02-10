@@ -369,8 +369,9 @@ class StatsLogic {
             } else if (period == ChartPeriod.month &&
                 date.year == now.year &&
                 date.month == now.month) {
-              if (date.day <= dataPoints.length)
+              if (date.day <= dataPoints.length) {
                 dataPoints[date.day - 1] += hours;
+              }
             } else if (period == ChartPeriod.week) {
               final diff = now.difference(date).inDays;
               if (diff >= 0 && diff < 7) dataPoints[6 - diff] += hours;

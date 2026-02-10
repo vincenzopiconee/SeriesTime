@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:seriestime/screens/settings_screen.dart';
 import 'package:seriestime/screens/login_screen.dart';
