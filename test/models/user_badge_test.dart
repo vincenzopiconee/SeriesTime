@@ -28,7 +28,7 @@ void main() {
         imagePath: "assets/final.png",
         iconLabel: "100h",
         targetHours: 100.0,
-        nextId: null, // Caso del badge finale
+        nextId: null,
       );
 
       expect(badge.nextId, isNull);

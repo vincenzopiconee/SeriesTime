@@ -3,9 +3,9 @@ import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:seriestime/services/series_logic.dart';
 import 'package:seriestime/services/stats_logic.dart';
-import 'dart:convert'; // Per 'json'
-import 'package:http/http.dart' as http; // Per 'http'
-import 'package:http/testing.dart'; // Per 'MockClient'
+import 'dart:convert'; 
+import 'package:http/http.dart' as http; 
+import 'package:http/testing.dart'; 
 
 void main() {
   group('SeriesLogic - Integration Tests', () {
@@ -14,12 +14,9 @@ void main() {
 
     setUp(() async {
       fakeDb = FakeFirebaseFirestore();
-      // Iniettiamo il database finto nel servizio
       SeriesLogic.db = fakeDb;
-      // Anche StatsLogic deve usare lo stesso db perché viene chiamato internamente
       StatsLogic.db = fakeDb;
 
-      // Prepariamo il documento utente
       await fakeDb.collection('users').doc(testUid).set({
         'name': 'Test User',
         'seriesStreak': 0,
@@ -88,10 +85,6 @@ void main() {
       () async {
         final String seriesName = "Breaking Bad";
 
-        // Nota: syncSeriesTotalHours farà chiamate HTTP a TMDB.
-        // In un test unitario puro, quelle chiamate potrebbero fallire se non mockate,
-        // ma il salvataggio su Firestore avverrà comunque.
-
         await SeriesLogic.toggleEpisodeWatched(
           seriesName: seriesName,
           seriesId: 1396,
@@ -124,7 +117,6 @@ void main() {
         final String seriesName = "The Boys";
         final int seriesId = 76479;
 
-        // Inseriamo l'ultimo episodio della stagione 1 come "visto"
         final seriesRef = fakeDb
             .collection('users')
             .doc(testUid)
@@ -141,16 +133,13 @@ void main() {
           'runtime': 60,
         });
 
-        // Mockiamo il client per simulare:
-        // 1. Stagione 1 completa (nessun episodio 9)
-        // 2. Stagione 2 esistente con episodio 1
         SeriesLogic.httpClient = MockClient((request) async {
           if (request.url.toString().contains('season/1')) {
             return http.Response(
               json.encode({
                 'episodes': [
                   {'episode_number': 8},
-                ], // Solo ep 8, quindi ep 9 non esiste
+                ], 
               }),
               200,
             );
@@ -176,7 +165,6 @@ void main() {
         await SeriesLogic.syncSeriesTotalHours(seriesName, userUid: testUid);
 
         final updatedDoc = await seriesRef.get();
-        // Deve aver trovato S2 E1
         expect(updatedDoc.data()?['episode'], "S2 E1");
         expect(updatedDoc.data()?['completed'], isFalse);
       },
@@ -201,7 +189,6 @@ void main() {
           'runtime': 30,
         });
 
-        // Simuliamo errore 404 sulla stagione successiva
         SeriesLogic.httpClient = MockClient((request) async {
           if (request.url.toString().contains('season/1')) {
             return http.Response(
@@ -234,15 +221,12 @@ void main() {
             .doc(seriesName)
             .set({'id': 123});
 
-        // Forziamo un errore di decoding JSON
         SeriesLogic.httpClient = MockClient((request) async {
           return http.Response('Dati Corrotti non JSON', 200);
         });
 
-        // Non deve crashare grazie al try-catch
         await SeriesLogic.syncSeriesTotalHours(seriesName, userUid: testUid);
 
-        // Se entra nel catch, debugPrint viene eseguito e il test passa
         expect(true, isTrue);
       },
     );
@@ -256,7 +240,6 @@ void main() {
             .collection('series')
             .doc(seriesName);
 
-        // Prepariamo la serie con un runtime specifico (es. 22 minuti)
         await seriesRef.set({'id': 123, 'averageRuntime': 22});
 
         await SeriesLogic.toggleEpisodeWatched(
@@ -276,7 +259,6 @@ void main() {
             .doc('Episode 1')
             .get();
 
-        // Verifichiamo che l'episodio sia stato salvato con i 22 minuti presi dal doc serie
         expect(epDoc.data()?['runtime'], 22);
       },
     );
@@ -290,11 +272,7 @@ void main() {
             .collection('series')
             .doc(seriesName);
 
-        // Prepariamo la serie SENZA il campo averageRuntime
         await seriesRef.set({'id': 456, 'imageUrl': 'test.jpg'});
-
-        // Nota: Qui TmdbService.fetchAndCalculateSeriesData verrà chiamato.
-        // Se non hai mockato TmdbService, il test userà il valore di default dell'API o fallirà se non c'è rete.
 
         await SeriesLogic.toggleEpisodeWatched(
           seriesName: seriesName,
@@ -307,7 +285,6 @@ void main() {
         );
 
         final updatedSeries = await seriesRef.get();
-        // Verifichiamo che il campo sia stato aggiunto al documento della serie
         expect(updatedSeries.data()!.containsKey('averageRuntime'), isTrue);
       },
     );
@@ -316,27 +293,20 @@ void main() {
       () async {
         final seriesName = "GenreTestSeries";
 
-        // 1. Prepariamo una serie nel DB con percentuale > 0 e un ID
         await fakeDb
             .collection('users')
             .doc(testUid)
             .collection('series')
             .doc(seriesName)
             .set({
-              'id': 1396, // Breaking Bad
-              'percentage': 0.5, // Serie iniziata
+              'id': 1396, 
+              'percentage': 0.5, 
             });
 
-        // 2. Chiamiamo il metodo
-        // Nota: TmdbService.fetchGenresForSeries(1396) verrà chiamato.
-        // Se non hai mockato TmdbService, assicurati che non crashi senza rete.
         await SeriesLogic.updateGenreCount(userUid: testUid);
 
-        // 3. Verifichiamo che il conteggio sia stato aggiornato sul documento utente
         final userDoc = await fakeDb.collection('users').doc(testUid).get();
 
-        // Se TmdbService restituisce generi, uniqueGenresCount sarà > 0
-        // Altrimenti sarà 0, ma la riga di codice sarà stata comunque "visitata"
         expect(userDoc.data()!.containsKey('uniqueGenresCount'), isTrue);
       },
     );

@@ -21,7 +21,6 @@ void main() {
     test(
       'Episode.fromJson deve mappare correttamente i dati TMDB e le Guest Stars',
       () {
-        // Mock JSON in formato TMDB
         final Map<String, dynamic> json = {
           'id': 12345,
           'name': 'The Box',
@@ -50,13 +49,11 @@ void main() {
         expect(episode.episodeNumber, 5);
         expect(episode.runtime, 42);
         expect(episode.voteAverage, 9.2);
-        // Verifica costruzione URL immagine
         expect(
           episode.stillUrl,
           'https://image.tmdb.org/t/p/w500/path_immagine.jpg',
         );
 
-        // Verifica Guest Stars (Integrazione con Actor)
         expect(episode.guestStars.length, 2);
         expect(episode.guestStars[0].name, 'Actor One');
         expect(episode.guestStars[1].profileUrl, isNull);
@@ -67,13 +64,11 @@ void main() {
       final Map<String, dynamic> json = {
         'id': 999,
         'episode_number': 10,
-        // name, overview, guest_stars, runtime sono assenti
       };
 
       final episode = Episode.fromJson(json);
 
       expect(episode.id, 999);
-      // Fallback: name diventa "Episode 10" se null
       expect(episode.name, "Episode 10");
       expect(episode.overview, "");
       expect(episode.runtime, 0);

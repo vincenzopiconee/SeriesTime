@@ -20,7 +20,7 @@ void main() {
       expect(series.percentage, 0.5);
       expect(series.totalHours, 25.5);
       expect(series.isFavorite, isTrue);
-      expect(series.completed, isFalse); // Default value
+      expect(series.completed, isFalse); 
     });
 
     test(
@@ -35,7 +35,6 @@ void main() {
           episode: "S2 E8",
         );
 
-        // Verifica che aggiunga la 'h' alla fine del numero
         expect(series.timeLabel, "12.0h");
       },
     );
@@ -50,7 +49,6 @@ void main() {
         episode: "S1 E1",
       );
 
-      // Simuliamo l'aggiornamento dei dati (es. l'utente guarda altri episodi)
       series.totalHours = 5.0;
       series.isFavorite = true;
 

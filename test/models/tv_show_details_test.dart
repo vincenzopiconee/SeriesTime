@@ -33,7 +33,7 @@ void main() {
               'id': 1,
               'season_number': 0,
               'episode_count': 10,
-            }, // Speciale (dovrebbe essere filtrata)
+            },
             {'id': 2, 'season_number': 1, 'episode_count': 10},
           ],
           'aggregate_credits': {
@@ -80,18 +80,15 @@ void main() {
         expect(details.name, 'Game of Thrones');
         expect(details.genres, contains('Fantasy'));
 
-        // Verifica filtro stagioni (seasonNumber > 0)
         expect(details.seasons.length, 1);
         expect(details.seasons[0].seasonNumber, 1);
 
-        // Verifica logica nomi cast (multi-ruolo)
         expect(details.cast[0].characterName, 'Daenerys Targaryen');
         expect(
           details.cast[1].characterName,
           'Jon Snow (+1)',
-        ); // Verifica il "+1"
+        );
 
-        // Verifica providers e ultimo episodio
         expect(details.watchProviders.length, 1);
         expect(details.lastEpisode?.name, 'The Iron Throne');
       },
@@ -103,7 +100,6 @@ void main() {
         final Map<String, dynamic> json = {
           'id': 0,
           'name': null,
-          // Molti campi assenti
         };
 
         final details = TvShowDetails.fromJson(json);

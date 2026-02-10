@@ -21,7 +21,6 @@ void main() {
     test(
       'Il getter daysLeft deve calcolare correttamente i giorni mancanti',
       () {
-        // Usiamo DateTime senza ore per essere precisi al 100%
         final now = DateTime.now();
         final futureDate = DateTime(
           now.year,
@@ -55,7 +54,6 @@ void main() {
     test(
       'daysLeft deve restituire un valore negativo se l\'episodio è già uscito',
       () {
-        // Usiamo una data sicuramente vecchia (es. l'anno scorso) per evitare errori di calcolo orario
         final pastDate = DateTime(2020, 1, 1);
 
         final nextEp = NextEpisodeInfo(
@@ -64,7 +62,6 @@ void main() {
           airDate: pastDate,
         );
 
-        // Verifichiamo che rilevi che è passato
         expect(nextEp.daysLeft, lessThan(0));
       },
     );

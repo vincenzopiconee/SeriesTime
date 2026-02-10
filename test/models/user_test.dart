@@ -36,10 +36,9 @@ void main() {
         weekendHours: 0.0,
         nightOwlHours: 0.0,
         uniqueGenresCount: 0,
-        claimedBadgeIds: [], // Nota: non usare const [] se devi modificarlo
+        claimedBadgeIds: [], 
       );
 
-      // Simuliamo l'aggiornamento dei dati
       user.seriesStreak = 1;
       user.claimedBadgeIds = ["new_badge"];
       user.lastViewDate = DateTime(2025, 1, 1);
@@ -59,7 +58,6 @@ void main() {
         uniqueGenresCount: 2,
       );
 
-      // Verifichiamo i parametri opzionali con default
       expect(user.claimedBadgeIds, isEmpty);
       expect(user.seriesStreak, 0);
       expect(user.photoUrl, isNull);

@@ -44,7 +44,6 @@ void main() {
 
         final season = Season.fromJson(json);
 
-        // Verifichiamo la logica di fallback: "Season ${json['season_number']}"
         expect(season.name, "Season 2");
       },
     );

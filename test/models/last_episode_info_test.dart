@@ -45,7 +45,6 @@ void main() {
 
         final lastEp = LastEpisodeInfo.fromJson(json);
 
-        // Verifichiamo che scattino i default impostati nel factory
         expect(lastEp.name, "Unknown Episode");
         expect(lastEp.seasonNumber, 0);
         expect(lastEp.episodeNumber, 0);

@@ -313,7 +313,6 @@ void main() {
         findsOneWidget,
       );
 
-      // Aggiorna il documento
       await fakeFirestore.collection('users').doc('test-user-id').update({
         'claimedBadgeIds': [BadgeDefinitions.marathonerMilestones[0].id],
       });
@@ -488,7 +487,6 @@ void main() {
       await tester.pumpWidget(const MaterialApp(home: AllBadgesScreen()));
       await tester.pumpAndSettle();
 
-      // Dovrebbe comunque mostrare i badge
       expect(find.byType(GridView), findsOneWidget);
     });
 

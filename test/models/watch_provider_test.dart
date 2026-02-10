@@ -24,7 +24,6 @@ void main() {
         final provider = WatchProvider.fromJson(json);
 
         expect(provider.providerName, 'Disney Plus');
-        // Verifica che il prefisso TMDB per le icone (w92) sia corretto
         expect(
           provider.logoUrl,
           'https://image.tmdb.org/t/p/w92/disney_logo.png',

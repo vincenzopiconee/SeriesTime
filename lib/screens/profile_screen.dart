@@ -920,7 +920,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
-// Helper class with static methods for easier testing
 class ProfileScreenHelpers {
   static String formatHours(double totalHours) {
     if (totalHours <= 0) return "0m";
