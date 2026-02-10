@@ -12,6 +12,9 @@ import 'package:seriestime/services/series_logic.dart';
 const String apiKey = "0cbb1da4932d8722fcddf451692e1b2e";
 
 class SeasonTile extends StatefulWidget {
+  static http.Client httpClient = http.Client();
+  static FirebaseAuth auth = FirebaseAuth.instance;
+  static FirebaseFirestore db = FirebaseFirestore.instance;
   final int seriesId;
   final String seriesName;
   final Season season;
@@ -31,10 +34,6 @@ class _SeasonTileState extends State<SeasonTile> {
   List<Episode>? _episodes;
   bool _isLoading = false;
 
-  // Set locale per simulare i "Visti". In futuro questo arriverà da Firebase.
-  //final Set<int> _watchedEpisodeIds = {};
-
-  // Funzione per scaricare gli episodi di QUESTA specifica stagione
   Future<void> _fetchEpisodes() async {
     if (_episodes != null) return;
 
@@ -43,7 +42,7 @@ class _SeasonTileState extends State<SeasonTile> {
       final url = Uri.parse(
         'https://api.themoviedb.org/3/tv/${widget.seriesId}/season/${widget.season.seasonNumber}?api_key=$apiKey&language=en-US',
       );
-      final response = await http.get(url);
+      final response = await SeasonTile.httpClient.get(url);
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['episodes'] != null) {
@@ -62,14 +61,13 @@ class _SeasonTileState extends State<SeasonTile> {
   }
 
   Stream<DocumentSnapshot> _getEpisodeStream(int episodeNum) {
-    final user = FirebaseAuth.instance.currentUser;
+    final user = SeasonTile.auth.currentUser;
     if (user == null) return const Stream.empty();
-
-    return FirebaseFirestore.instance
+    return SeasonTile.db
         .collection('users')
         .doc(user.uid)
         .collection('series')
-        .doc(widget.seriesName) // Usa il nome della serie come ID documento
+        .doc(widget.seriesName)
         .collection('seasons')
         .doc('Season ${widget.season.seasonNumber}')
         .collection('episodes')

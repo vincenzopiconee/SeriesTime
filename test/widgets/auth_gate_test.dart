@@ -1,33 +1,77 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:firebase_auth_mocks/firebase_auth_mocks.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_core_platform_interface/firebase_core_platform_interface.dart';
 import 'package:seriestime/widgets/auth_gate.dart';
+import 'package:seriestime/screens/login_screen.dart';
+import 'package:seriestime/screens/main_wrapper_screen.dart';
 
 void main() {
-  testWidgets('AuthGate - Test di Copertura Silenzioso', (
-    WidgetTester tester,
-  ) async {
-    // 1. Catturiamo l'errore a livello globale del framework Flutter
-    final originalOnError = FlutterError.onError;
-    FlutterError.onError = (details) {
-      // Se l'errore contiene "Firebase", lo ignoriamo per non far fallire il test
-      if (details.exceptionAsString().contains('Firebase')) return;
-      originalOnError?.call(details);
-    };
+  TestWidgetsFlutterBinding.ensureInitialized();
 
-    try {
-      // 2. Carichiamo il widget.
-      // Anche se crasha internamente, il FlutterError.onError sopra "mangia" il fallimento
+  setUpAll(() async {
+    FirebasePlatform.instance = MockFirebasePlatform();
+    await Firebase.initializeApp();
+  });
+
+  group('AuthGate Tests', () {
+    testWidgets('AuthGate mostra LoginScreen quando l\'utente non è loggato', (
+      WidgetTester tester,
+    ) async {
+      final auth = MockFirebaseAuth(signedIn: false);
+      AuthGate.auth = auth;
+
+      await tester.pumpWidget(const MaterialApp(home: AuthGate()));
+      await tester.pump();
+
+      expect(find.byType(LoginScreen), findsOneWidget);
+    });
+
+    testWidgets('AuthGate mostra MainWrapper quando l\'utente è loggato', (
+      WidgetTester tester,
+    ) async {
+      final auth = MockFirebaseAuth(signedIn: true);
+      AuthGate.auth = auth;
+
       await tester.pumpWidget(const MaterialApp(home: AuthGate()));
 
-      // 3. Verifichiamo solo l'esistenza del widget per la coverage
-      expect(find.byType(AuthGate), findsOneWidget);
-
-      // Facciamo un pump minimo
       await tester.pump();
-    } catch (e) {
-      // Assorbiamo eventuali altre eccezioni Dart
-    } finally {
-      FlutterError.onError = originalOnError;
-    }
+
+      await tester.pumpAndSettle();
+
+      expect(find.byType(MainWrapper), findsOneWidget);
+    });
   });
+}
+
+class MockFirebasePlatform extends FirebasePlatform {
+  @override
+  Future<FirebaseAppPlatform> initializeApp({
+    String? name,
+    FirebaseOptions? options,
+  }) async {
+    return FirebaseAppPlatform(
+      name ?? '[DEFAULT]',
+      const FirebaseOptions(
+        apiKey: '123',
+        appId: '123',
+        messagingSenderId: '123',
+        projectId: '123',
+      ),
+    );
+  }
+
+  @override
+  FirebaseAppPlatform app([String name = '[DEFAULT]']) {
+    return FirebaseAppPlatform(
+      name,
+      const FirebaseOptions(
+        apiKey: '123',
+        appId: '123',
+        messagingSenderId: '123',
+        projectId: '123',
+      ),
+    );
+  }
 }

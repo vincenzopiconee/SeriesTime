@@ -7,9 +7,11 @@ import 'explore_screen.dart';
 import 'my_series_screen.dart';
 import 'binge_mode_screen.dart';
 import 'profile_screen.dart';
+import 'package:http/http.dart' as http;
 
 class MainWrapper extends StatefulWidget {
-  const MainWrapper({super.key});
+  final http.Client? httpClient;
+  const MainWrapper({super.key, this.httpClient});
 
   @override
   State<MainWrapper> createState() => _MainWrapperState();
@@ -17,17 +19,23 @@ class MainWrapper extends StatefulWidget {
 
 class _MainWrapperState extends State<MainWrapper> {
   int _selectedIndex = 0;
-  
+
   final Set<String> _notifiedBadgeIds = {};
   final List<UserBadge> _bannerQueue = [];
   bool _isBannerShowing = false;
 
-  final List<Widget> _pages = [
-    const ExploreScreen(),
-    const MySeriesScreen(),
-    const BingeModeScreen(),
-    const ProfileScreen(),
-  ];
+  late final List<Widget> _pages;
+
+  @override
+  void initState() {
+    super.initState();
+    _pages = [
+      ExploreScreen(httpClient: widget.httpClient),
+      const MySeriesScreen(),
+      const BingeModeScreen(),
+      const ProfileScreen(),
+    ];
+  }
 
   void _showClaimBanner(UserBadge badge) {
     if (_isBannerShowing) {
@@ -51,12 +59,12 @@ class _MainWrapperState extends State<MainWrapper> {
               overlayEntry.remove();
             }
             _isBannerShowing = false;
-            
+
             if (_bannerQueue.isNotEmpty) {
               Future.delayed(const Duration(milliseconds: 300), () {
-                 if (mounted) {
-                   _showClaimBanner(_bannerQueue.removeAt(0));
-                 }
+                if (mounted) {
+                  _showClaimBanner(_bannerQueue.removeAt(0));
+                }
               });
             }
           },
@@ -76,12 +84,15 @@ class _MainWrapperState extends State<MainWrapper> {
           final data = snapshot.data!.data() as Map<String, dynamic>;
 
           if (AppData.currentUser != null) {
-             AppData.currentUser?.claimedBadgeIds = List<String>.from(
+            AppData.currentUser?.claimedBadgeIds = List<String>.from(
               data['claimedBadgeIds'] ?? [],
             );
           }
 
-          final allUnclaimed = StatsLogic.getAllUnclaimedBadges(AppData.currentUser, AppData.userSeries);
+          final allUnclaimed = StatsLogic.getAllUnclaimedBadges(
+            AppData.currentUser,
+            AppData.userSeries,
+          );
 
           for (var badge in allUnclaimed) {
             if (!_notifiedBadgeIds.contains(badge.id)) {
@@ -137,7 +148,7 @@ class _MainWrapperState extends State<MainWrapper> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            padding: const EdgeInsets.all(5), 
+            padding: const EdgeInsets.all(5),
             decoration: BoxDecoration(
               color: isSelected ? AppData.accentColor : Colors.transparent,
               shape: BoxShape.circle,

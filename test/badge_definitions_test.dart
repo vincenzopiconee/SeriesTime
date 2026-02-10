@@ -1,5 +1,4 @@
 import 'package:flutter_test/flutter_test.dart';
-// Assicurati che il percorso dell'import sia corretto in base alla tua struttura
 import 'package:seriestime/data/badge_definitions.dart';
 
 void main() {
@@ -13,7 +12,6 @@ void main() {
     test('I badge Marathoner devono avere target incrementali', () {
       final milestones = BadgeDefinitions.marathonerMilestones;
       for (int i = 0; i < milestones.length - 1; i++) {
-        // Verifica che il target successivo sia maggiore del precedente
         expect(
           milestones[i + 1].targetHours,
           greaterThan(milestones[i].targetHours),
@@ -22,14 +20,12 @@ void main() {
     });
 
     test('Verifica integrità ID e nextId', () {
-      // Testiamo che il primo badge Marathoner punti correttamente al secondo
       expect(
         BadgeDefinitions.marathonerMilestones[0].nextId,
         equals("mbronze"),
       );
       expect(BadgeDefinitions.marathonerMilestones[1].id, equals("mbronze"));
 
-      // L'ultimo badge deve avere nextId nullo
       expect(BadgeDefinitions.marathonerMilestones.last.nextId, isNull);
     });
 

@@ -11,11 +11,12 @@ import '../services/stats_logic.dart';
 enum ChartPeriod { year, month, week }
 
 class AppData {
-  static final FirebaseFirestore _db = FirebaseFirestore.instance;
-  
+  static FirebaseFirestore db = FirebaseFirestore.instance;
+  static auth.FirebaseAuth firebaseAuth = auth.FirebaseAuth.instance;
+
   static const String tmdbApiKey = "1a4c56551c8917b157c4a6fdd2fca54d";
   static const Color primaryColor = Color(0xFF791209);
-  static const Color accentColor = Color(0xFF364156); 
+  static const Color accentColor = Color(0xFF364156);
   static const Color backgroundColor = Color(0xFFEEF0E9);
   static const Color avatarColor = Color(0xFF4A5568);
   static const Color whiteColor = Colors.white;
@@ -26,10 +27,10 @@ class AppData {
 
   static Future<void> initializeData() async {
     userSeries.clear();
-    final firebaseUser = auth.FirebaseAuth.instance.currentUser;
+    final firebaseUser = AppData.firebaseAuth.currentUser;
     if (firebaseUser == null) return;
 
-    final userDoc = _db.collection('users').doc(firebaseUser.uid);
+    final userDoc = AppData.db.collection('users').doc(firebaseUser.uid);
     var snapshot = await userDoc.get();
 
     if (!snapshot.exists) {
@@ -41,7 +42,8 @@ class AppData {
     String? originalPhotoUrl = data['photoUrl'] ?? firebaseUser.photoURL;
     String? highResPhotoUrl = originalPhotoUrl;
 
-    if (originalPhotoUrl != null && originalPhotoUrl.contains('googleusercontent.com')) {
+    if (originalPhotoUrl != null &&
+        originalPhotoUrl.contains('googleusercontent.com')) {
       highResPhotoUrl = originalPhotoUrl.replaceFirst('s96-c', 's400-c');
     }
 
@@ -87,7 +89,10 @@ class AppData {
     currentUser = null;
   }
 
-  static Future<void> _populateFirstTime(auth.User fbUser, DocumentReference docRef) async {
+  static Future<void> _populateFirstTime(
+    auth.User fbUser,
+    DocumentReference docRef,
+  ) async {
     await docRef.set({
       'name': fbUser.displayName ?? "User",
       'totalHoursWatched': 0.0,
@@ -98,15 +103,19 @@ class AppData {
   }
 
   static Stream<DocumentSnapshot> userStream() {
-    final firebaseUser = auth.FirebaseAuth.instance.currentUser;
+    final firebaseUser = AppData.firebaseAuth.currentUser;
     if (firebaseUser == null) return const Stream.empty();
-    return _db.collection('users').doc(firebaseUser.uid).snapshots();
+    return AppData.db.collection('users').doc(firebaseUser.uid).snapshots();
   }
 
   static Stream<QuerySnapshot> seriesStream() {
-    final firebaseUser = auth.FirebaseAuth.instance.currentUser;
+    final firebaseUser = AppData.firebaseAuth.currentUser;
     if (firebaseUser == null) return const Stream.empty();
-    return _db.collection('users').doc(firebaseUser.uid).collection('series').snapshots();
+    return AppData.db
+        .collection('users')
+        .doc(firebaseUser.uid)
+        .collection('series')
+        .snapshots();
   }
 
   static double getTotalWatchTimeHours() {
@@ -115,9 +124,11 @@ class AppData {
     for (var series in userSeries) {
       total += (series.totalHours);
     }
-    final firebaseUser = auth.FirebaseAuth.instance.currentUser;
+    final firebaseUser = AppData.firebaseAuth.currentUser;
     if (firebaseUser != null) {
-      _db.collection('users').doc(firebaseUser.uid).update({'totalHoursWatched': total});
+      AppData.db.collection('users').doc(firebaseUser.uid).update({
+        'totalHoursWatched': total,
+      });
     }
     return total;
   }
@@ -132,18 +143,26 @@ class AppData {
   }
 
   static Future<void> claimBadge(String badgeId) async {
-    final uid = auth.FirebaseAuth.instance.currentUser?.uid;
+    final uid = AppData.firebaseAuth.currentUser?.uid;
     if (uid == null) return;
-    await _db.collection('users').doc(uid).update({
+    await AppData.db.collection('users').doc(uid).update({
       'claimedBadgeIds': FieldValue.arrayUnion([badgeId]),
     });
   }
 
-  static Future<void> setSeriesFavorite(String seriesName, int seriesId, bool isFavorite) async {
-    final user = auth.FirebaseAuth.instance.currentUser;
+  static Future<void> setSeriesFavorite(
+    String seriesName,
+    int seriesId,
+    bool isFavorite,
+  ) async {
+    final user = AppData.firebaseAuth.currentUser;
     if (user == null) return;
 
-    final seriesRef = _db.collection('users').doc(user.uid).collection('series').doc(seriesName);
+    final seriesRef = AppData.db
+        .collection('users')
+        .doc(user.uid)
+        .collection('series')
+        .doc(seriesName);
     final docSnapshot = await seriesRef.get();
 
     if (!docSnapshot.exists) {
@@ -164,7 +183,8 @@ class AppData {
           'completed': false,
         }, SetOptions(merge: true));
 
-        userSeries.add(Series(
+        userSeries.add(
+          Series(
             id: seriesId,
             name: seriesName,
             imageUrl: apiData['imageUrl'],
@@ -172,7 +192,9 @@ class AppData {
             totalHours: 0.0,
             seriesDuration: apiData['seriesDuration'],
             episode: "S1 E1",
-            isFavorite: isFavorite));
+            isFavorite: isFavorite,
+          ),
+        );
       } catch (e) {
         debugPrint("Errore creazione serie preferita: $e");
       }

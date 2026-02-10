@@ -8,7 +8,6 @@ import '../data/app_data.dart';
 import '../models/series.dart';
 import '../models/user_badge.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart' as auth;
 import '../models/user.dart';
 import 'all_badges_screen.dart';
 import 'series_detail_screen.dart';
@@ -125,14 +124,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               photoUrl:
                   userData['photoUrl'] ??
-                  auth.FirebaseAuth.instance.currentUser?.photoURL,
+                  AppData.firebaseAuth.currentUser?.photoURL,
             );
             final timeData = AppData.getTotalWatchTimeSplit();
             final int days = timeData["days"]!;
             final int remainingHours = timeData["hours"]!;
             final int minutes = timeData["minutes"]!;
 
-            StatsLogic.generateUserBadges(AppData.currentUser, AppData.userSeries);
+            StatsLogic.generateUserBadges(
+              AppData.currentUser,
+              AppData.userSeries,
+            );
 
             final List<Series> filteredSeries = AppData.userSeries
                 .where((s) => s.percentage < 1.0 && s.percentage > 0.0)
@@ -272,10 +274,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           final displayBadges = allClaimed.take(4).toList();
 
                           return Column(
-                            
                             children: [
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: displayBadges.map((badge) {
                                   return GestureDetector(
                                     onTap: () {
@@ -284,8 +286,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       String unit = "h";
 
                                       if (badge.title == "Marathoner") {
-                                        milestones =
-                                            BadgeDefinitions.marathonerMilestones;
+                                        milestones = BadgeDefinitions
+                                            .marathonerMilestones;
                                         currentValue =
                                             AppData
                                                 .currentUser
@@ -294,8 +296,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         unit = "h";
                                       } else if (badge.title ==
                                           "Pure Obsession") {
-                                        milestones =
-                                            BadgeDefinitions.obsessionMilestones;
+                                        milestones = BadgeDefinitions
+                                            .obsessionMilestones;
                                         currentValue =
                                             AppData
                                                 .currentUser
@@ -304,13 +306,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         unit = "h";
                                       } else if (badge.title ==
                                           "Weekend Warrior") {
-                                        milestones = BadgeDefinitions.weekendMilestones;
+                                        milestones =
+                                            BadgeDefinitions.weekendMilestones;
                                         currentValue =
                                             AppData.currentUser?.weekendHours ??
                                             0;
                                         unit = "h";
                                       } else if (badge.title == "Streak") {
-                                        milestones = BadgeDefinitions.streakMilestones;
+                                        milestones =
+                                            BadgeDefinitions.streakMilestones;
                                         currentValue =
                                             (AppData
                                                         .currentUser
@@ -320,8 +324,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         unit = "d";
                                       } else if (badge.title ==
                                           "The Perfectionist") {
-                                        milestones =
-                                            BadgeDefinitions.completionistMilestones;
+                                        milestones = BadgeDefinitions
+                                            .completionistMilestones;
                                         currentValue = AppData.userSeries
                                             .where((s) => s.percentage >= 1.0)
                                             .length
@@ -329,7 +333,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         unit = "S";
                                       } else if (badge.title ==
                                           "The Night Owl") {
-                                        milestones = BadgeDefinitions.nightOwlMilestones;
+                                        milestones =
+                                            BadgeDefinitions.nightOwlMilestones;
                                         currentValue =
                                             AppData
                                                 .currentUser
@@ -338,7 +343,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         unit = "h";
                                       } else if (badge.title ==
                                           "Genre Explorer") {
-                                        milestones = BadgeDefinitions.genreMilestones;
+                                        milestones =
+                                            BadgeDefinitions.genreMilestones;
                                         currentValue =
                                             (AppData
                                                         .currentUser
@@ -538,14 +544,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _drawChartContent(List<double> chartData) {
-
-    final double maxVal = chartData.isEmpty ? 10.0 : chartData.reduce((a, b) => a > b ? a : b).clamp(5.0, double.infinity);
+    final double maxVal = chartData.isEmpty
+        ? 10.0
+        : chartData.reduce((a, b) => a > b ? a : b).clamp(5.0, double.infinity);
 
     String subTitle = "";
     if (_selectedPeriod == ChartPeriod.week) {
       subTitle = "Activity in the current week";
     } else if (_selectedPeriod == ChartPeriod.month) {
-       subTitle = "Activity in current Month";
+      subTitle = "Activity in current Month";
     } else {
       subTitle = "Activity in current Year";
     }
@@ -760,7 +767,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildBadgeItem(UserBadge badge) {
     return Container(
       width: 80,
-      height: 105, 
+      height: 105,
       decoration: BoxDecoration(
         color: AppData.whiteColor,
         borderRadius: BorderRadius.circular(12),
@@ -879,7 +886,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.access_time, size: 14, color: Colors.grey),
+                      const Icon(
+                        Icons.access_time,
+                        size: 14,
+                        color: Colors.grey,
+                      ),
                       const SizedBox(width: 3),
                       Text(
                         formattedTime,
@@ -901,6 +912,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   String formatHours(double totalHours) {
+    return ProfileScreenHelpers.formatHours(totalHours);
+  }
+
+  String formatChartValue(double totalHours) {
+    return ProfileScreenHelpers.formatChartValue(totalHours);
+  }
+}
+
+// Helper class with static methods for easier testing
+class ProfileScreenHelpers {
+  static String formatHours(double totalHours) {
     if (totalHours <= 0) return "0m";
     int h = totalHours.toInt();
     int m = ((totalHours - h) * 60).round();
@@ -910,7 +932,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return "${h}h ${m}m";
   }
 
-  String formatChartValue(double totalHours) {
+  static String formatChartValue(double totalHours) {
     if (totalHours <= 0) return "0h";
     int d = (totalHours / 24).floor();
     int h = (totalHours % 24).round();
