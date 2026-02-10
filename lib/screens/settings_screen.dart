@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'login_screen.dart';
@@ -10,16 +9,17 @@ class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
   @override
-  State<SettingsScreen> createState() => _SettingsScreenState();
+  State<SettingsScreen> createState() => SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
+class SettingsScreenState extends State<SettingsScreen> {
   bool _isDeleting = false;
 
   @override
   Widget build(BuildContext context) {
     final user = AppData.currentUser;
-    final String userEmail = FirebaseAuth.instance.currentUser?.email ?? "No email";
+    final String userEmail =
+        AppData.firebaseAuth.currentUser?.email ?? "No email";
 
     return Scaffold(
       backgroundColor: AppData.backgroundColor,
@@ -55,14 +55,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
             Text(
-                userEmail,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 15,
-                  color: Colors.grey[700],
-                  fontWeight: FontWeight.w500,
-                ),
+              userEmail,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 15,
+                color: Colors.grey[700],
+                fontWeight: FontWeight.w500,
               ),
+            ),
 
             const SizedBox(height: 40),
 
@@ -97,7 +97,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const SizedBox(height: 15),
 
             if (_isDeleting)
-              const Column (
+              const Column(
                 children: [
                   SizedBox(height: 15),
                   SizedBox(
@@ -112,9 +112,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Text(
                     "Cleaning Database...",
                     style: TextStyle(
-                    color: AppData.primaryColor,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
+                      color: AppData.primaryColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
                     ),
                   ),
                 ],
@@ -183,12 +183,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Text(
             label,
             style: const TextStyle(
-                fontSize: 16, fontWeight: FontWeight.w500, color: Colors.black87),
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+              color: Colors.black87,
+            ),
           ),
-          Text(
-            value,
-            style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-          ),
+          Text(value, style: TextStyle(fontSize: 14, color: Colors.grey[600])),
         ],
       ),
     );
@@ -196,7 +196,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _handleLogout() async {
     AppData.resetData();
-    await FirebaseAuth.instance.signOut();
+    await AppData.firebaseAuth.signOut();
     await GoogleSignIn().signOut();
 
     if (!mounted) return;
@@ -273,17 +273,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 25, vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 25,
+                        vertical: 10,
+                      ),
                       elevation: 0,
                     ),
                     child: const Text(
                       "Delete",
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
                     ),
                   ),
                 ],
-              )
+              ),
             ],
           ),
         ),
@@ -293,8 +298,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _deleteFullSeriesData(String uid) async {
     try {
-      final firestore = FirebaseFirestore.instance;
-      final seriesRef = firestore.collection('users').doc(uid).collection('series');
+      final firestore = AppData.db;
+      final seriesRef = firestore
+          .collection('users')
+          .doc(uid)
+          .collection('series');
       final seriesSnapshot = await seriesRef.get();
 
       for (var seriesDoc in seriesSnapshot.docs) {
@@ -323,9 +331,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _performDelete() async {
     setState(() => _isDeleting = true);
-    
-    final user = FirebaseAuth.instance.currentUser;
 
+    final user = AppData.firebaseAuth.currentUser;
     if (user == null) {
       if (mounted) {
         Navigator.of(context).pushAndRemoveUntil(
@@ -338,10 +345,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     try {
       await _deleteFullSeriesData(user.uid);
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .delete();
+      await AppData.db.collection('users').doc(user.uid).delete();
     } catch (dbError) {
       debugPrint("Database cleanup skipped/failed: $dbError");
     }
@@ -362,7 +366,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           (Route<dynamic> route) => false,
         );
       }
-
     } catch (e) {
       String errorCode = '';
       String errorMessage = e.toString();
@@ -434,13 +437,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               borderRadius: BorderRadius.circular(20),
                             ),
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 20, vertical: 10),
+                              horizontal: 20,
+                              vertical: 10,
+                            ),
                             elevation: 0,
                           ),
                           child: const Text(
                             "Log Out & Retry",
                             style: TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 16),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
                           ),
                         ),
                         TextButton(
@@ -455,7 +462,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                         ),
                       ],
-                    )
+                    ),
                   ],
                 ),
               ),
@@ -464,7 +471,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         }
       } else if (errorCode == 'user-not-found') {
         if (mounted) {
-           Navigator.of(context).pushAndRemoveUntil(
+          Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(builder: (context) => const LoginScreen()),
             (Route<dynamic> route) => false,
           );
@@ -479,13 +486,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  @visibleForTesting
+  void showErrorDialog(String title, String content) {
+    _showErrorDialog(title, content);
+  }
+
   void _showErrorDialog(String title, String content) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(title),
         content: Text(content),
-        actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("OK"))],
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("OK"),
+          ),
+        ],
       ),
     );
   }

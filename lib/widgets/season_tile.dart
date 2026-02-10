@@ -1,23 +1,30 @@
-
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:seriestime/data/app_data.dart';
 import 'package:seriestime/models/episode.dart';
 import 'package:seriestime/models/season.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:seriestime/screens/episode_detail_screen.dart';
 import 'package:seriestime/services/series_logic.dart';
 
-const String apiKey = "0cbb1da4932d8722fcddf451692e1b2e"; 
+const String apiKey = "0cbb1da4932d8722fcddf451692e1b2e";
 
 class SeasonTile extends StatefulWidget {
+  static http.Client httpClient = http.Client();
+  static FirebaseAuth auth = FirebaseAuth.instance;
+  static FirebaseFirestore db = FirebaseFirestore.instance;
   final int seriesId;
   final String seriesName;
   final Season season;
 
-  const SeasonTile({super.key, required this.seriesId, required this.seriesName, required this.season});
+  const SeasonTile({
+    super.key,
+    required this.seriesId,
+    required this.seriesName,
+    required this.season,
+  });
 
   @override
   State<SeasonTile> createState() => _SeasonTileState();
@@ -26,25 +33,23 @@ class SeasonTile extends StatefulWidget {
 class _SeasonTileState extends State<SeasonTile> {
   List<Episode>? _episodes;
   bool _isLoading = false;
-  
-  // Set locale per simulare i "Visti". In futuro questo arriverà da Firebase.
-  //final Set<int> _watchedEpisodeIds = {}; 
 
-  // Funzione per scaricare gli episodi di QUESTA specifica stagione
   Future<void> _fetchEpisodes() async {
-    if (_episodes != null) return; 
+    if (_episodes != null) return;
 
     setState(() => _isLoading = true);
     try {
       final url = Uri.parse(
-        'https://api.themoviedb.org/3/tv/${widget.seriesId}/season/${widget.season.seasonNumber}?api_key=$apiKey&language=en-US'
+        'https://api.themoviedb.org/3/tv/${widget.seriesId}/season/${widget.season.seasonNumber}?api_key=$apiKey&language=en-US',
       );
-      final response = await http.get(url);
+      final response = await SeasonTile.httpClient.get(url);
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['episodes'] != null) {
           setState(() {
-            _episodes = (data['episodes'] as List).map((e) => Episode.fromJson(e)).toList();
+            _episodes = (data['episodes'] as List)
+                .map((e) => Episode.fromJson(e))
+                .toList();
           });
         }
       }
@@ -56,14 +61,13 @@ class _SeasonTileState extends State<SeasonTile> {
   }
 
   Stream<DocumentSnapshot> _getEpisodeStream(int episodeNum) {
-    final user = FirebaseAuth.instance.currentUser;
+    final user = SeasonTile.auth.currentUser;
     if (user == null) return const Stream.empty();
-
-    return FirebaseFirestore.instance
+    return SeasonTile.db
         .collection('users')
         .doc(user.uid)
         .collection('series')
-        .doc(widget.seriesName) // Usa il nome della serie come ID documento
+        .doc(widget.seriesName)
         .collection('seasons')
         .doc('Season ${widget.season.seasonNumber}')
         .collection('episodes')
@@ -105,7 +109,9 @@ class _SeasonTileState extends State<SeasonTile> {
             if (_isLoading)
               const Padding(
                 padding: EdgeInsets.all(20.0),
-                child: Center(child: CircularProgressIndicator(color: AppData.primaryColor)),
+                child: Center(
+                  child: CircularProgressIndicator(color: AppData.primaryColor),
+                ),
               )
             else if (_episodes == null || _episodes!.isEmpty)
               const Padding(
@@ -130,7 +136,7 @@ class _SeasonTileState extends State<SeasonTile> {
         DateTime airDate = DateTime.parse(episode.airDate!);
         DateTime now = DateTime.now();
         DateTime today = DateTime(now.year, now.month, now.day);
-        
+
         if (airDate.isAfter(today)) {
           isFuture = true;
         }
@@ -142,7 +148,6 @@ class _SeasonTileState extends State<SeasonTile> {
     return StreamBuilder<DocumentSnapshot>(
       stream: _getEpisodeStream(episode.episodeNumber),
       builder: (context, snapshot) {
-        
         bool isWatched = false;
         if (snapshot.hasData && snapshot.data!.exists) {
           final data = snapshot.data!.data() as Map<String, dynamic>;
@@ -158,12 +163,13 @@ class _SeasonTileState extends State<SeasonTile> {
             border: Border.all(color: Colors.grey.shade200),
           ),
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center, 
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               // --- PARTE CLICCABILE (Navigazione) ---
               Expanded(
                 child: GestureDetector(
-                  behavior: HitTestBehavior.opaque, // Prende il tocco anche sugli spazi vuoti
+                  behavior: HitTestBehavior
+                      .opaque, // Prende il tocco anche sugli spazi vuoti
                   onTap: () {
                     // NAVIGAZIONE ALLA NUOVA PAGINA
                     Navigator.push(
@@ -184,11 +190,25 @@ class _SeasonTileState extends State<SeasonTile> {
                       ClipRRect(
                         borderRadius: BorderRadius.circular(8),
                         child: episode.stillUrl != null
-                            ? Image.network(episode.stillUrl!, width: 80, height: 45, fit: BoxFit.cover)
-                            : Container(width: 80, height: 45, color: Colors.grey[300], child: const Icon(Icons.image, size: 20, color: Colors.grey)),
+                            ? Image.network(
+                                episode.stillUrl!,
+                                width: 80,
+                                height: 45,
+                                fit: BoxFit.cover,
+                              )
+                            : Container(
+                                width: 80,
+                                height: 45,
+                                color: Colors.grey[300],
+                                child: const Icon(
+                                  Icons.image,
+                                  size: 20,
+                                  color: Colors.grey,
+                                ),
+                              ),
                       ),
                       const SizedBox(width: 12),
-                      
+
                       // 2. Info Testuali
                       Expanded(
                         child: Column(
@@ -199,11 +219,19 @@ class _SeasonTileState extends State<SeasonTile> {
                               children: [
                                 Text(
                                   "Ep ${episode.episodeNumber}",
-                                  style: const TextStyle(fontSize: 11, color: AppData.primaryColor, fontWeight: FontWeight.bold),
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: AppData.primaryColor,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                                 Text(
                                   dateLabel,
-                                  style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.bold),
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.grey,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ],
                             ),
@@ -213,8 +241,8 @@ class _SeasonTileState extends State<SeasonTile> {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
-                                fontSize: 14, 
-                                fontWeight: FontWeight.w600, 
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
                                 color: Colors.black87,
                                 height: 1.2,
                               ),
@@ -226,22 +254,22 @@ class _SeasonTileState extends State<SeasonTile> {
                   ),
                 ),
               ),
-              
+
               const SizedBox(width: 8),
 
               // 3. LOGICA TOGGLE (Rimane fuori dalla navigazione)
-              if (isFuture) 
+              if (isFuture)
                 Icon(Icons.schedule, size: 36, color: Colors.grey[400])
               else
                 InkWell(
-                  onTap: () {                  
+                  onTap: () {
                     SeriesLogic.toggleEpisodeWatched(
                       seriesName: widget.seriesName,
                       seriesId: widget.seriesId,
                       seasonNum: widget.season.seasonNumber,
                       episodeNum: episode.episodeNumber,
                       episodeTitle: episode.name,
-                      isWatched: !isWatched, 
+                      isWatched: !isWatched,
                     );
                   },
                   borderRadius: BorderRadius.circular(30),
@@ -252,8 +280,10 @@ class _SeasonTileState extends State<SeasonTile> {
                       shape: BoxShape.circle,
                       color: isWatched ? AppData.accentColor : Colors.grey[300],
                       border: Border.all(
-                        color: isWatched ? AppData.accentColor : Colors.grey.shade400,
-                      )
+                        color: isWatched
+                            ? AppData.accentColor
+                            : Colors.grey.shade400,
+                      ),
                     ),
                     child: Icon(
                       Icons.check,
@@ -265,7 +295,7 @@ class _SeasonTileState extends State<SeasonTile> {
             ],
           ),
         );
-      }
+      },
     );
   }
 }

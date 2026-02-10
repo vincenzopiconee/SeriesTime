@@ -5,18 +5,20 @@ import 'package:seriestime/data/app_data.dart';
 import 'package:seriestime/screens/main_wrapper_screen.dart';
 
 class AuthGate extends StatelessWidget {
+  static FirebaseAuth auth = FirebaseAuth.instance;
   const AuthGate({super.key});
 
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<User?>(
-      stream: FirebaseAuth.instance.authStateChanges(),
+      stream: AuthGate.auth.authStateChanges(),
       builder: (context, snapshot) {
-        
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
-            backgroundColor: Colors.black, 
-            body: Center(child: CircularProgressIndicator(color: AppData.primaryColor)),
+            backgroundColor: Colors.black,
+            body: Center(
+              child: CircularProgressIndicator(color: AppData.primaryColor),
+            ),
           );
         }
 
@@ -29,7 +31,11 @@ class AuthGate extends StatelessWidget {
               } else {
                 return const Scaffold(
                   backgroundColor: AppData.backgroundColor,
-                  body: Center(child: CircularProgressIndicator(color: AppData.primaryColor)),
+                  body: Center(
+                    child: CircularProgressIndicator(
+                      color: AppData.primaryColor,
+                    ),
+                  ),
                 );
               }
             },

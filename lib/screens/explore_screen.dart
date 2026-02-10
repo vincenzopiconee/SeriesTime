@@ -7,7 +7,9 @@ import '../data/app_data.dart';
 import 'series_detail_screen.dart';
 
 class ExploreScreen extends StatefulWidget {
-  const ExploreScreen({super.key});
+  final http.Client? httpClient;
+
+  const ExploreScreen({super.key, this.httpClient});
 
   @override
   State<ExploreScreen> createState() => _ExploreScreenState();
@@ -17,9 +19,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
   final TextEditingController _searchController = TextEditingController();
   List<TvShow> _shows = [];
   bool _isLoading = false;
-  
+
   int? _selectedGenreId;
-  
+
   Timer? _debounce;
 
   final List<Genre> _availableGenres = [
@@ -31,40 +33,44 @@ class _ExploreScreenState extends State<ExploreScreen> {
     Genre(id: 80, name: "Crime"),
     Genre(id: 16, name: "Animation"),
   ];
-
+  late final http.Client _client;
   @override
   void initState() {
     super.initState();
+    _client = widget.httpClient ?? http.Client();
     _fetchShows();
   }
 
   Future<void> _fetchShows([String? query]) async {
     final String searchText = query ?? _searchController.text;
-    
+
     setState(() => _isLoading = true);
 
     try {
       Uri url;
 
       if (searchText.trim().isEmpty) {
-        String baseUrl = 'https://api.themoviedb.org/3/discover/tv?api_key=${AppData.tmdbApiKey}&language=en-US&sort_by=popularity.desc&include_adult=false&include_null_first_air_dates=false';
+        String baseUrl =
+            'https://api.themoviedb.org/3/discover/tv?api_key=${AppData.tmdbApiKey}&language=en-US&sort_by=popularity.desc&include_adult=false&include_null_first_air_dates=false';
         if (_selectedGenreId != null) {
           baseUrl += '&with_genres=$_selectedGenreId';
         }
         url = Uri.parse(baseUrl);
       } else {
         url = Uri.parse(
-          'https://api.themoviedb.org/3/search/tv?api_key=${AppData.tmdbApiKey}&query=$searchText&language=en-US&include_adult=false'
+          'https://api.themoviedb.org/3/search/tv?api_key=${AppData.tmdbApiKey}&query=$searchText&language=en-US&include_adult=false',
         );
       }
-      
-      final response = await http.get(url);
+
+      final response = await _client.get(url);
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
         final List<dynamic> results = data['results'];
-        
-        List<TvShow> fetchedShows = results.map((json) => TvShow.fromJson(json)).toList();
+
+        List<TvShow> fetchedShows = results
+            .map((json) => TvShow.fromJson(json))
+            .toList();
 
         if (searchText.trim().isNotEmpty && _selectedGenreId != null) {
           fetchedShows = fetchedShows.where((show) {
@@ -107,6 +113,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
   void dispose() {
     _debounce?.cancel();
     _searchController.dispose();
+    _client.close();
     super.dispose();
   }
 
@@ -121,9 +128,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
         title: const Text(
           "Explore",
           style: TextStyle(
-            fontSize: 24, 
-            fontWeight: FontWeight.w600, 
-            color: AppData.whiteColor
+            fontSize: 24,
+            fontWeight: FontWeight.w600,
+            color: AppData.whiteColor,
           ),
         ),
         centerTitle: true,
@@ -131,7 +138,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
       body: Column(
         children: [
           const SizedBox(height: 16),
-          
+
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 15.0),
             child: Container(
@@ -139,10 +146,14 @@ class _ExploreScreenState extends State<ExploreScreen> {
               decoration: BoxDecoration(
                 color: AppData.whiteColor,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey.shade300), 
+                border: Border.all(color: Colors.grey.shade300),
                 boxShadow: [
-                  BoxShadow(color: Colors.black.withAlpha(13), blurRadius: 4, offset: const Offset(0, 2))
-                ]
+                  BoxShadow(
+                    color: Colors.black.withAlpha(13),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
               child: TextField(
                 controller: _searchController,
@@ -153,15 +164,15 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.symmetric(vertical: 12),
                   prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                  suffixIcon: _searchController.text.isNotEmpty 
-                    ? IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed: () {
-                          _searchController.clear();
-                          _fetchShows(""); 
-                        },
-                      )
-                    : null,
+                  suffixIcon: _searchController.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () {
+                            _searchController.clear();
+                            _fetchShows("");
+                          },
+                        )
+                      : null,
                 ),
               ),
             ),
@@ -184,9 +195,14 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
                     margin: const EdgeInsets.only(right: 10),
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
-                      color: isSelected ? AppData.accentColor: Colors.grey[400], 
+                      color: isSelected
+                          ? AppData.accentColor
+                          : Colors.grey[400],
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Center(
@@ -195,7 +211,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                         style: const TextStyle(
                           color: AppData.whiteColor,
                           fontWeight: FontWeight.w600,
-                          fontSize: 13
+                          fontSize: 13,
                         ),
                       ),
                     ),
@@ -206,19 +222,21 @@ class _ExploreScreenState extends State<ExploreScreen> {
           ),
 
           const SizedBox(height: 10),
-          
+
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 15.0, vertical: 8),
             child: Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                _searchController.text.isEmpty 
-                    ? (_selectedGenreId == null ? "Trending Now" : "Popular in ${_availableGenres.firstWhere((g) => g.id == _selectedGenreId).name}")
+                _searchController.text.isEmpty
+                    ? (_selectedGenreId == null
+                          ? "Trending Now"
+                          : "Popular in ${_availableGenres.firstWhere((g) => g.id == _selectedGenreId).name}")
                     : "Search Results",
                 style: const TextStyle(
-                  fontSize: 18, 
+                  fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: AppData.primaryColor
+                  color: AppData.primaryColor,
                 ),
               ),
             ),
@@ -227,27 +245,30 @@ class _ExploreScreenState extends State<ExploreScreen> {
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
-                : _shows.isEmpty 
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.tv_off, size: 60, color: Colors.grey[400]),
-                            const SizedBox(height: 10),
-                            Text(
-                              "No series found matching criteria",
-                              style: TextStyle(color: Colors.grey[600], fontSize: 16),
-                            ),
-                          ],
+                : _shows.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.tv_off, size: 60, color: Colors.grey[400]),
+                        const SizedBox(height: 10),
+                        Text(
+                          "No series found matching criteria",
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 16,
+                          ),
                         ),
-                      )
-                    : ListView.builder(
-                        padding: const EdgeInsets.only(top: 5, bottom: 90),
-                        itemCount: _shows.length,
-                        itemBuilder: (context, index) {
-                          return _buildShowCard(_shows[index]);
-                        },
-                      ),
+                      ],
+                    ),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.only(top: 5, bottom: 90),
+                    itemCount: _shows.length,
+                    itemBuilder: (context, index) {
+                      return _buildShowCard(_shows[index]);
+                    },
+                  ),
           ),
         ],
       ),
@@ -256,15 +277,15 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
   Widget _buildShowCard(TvShow show) {
     const double cardHeight = 180;
-    const double imgWidth = cardHeight * 0.68; 
-    
+    const double imgWidth = cardHeight * 0.68;
 
     return GestureDetector(
       onTap: () {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => SeriesDetailScreen(seriesId: show.id, seriesName: show.name),
+            builder: (context) =>
+                SeriesDetailScreen(seriesId: show.id, seriesName: show.name),
           ),
         );
       },
@@ -272,9 +293,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
         height: cardHeight,
         margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
         decoration: BoxDecoration(
-          color: AppData.whiteColor, 
+          color: AppData.whiteColor,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppData.accentColor, width: 2.0), 
+          border: Border.all(color: AppData.accentColor, width: 2.0),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withAlpha(26),
@@ -287,7 +308,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ClipRRect(
-              borderRadius: const BorderRadius.horizontal(left: Radius.circular(14)),
+              borderRadius: const BorderRadius.horizontal(
+                left: Radius.circular(14),
+              ),
               child: show.posterUrl != null
                   ? Image.network(
                       show.posterUrl!,
@@ -309,7 +332,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
                     ),
             ),
 
-
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(12.0),
@@ -325,7 +347,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                             style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              color: AppData.primaryColor, 
+                              color: AppData.primaryColor,
                               height: 1.1,
                             ),
                             maxLines: 3,
@@ -335,14 +357,21 @@ class _ExploreScreenState extends State<ExploreScreen> {
                         const SizedBox(width: 8),
                         if (show.voteAverage > 0)
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.amber[100],
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Row(
                               children: [
-                                Icon(Icons.star, size: 14, color: Colors.amber[800]),
+                                Icon(
+                                  Icons.star,
+                                  size: 14,
+                                  color: Colors.amber[800],
+                                ),
                                 const SizedBox(width: 4),
                                 Text(
                                   show.voteAverage.toStringAsFixed(1),
@@ -357,7 +386,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                           ),
                       ],
                     ),
-                    
+
                     const SizedBox(height: 6),
 
                     Row(
@@ -368,7 +397,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                             style: const TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
-                              color: AppData.primaryColor, 
+                              color: AppData.primaryColor,
                             ),
                           ),
                           const SizedBox(width: 8),
@@ -380,7 +409,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                             show.year,
                             style: const TextStyle(
                               fontSize: 13,
-                              color: AppData.primaryColor, 
+                              color: AppData.primaryColor,
                               fontStyle: FontStyle.italic,
                             ),
                           ),
@@ -395,7 +424,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                           show.overview,
                           style: TextStyle(
                             fontSize: 13,
-                            color: Colors.grey[800], 
+                            color: Colors.grey[800],
                             height: 1.2,
                           ),
                           maxLines: 3,
@@ -408,10 +437,12 @@ class _ExploreScreenState extends State<ExploreScreen> {
                     const SizedBox(height: 8),
 
                     Text(
-                      show.genres.isNotEmpty ? show.genres.join(", ") : "No genres",
+                      show.genres.isNotEmpty
+                          ? show.genres.join(", ")
+                          : "No genres",
                       style: const TextStyle(
                         fontSize: 11,
-                        color: AppData.primaryColor, 
+                        color: AppData.primaryColor,
                         fontWeight: FontWeight.w600,
                       ),
                       maxLines: 1,
@@ -423,7 +454,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
             ),
           ],
         ),
-      )
+      ),
     );
   }
 }

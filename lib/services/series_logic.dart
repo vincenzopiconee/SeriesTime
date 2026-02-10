@@ -8,14 +8,31 @@ import '../services/tmdb_service.dart';
 import 'stats_logic.dart';
 
 class SeriesLogic {
-  static final FirebaseFirestore _db = FirebaseFirestore.instance;
+  static FirebaseFirestore _db = FirebaseFirestore.instance;
+  static http.Client httpClient =
+      http.Client(); //Need for test with fake client
+  @visibleForTesting
+  static set db(FirebaseFirestore mockDb) => _db = mockDb;
+  static String? _getUid() {
+    try {
+      return auth.FirebaseAuth.instance.currentUser?.uid;
+    } catch (e) {
+      return null;
+    }
+  }
 
-  static Future<void> syncSeriesTotalHours(String seriesName) async {
-    final user = auth.FirebaseAuth.instance.currentUser;
-    if (user == null) return;
+  static Future<void> syncSeriesTotalHours(
+    String seriesName, {
+    String? userUid,
+  }) async {
+    final String? uid = userUid ?? _getUid();
+    if (uid == null) return;
 
-    final seriesRef = _db.collection('users').doc(user.uid).collection('series').doc(seriesName);
-
+    final seriesRef = _db
+        .collection('users')
+        .doc(uid)
+        .collection('series')
+        .doc(seriesName);
     double watchedMinutes = 0;
     int maxSeason = -1;
     int maxEpisode = -1;
@@ -33,13 +50,19 @@ class SeriesLogic {
     final seasonsSnap = await seriesRef.collection('seasons').get();
 
     for (var seasonDoc in seasonsSnap.docs) {
-      final episodesSnap = await seasonDoc.reference.collection('episodes').where('watched', isEqualTo: true).get();
+      final episodesSnap = await seasonDoc.reference
+          .collection('episodes')
+          .where('watched', isEqualTo: true)
+          .get();
 
       for (var epDoc in episodesSnap.docs) {
         final data = epDoc.data();
         watchedMinutes += (data['runtime'] ?? 0);
 
-        int sNum = data['season_number'] ?? int.tryParse(seasonDoc.id.split(' ').last) ?? 0;
+        int sNum =
+            data['season_number'] ??
+            int.tryParse(seasonDoc.id.split(' ').last) ??
+            0;
         int eNum = data['episode_number'] ?? 0;
 
         if (sNum > maxSeason) {
@@ -56,30 +79,39 @@ class SeriesLogic {
         int targetSeason = maxSeason < 1 ? 1 : maxSeason;
         int lastWatchedEpInSeason = maxEpisode < 1 ? 0 : maxEpisode;
 
-        final urlSeason = "https://api.themoviedb.org/3/tv/$seriesId/season/$targetSeason?api_key=${AppData.tmdbApiKey}&language=en-US";
-        final resSeason = await http.get(Uri.parse(urlSeason));
+        final urlSeason =
+            "https://api.themoviedb.org/3/tv/$seriesId/season/$targetSeason?api_key=${AppData.tmdbApiKey}&language=en-US";
+        final resSeason = await httpClient.get(Uri.parse(urlSeason));
 
         if (resSeason.statusCode == 200) {
           final sData = json.decode(resSeason.body);
           final List episodes = sData['episodes'] ?? [];
 
-          var nextEp = episodes.firstWhere((e) => e['episode_number'] == lastWatchedEpInSeason + 1, orElse: () => null);
+          var nextEp = episodes.firstWhere(
+            (e) => e['episode_number'] == lastWatchedEpInSeason + 1,
+            orElse: () => null,
+          );
 
           if (nextEp != null) {
-            displayLabel = "S${nextEp['season_number']} E${nextEp['episode_number']}";
+            displayLabel =
+                "S${nextEp['season_number']} E${nextEp['episode_number']}";
             displayTitle = nextEp['name'] ?? "";
             displayAirDate = nextEp['air_date'];
             isSeriesCompleted = false;
           } else {
-            final urlNextSeason = "https://api.themoviedb.org/3/tv/$seriesId/season/${targetSeason + 1}?api_key=${AppData.tmdbApiKey}&language=en-US";
-            final resNextSeason = await http.get(Uri.parse(urlNextSeason));
+            final urlNextSeason =
+                "https://api.themoviedb.org/3/tv/$seriesId/season/${targetSeason + 1}?api_key=${AppData.tmdbApiKey}&language=en-US";
+            final resNextSeason = await httpClient.get(
+              Uri.parse(urlNextSeason),
+            );
 
             if (resNextSeason.statusCode == 200) {
               final nextSData = json.decode(resNextSeason.body);
               final List nextEpisodes = nextSData['episodes'] ?? [];
               if (nextEpisodes.isNotEmpty) {
                 final firstEp = nextEpisodes[0];
-                displayLabel = "S${firstEp['season_number']} E${firstEp['episode_number']}";
+                displayLabel =
+                    "S${firstEp['season_number']} E${firstEp['episode_number']}";
                 displayTitle = firstEp['name'] ?? "";
                 displayAirDate = firstEp['air_date'];
                 isSeriesCompleted = false;
@@ -103,9 +135,13 @@ class SeriesLogic {
     }
 
     double watchedHours = watchedMinutes / 60.0;
-    double totalSeriesHours = await TmdbService.getSeriesTotalRuntimeFromApi(seriesName);
+    double totalSeriesHours = await TmdbService.getSeriesTotalRuntimeFromApi(
+      seriesName,
+    );
 
-    double newPercentage = totalSeriesHours > 0 ? watchedHours / totalSeriesHours : 0;
+    double newPercentage = totalSeriesHours > 0
+        ? watchedHours / totalSeriesHours
+        : 0;
     if (newPercentage >= 0.99) newPercentage = 1.0;
     if (newPercentage > 1.0) newPercentage = 1.0;
 
@@ -133,11 +169,15 @@ class SeriesLogic {
     required int episodeNum,
     required String episodeTitle,
     required bool isWatched,
+    String? userUid,
   }) async {
-    final user = auth.FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
-    final seriesRef = _db.collection('users').doc(user.uid).collection('series').doc(seriesName);
+    final String? uid = userUid ?? _getUid();
+    if (uid == null) return;
+    final seriesRef = _db
+        .collection('users')
+        .doc(uid)
+        .collection('series')
+        .doc(seriesName);
     final seriesDoc = await seriesRef.get();
     int runtimeToSave = 45;
 
@@ -169,10 +209,14 @@ class SeriesLogic {
     }
 
     final seasonRef = seriesRef.collection('seasons').doc('Season $seasonNum');
-    final episodeRef = seasonRef.collection('episodes').doc('Episode $episodeNum');
+    final episodeRef = seasonRef
+        .collection('episodes')
+        .doc('Episode $episodeNum');
 
     if (isWatched) {
-      await seasonRef.set({'season_number': seasonNum}, SetOptions(merge: true));
+      await seasonRef.set({
+        'season_number': seasonNum,
+      }, SetOptions(merge: true));
       await episodeRef.set({
         'episode_number': episodeNum,
         'runtime': runtimeToSave,
@@ -184,14 +228,14 @@ class SeriesLogic {
       await episodeRef.update({'watched': false});
     }
 
-    await syncSeriesTotalHours(seriesName);
+    await syncSeriesTotalHours(seriesName, userUid: uid);
   }
 
-  static Future<void> updateSeriesStreak() async {
-    final fbUser = auth.FirebaseAuth.instance.currentUser;
-    if (fbUser == null) return;
+  static Future<void> updateSeriesStreak({String? userUid}) async {
+    final String? uid = userUid ?? _getUid();
+    if (uid == null) return;
 
-    final userRef = _db.collection('users').doc(fbUser.uid);
+    final userRef = _db.collection('users').doc(uid);
     final doc = await userRef.get();
     if (!doc.exists) return;
 
@@ -213,7 +257,7 @@ class SeriesLogic {
         currentStreak = 1;
       }
     } else {
-      currentStreak = 0; 
+      currentStreak = 0;
     }
 
     await userRef.update({
@@ -222,11 +266,15 @@ class SeriesLogic {
     });
   }
 
-  static Future<void> updateGenreCount() async {
-    final user = auth.FirebaseAuth.instance.currentUser;
-    if (user == null) return;
+  static Future<void> updateGenreCount({String? userUid}) async {
+    final String? uid = userUid ?? _getUid();
+    if (uid == null) return;
 
-    final seriesSnap = await _db.collection('users').doc(user.uid).collection('series').get();
+    final seriesSnap = await _db
+        .collection('users')
+        .doc(uid)
+        .collection('series')
+        .get();
     Set<String> uniqueGenres = {};
 
     for (var doc in seriesSnap.docs) {
@@ -238,17 +286,24 @@ class SeriesLogic {
       }
     }
 
-    await _db.collection('users').doc(user.uid).update({
+    await _db.collection('users').doc(uid).update({
       'uniqueGenresCount': uniqueGenres.length,
     });
   }
 
-
-  static Future<bool> isSeriesFavorite(String seriesName) async {
-    final user = auth.FirebaseAuth.instance.currentUser;
-    if (user == null) return false;
+  static Future<bool> isSeriesFavorite(
+    String seriesName, {
+    String? userUid,
+  }) async {
+    final String? uid = userUid ?? _getUid();
+    if (uid == null) return false;
     try {
-      final doc = await _db.collection('users').doc(user.uid).collection('series').doc(seriesName).get();
+      final doc = await _db
+          .collection('users')
+          .doc(uid)
+          .collection('series')
+          .doc(seriesName)
+          .get();
       if (doc.exists) {
         return doc.data()?['isFavorite'] ?? false;
       }
