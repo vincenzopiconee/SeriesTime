@@ -340,7 +340,7 @@ class _SeriesDetailScreenState extends State<SeriesDetailScreen>
                           color: _isFavorite ? Colors.amber : Colors.white,
                         ),
                         label: Text(
-                          _isFavorite ? "Favorited" : "Add to Favorites",
+                          _isFavorite ? "Remove from Favorites" : "Add to Favorites",
                           style: const TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.bold,

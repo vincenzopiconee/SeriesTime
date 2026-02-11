@@ -47,8 +47,8 @@ class _AllCastScreenState extends State<AllCastScreen> {
         child: GridView.builder(
           controller: _scrollController, 
           padding: const EdgeInsets.all(16),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3, 
+          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+            maxCrossAxisExtent: 150,
             childAspectRatio: 0.53, 
             crossAxisSpacing: 10,
             mainAxisSpacing: 16,

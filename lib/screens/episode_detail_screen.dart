@@ -71,7 +71,6 @@ class EpisodeDetailScreen extends StatelessWidget {
               children: [
                 _buildHeaderImage(),
                 const SizedBox(height: 16),
-
                 Row(
                   children: [
                     Column(
@@ -156,7 +155,6 @@ class EpisodeDetailScreen extends StatelessWidget {
 
                     _buildWatchedToggle(),
 
-                    const Spacer(flex: 1),
                   ],
                 ),
 
@@ -330,31 +328,36 @@ class EpisodeDetailScreen extends StatelessWidget {
   }
 
   Widget _buildHeaderImage() {
-    return Container(
-      width: double.infinity,
-      height: 200,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(40),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: episode.stillUrl != null
-            ? Image.network(episode.stillUrl!, fit: BoxFit.cover)
-            : Container(
-                color: Colors.grey[300],
-                child: const Icon(
-                  Icons.image_not_supported,
-                  size: 50,
-                  color: Colors.grey,
+    return AspectRatio(
+      aspectRatio: 16 / 9,
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha(40),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: episode.stillUrl != null
+              ? Image.network(
+                  episode.stillUrl!,
+                  fit: BoxFit.cover,
+                )
+              : Container(
+                  color: Colors.grey[300],
+                  child: const Icon(
+                    Icons.image_not_supported,
+                    size: 50,
+                    color: Colors.grey,
+                  ),
                 ),
-              ),
+        ),
       ),
     );
   }

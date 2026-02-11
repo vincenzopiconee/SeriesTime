@@ -258,8 +258,8 @@ class _MySeriesScreenState extends State<MySeriesScreen> {
     }
     return GridView.builder(
       padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 100),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
+      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+        maxCrossAxisExtent: 150,
         childAspectRatio: 0.68,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,

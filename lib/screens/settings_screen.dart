@@ -89,7 +89,7 @@ class SettingsScreenState extends State<SettingsScreen> {
                 elevation: 5,
               ),
               child: const Text(
-                "LOGOUT",
+                "LOG OUT",
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
             ),

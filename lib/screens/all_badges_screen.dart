@@ -76,8 +76,8 @@ class _AllBadgesScreenState extends State<AllBadgesScreen> {
             child: GridView.builder(
               controller: _scrollController,
               padding: const EdgeInsets.all(16),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 4,
+              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: 100,
                 childAspectRatio: 0.65,
                 crossAxisSpacing: 10,
                 mainAxisSpacing: 10,

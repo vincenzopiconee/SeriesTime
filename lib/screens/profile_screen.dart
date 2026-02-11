@@ -140,7 +140,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 .where((s) => s.percentage < 1.0 && s.percentage > 0.0)
                 .toList();
             filteredSeries.sort((a, b) => b.percentage.compareTo(a.percentage));
-            final List<Series> displaySeries = filteredSeries.take(6).toList();
+            final List<Series> displaySeries = filteredSeries.take(4).toList();
 
             final currentUser = AppData.currentUser!;
             return Scaffold(
@@ -271,14 +271,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           if (allClaimed.isEmpty) {
                             return _buildEmptyBadgesMessage();
                           }
-                          final displayBadges = allClaimed.take(4).toList();
+                          
+                          final displayBadges = allClaimed.take(8).toList();
 
                           return Column(
                             children: [
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: displayBadges.map((badge) {
+                              GridView.builder(
+                                padding: EdgeInsets.zero,
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                itemCount: displayBadges.length,
+                                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                                  maxCrossAxisExtent: 100,
+                                  crossAxisSpacing: 10,
+                                  mainAxisSpacing: 10,
+                                  childAspectRatio: 0.76,
+                                ),
+                                itemBuilder: (context, index) {
+                                  final badge = displayBadges[index];
                                   return GestureDetector(
                                     onTap: () {
                                       List<UserBadge> milestones = [];
@@ -369,9 +379,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     },
                                     child: _buildBadgeItem(badge),
                                   );
-                                }).toList(),
+                                },
                               ),
-                              if (allClaimed.length > 4) ...[
+                              
+                              if (allClaimed.length > 8) ...[
                                 const SizedBox(height: 15),
                                 ElevatedButton(
                                   onPressed: () {
@@ -430,11 +441,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             physics: const NeverScrollableScrollPhysics(),
                             itemCount: displaySeries.length,
                             gridDelegate:
-                                const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 2,
+                                const SliverGridDelegateWithMaxCrossAxisExtent(
+                                  maxCrossAxisExtent: 200,
                                   crossAxisSpacing: 15,
                                   mainAxisSpacing: 15,
                                   childAspectRatio: 1.3,
+                                  
                                 ),
                             itemBuilder: (context, index) {
                               return _buildSeriesCard(displaySeries[index]);
@@ -766,8 +778,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildBadgeItem(UserBadge badge) {
     return Container(
-      width: 80,
-      height: 105,
       decoration: BoxDecoration(
         color: AppData.whiteColor,
         borderRadius: BorderRadius.circular(12),

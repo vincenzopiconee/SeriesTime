@@ -223,7 +223,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     )
                   : const Text(
-                      "LOG IN WITH GOOGLE",
+                      "LOG IN with Google",
                       style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
