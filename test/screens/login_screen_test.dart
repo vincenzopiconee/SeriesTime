@@ -18,7 +18,7 @@ void main() {
 
       expect(find.byType(LoginScreen), findsOneWidget);
       expect(find.text("SeriesTime"), findsOneWidget);
-      expect(find.text("LOG IN WITH GOOGLE"), findsOneWidget);
+      expect(find.text("LOG IN with Google"), findsOneWidget);
 
       await tester.pump(const Duration(milliseconds: 500));
     } finally {

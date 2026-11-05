@@ -115,8 +115,8 @@ void main() {
 
       await tester.pumpWidget(const MaterialApp(home: SettingsScreen()));
 
-      expect(find.text('LOGOUT'), findsOneWidget);
-      expect(find.widgetWithText(ElevatedButton, 'LOGOUT'), findsOneWidget);
+      expect(find.text('LOG OUT'), findsOneWidget);
+      expect(find.widgetWithText(ElevatedButton, 'LOG OUT'), findsOneWidget);
     });
 
     testWidgets('displays delete account button', (tester) async {
@@ -310,7 +310,7 @@ void main() {
 
       await tester.pumpWidget(const MaterialApp(home: SettingsScreen()));
 
-      final logoutButton = find.widgetWithText(ElevatedButton, 'LOGOUT');
+      final logoutButton = find.widgetWithText(ElevatedButton, 'LOG OUT');
       expect(logoutButton, findsOneWidget);
 
       final button = tester.widget<ElevatedButton>(logoutButton);
@@ -461,7 +461,7 @@ void main() {
       expect(find.byType(AppBar), findsOneWidget);
       expect(find.byType(SingleChildScrollView), findsOneWidget);
       expect(find.text('About'), findsOneWidget);
-      expect(find.text('LOGOUT'), findsOneWidget);
+      expect(find.text('LOG OUT'), findsOneWidget);
       expect(find.text('Delete Account'), findsOneWidget);
     });
 
@@ -487,7 +487,7 @@ void main() {
         ),
       );
 
-      final logoutButton = find.text('LOGOUT');
+      final logoutButton = find.text('LOG OUT');
 
       await tester.tap(logoutButton);
       await tester.tap(logoutButton);
@@ -518,7 +518,7 @@ void main() {
         ),
       );
 
-      final logoutButton = find.text('LOGOUT');
+      final logoutButton = find.text('LOG OUT');
       await tester.tap(logoutButton);
       await tester.pump();
 
@@ -815,7 +815,7 @@ void main() {
         ),
       );
 
-      final logoutButton = find.text('LOGOUT');
+      final logoutButton = find.text('LOG OUT');
       await tester.tap(logoutButton);
       await tester.pump();
 

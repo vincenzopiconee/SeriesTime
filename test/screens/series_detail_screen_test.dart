@@ -250,6 +250,15 @@ void main() {
 
     testWidgets('toggles favorite status when button tapped', (tester) async {
       await setupUserData();
+      await fakeFirestore
+          .collection('users')
+          .doc('test-user-id')
+          .collection('series')
+          .doc('Breaking Bad')
+          .set({
+        'isFavorite': false,
+        'totalHours': 50.0,
+      });
 
       await mockNetworkImagesFor(() async {
         await tester.pumpWidget(
@@ -269,7 +278,7 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.byIcon(Icons.star), findsOneWidget);
-        expect(find.text('Favorited'), findsOneWidget);
+        expect(find.text('Remove from Favorites'), findsOneWidget);
       });
     });
 

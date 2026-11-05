@@ -410,9 +410,9 @@ void main() {
 
       final gridView = tester.widget<GridView>(find.byType(GridView));
       final delegate =
-          gridView.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount;
+          gridView.gridDelegate as SliverGridDelegateWithMaxCrossAxisExtent;
 
-      expect(delegate.crossAxisCount, equals(4));
+      expect(delegate.maxCrossAxisExtent, equals(100));
       expect(delegate.childAspectRatio, equals(0.65));
       expect(delegate.crossAxisSpacing, equals(10));
       expect(delegate.mainAxisSpacing, equals(10));

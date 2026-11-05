@@ -14,7 +14,10 @@ class AppData {
   static FirebaseFirestore db = FirebaseFirestore.instance;
   static auth.FirebaseAuth firebaseAuth = auth.FirebaseAuth.instance;
 
-  static const String tmdbApiKey = "1a4c56551c8917b157c4a6fdd2fca54d";
+  static const String tmdbApiKey = String.fromEnvironment(
+    'TMDB_API_KEY',
+    defaultValue: 'dummy_tmdb_api_key',
+  );
   static const Color primaryColor = Color(0xFF791209);
   static const Color accentColor = Color(0xFF364156);
   static const Color backgroundColor = Color(0xFFEEF0E9);

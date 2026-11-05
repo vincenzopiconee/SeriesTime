@@ -895,6 +895,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const SizedBox(height: 8),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       const Icon(
                         Icons.access_time,
@@ -902,12 +903,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         color: Colors.grey,
                       ),
                       const SizedBox(width: 3),
-                      Text(
-                        formattedTime,
-                        style: const TextStyle(
-                          color: Colors.grey,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
+                      Flexible(
+                        child: Text(
+                          formattedTime,
+                          style: const TextStyle(
+                            color: Colors.grey,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],

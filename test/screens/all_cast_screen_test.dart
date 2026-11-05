@@ -34,9 +34,9 @@ void main() {
 
       final gridView = tester.widget<GridView>(find.byType(GridView));
       final delegate =
-          gridView.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount;
+          gridView.gridDelegate as SliverGridDelegateWithMaxCrossAxisExtent;
 
-      expect(delegate.crossAxisCount, equals(3));
+      expect(delegate.maxCrossAxisExtent, equals(150));
       expect(delegate.childAspectRatio, equals(0.53));
       expect(gridView.padding, equals(const EdgeInsets.all(16)));
     });
